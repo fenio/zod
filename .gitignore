@@ -1,0 +1,12 @@
+# Build artifacts
+*.o
+/zod
+/zod_map_editor
+
+# Large redundant archives (assets/ is already unpacked; z.zip is a source snapshot)
+*.rar
+*.zip
+
+# OS junk
+.DS_Store
+Thumbs.db
