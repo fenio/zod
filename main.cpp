@@ -14,6 +14,12 @@ TCHAR *optarg;
 #endif
 
 
+#include <sys/stat.h>
+#include <string>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 #include "main.h"
 #include "common.h"
 #include "constants.h"
@@ -22,6 +28,12 @@ TCHAR *optarg;
 #include "zbot.h"
 #include "zserver.h"
 #include "ztray.h"
+
+// Compile-time install data dir (package builds set e.g.
+// -D ZOD_DATADIR=\"/opt/homebrew/share/zod\"); empty when unset.
+#ifndef ZOD_DATADIR
+#define ZOD_DATADIR ""
+#endif
 
 void display_help(char *shell_command);
 void display_version();
@@ -35,9 +47,69 @@ input_options starting_conditions;
 char bot_bypass_data[MAX_BOT_BYPASS_SIZE];
 int bot_bypass_size;
 
+// The game loads ~485 assets by paths relative to the working directory.
+// That's fine when run from the source tree, but breaks once installed
+// (binary in bin/, assets in share/). Locate the data dir and chdir into it
+// so the relative paths resolve regardless of how/where it was launched.
+static bool dir_has_assets(const std::string &dir)
+{
+	struct stat st;
+	std::string probe = dir + "/assets";
+	return stat(probe.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+static std::string get_exe_dir()
+{
+	char buf[4096];
+#ifdef __APPLE__
+	uint32_t size = sizeof(buf);
+	if(_NSGetExecutablePath(buf, &size) != 0) return "";
+#elif defined(_WIN32)
+	return "";
+#else
+	ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+	if(n <= 0) return "";
+	buf[n] = 0;
+#endif
+	std::string p(buf);
+	size_t slash = p.find_last_of('/');
+	return slash == std::string::npos ? "" : p.substr(0, slash);
+}
+
+static void chdir_to_data_dir()
+{
+#ifndef _WIN32
+	// 1. explicit override
+	const char *env = getenv("ZOD_DATA");
+	if(env && dir_has_assets(env)) { if(chdir(env)){} return; }
+
+	// 2. already in a dir that has assets/ (running from the source tree)
+	if(dir_has_assets(".")) return;
+
+	std::string exe = get_exe_dir();
+	if(!exe.empty())
+	{
+		// 3. assets sit right next to the binary
+		if(dir_has_assets(exe)) { if(chdir(exe.c_str())){} return; }
+		// 4. installed layout: <prefix>/bin/zod -> <prefix>/share/zod/assets
+		std::string share = exe + "/../share/zod";
+		if(dir_has_assets(share)) { if(chdir(share.c_str())){} return; }
+	}
+
+	// 5. compiled-in install datadir (set by package builds)
+	std::string datadir = ZOD_DATADIR;
+	if(!datadir.empty() && dir_has_assets(datadir)) { if(chdir(datadir.c_str())){} return; }
+
+	// else: leave cwd as-is (assets/ had better be here)
+#endif
+}
+
 #undef main
 int main(int argc, char **argv)
 {
+	//find the game data before anything tries to load an asset
+	chdir_to_data_dir();
+
 	SDL_Thread *server_thread;
 	
 	printf("Welcome to the Zod Engine\n");
@@ -220,18 +292,25 @@ void display_version()
 
 void input_options::setdefaults()
 {
-	//-c hestia.nighsoft.net -n zlover -t red -r 800x600 -w -o
-	printf("no arguments set, using defaults of '-c hestia.nighsoft.net -n zlover -t red -r 800x600 -w -o'\n");
+	//No args (e.g. double-clicked / installed launch): start a local
+	//single-player campaign vs a bot, instead of the old default of dialing
+	//the long-dead nighsoft online server.
+	printf("no arguments set: starting local campaign (red vs blue bot, map_list.txt, windowed 800x600)\n");
 
-	read_connect_address = true;
-	connect_address = "hestia.nighsoft.net";
-
+	//local game — no connect address, so main() runs a server + connects us
 	read_player_name = true;
-	player_name = "zlover";
+	player_name = "Player";
 
 	read_player_team = true;
 	player_team_str = "red";
 	team = RED_TEAM;
+
+	//play the campaign map list in order
+	read_map_list = true;
+	map_list = "map_list.txt";
+
+	//give us an opponent
+	read_start_bot[BLUE_TEAM] = true;
 
 	resolution = "800x600";
 	resolution_width = 800;
