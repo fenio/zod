@@ -1,5 +1,6 @@
 #include "sdl12_compat.h"
 #include <stdio.h>
+#include <stdlib.h>   // getenv, for the look-tuning env vars
 
 SDL_Window *g_compat_window = NULL;
 
@@ -14,6 +15,8 @@ static SDL_Texture  *g_frame_tex      = NULL;  // GPU texture we present
 static SDL_Surface  *g_frame_surface  = NULL;  // CPU surface the game blits to
 static int           g_logical_w      = 0;
 static int           g_logical_h      = 0;
+static int           g_scanlines      = 0;   // ZOD_SCANLINES: CRT-style overlay
+static int           g_scanline_alpha = 64;  // ZOD_SCANLINES value = darkness 0-255
 
 static void zod_destroy_scaler()
 {
@@ -28,8 +31,14 @@ SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
 
     bool fullscreen = (flags & SDL_WINDOW_FULLSCREEN) != 0;
 
-    // Nearest-neighbor scaling keeps the pixel art crisp (no blur).
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+    // --- look-tuning knobs (env vars, so they can be compared without rebuilds) ---
+    // ZOD_FILTER:    1 = linear/smooth (default), 0 = nearest/crisp, 2 = best
+    // ZOD_INTEGER:   1 = force perfectly-even integer scaling (may add bars)
+    // ZOD_SCANLINES: 0 = off (default), or 1-255 = CRT scanline darkness
+    const char *e_filter = getenv("ZOD_FILTER");
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, e_filter ? e_filter : "1");
+    const char *e_scan = getenv("ZOD_SCANLINES");
+    if (e_scan) { g_scanline_alpha = atoi(e_scan); g_scanlines = g_scanline_alpha > 0; }
 
     if (!g_compat_window)
     {
@@ -76,6 +85,7 @@ SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
 
         // Aspect-correct scaling; also makes SDL map mouse events into this space.
         SDL_RenderSetLogicalSize(g_renderer, w, h);
+        SDL_RenderSetIntegerScale(g_renderer, getenv("ZOD_INTEGER") ? SDL_TRUE : SDL_FALSE);
         SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 255);
 
         g_frame_tex = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_ARGB8888,
@@ -93,6 +103,17 @@ int SDL_Flip(SDL_Surface * /*screen*/)
     SDL_UpdateTexture(g_frame_tex, NULL, g_frame_surface->pixels, g_frame_surface->pitch);
     SDL_RenderClear(g_renderer);
     SDL_RenderCopy(g_renderer, g_frame_tex, NULL, NULL);
+
+    // Optional CRT-style scanlines: a translucent dark line over every other
+    // logical row (drawn in logical space, so it scales with the image).
+    if (g_scanlines)
+    {
+        SDL_SetRenderDrawBlendMode(g_renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, (Uint8)g_scanline_alpha);
+        for (int y = 0; y < g_logical_h; y += 2)
+            SDL_RenderDrawLine(g_renderer, 0, y, g_logical_w - 1, y);
+    }
+
     SDL_RenderPresent(g_renderer);
     return 0;
 }
