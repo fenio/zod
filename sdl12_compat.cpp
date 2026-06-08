@@ -3,35 +3,98 @@
 
 SDL_Window *g_compat_window = NULL;
 
+// Modern scaled-framebuffer rendering: the game draws to an off-screen
+// surface at its (low) logical resolution, and we GPU-scale that up to a
+// large window via an SDL_Renderer. This makes the 1990s pixel art big and
+// crisp on today's high-resolution / Retina displays instead of being a
+// tiny, OS-upscaled (blurry) region. The whole change is contained here, so
+// none of the game's blitting code has to know about it.
+static SDL_Renderer *g_renderer       = NULL;
+static SDL_Texture  *g_frame_tex      = NULL;  // GPU texture we present
+static SDL_Surface  *g_frame_surface  = NULL;  // CPU surface the game blits to
+static int           g_logical_w      = 0;
+static int           g_logical_h      = 0;
+
+static void zod_destroy_scaler()
+{
+    if (g_frame_tex)     { SDL_DestroyTexture(g_frame_tex); g_frame_tex = NULL; }
+    if (g_frame_surface) { SDL_FreeSurface(g_frame_surface); g_frame_surface = NULL; }
+}
+
 SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
 {
-    Uint32 wflags = SDL_WINDOW_SHOWN;
-    if (flags & SDL_WINDOW_RESIZABLE)  wflags |= SDL_WINDOW_RESIZABLE;
-    if (flags & SDL_WINDOW_FULLSCREEN) wflags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    if (flags & SDL_WINDOW_OPENGL)     wflags |= SDL_WINDOW_OPENGL;
+    if (w <= 0) w = 800;
+    if (h <= 0) h = 600;
+
+    bool fullscreen = (flags & SDL_WINDOW_FULLSCREEN) != 0;
+
+    // Nearest-neighbor scaling keeps the pixel art crisp (no blur).
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
     if (!g_compat_window)
     {
+        // Size the window to fill ~90% of the desktop while preserving the
+        // game's aspect ratio, so the logical framebuffer scales up nicely.
+        int win_w = w, win_h = h;
+        SDL_DisplayMode dm;
+        if (SDL_GetDesktopDisplayMode(0, &dm) == 0 && dm.w > 0 && dm.h > 0)
+        {
+            double sx = (double)(dm.w * 9 / 10) / w;
+            double sy = (double)(dm.h * 9 / 10) / h;
+            double s  = sx < sy ? sx : sy;
+            if (s < 1.0) s = 1.0;
+            win_w = (int)(w * s);
+            win_h = (int)(h * s);
+        }
+
+        Uint32 wflags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+        if (fullscreen) wflags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
         g_compat_window = SDL_CreateWindow("Zod Engine",
                                            SDL_WINDOWPOS_CENTERED,
                                            SDL_WINDOWPOS_CENTERED,
-                                           w > 0 ? w : 800,
-                                           h > 0 ? h : 600,
-                                           wflags);
+                                           win_w, win_h, wflags);
         if (!g_compat_window) return NULL;
+
+        g_renderer = SDL_CreateRenderer(g_compat_window, -1,
+                                        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!g_renderer)
+            g_renderer = SDL_CreateRenderer(g_compat_window, -1, 0);  // software fallback
+        if (!g_renderer) return NULL;
     }
-    else if (w > 0 && h > 0)
+    else
     {
-        SDL_SetWindowSize(g_compat_window, w, h);
+        SDL_SetWindowFullscreen(g_compat_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 
-    return SDL_GetWindowSurface(g_compat_window);
+    // (Re)build the logical framebuffer + texture when the resolution changes.
+    if (w != g_logical_w || h != g_logical_h || !g_frame_surface || !g_frame_tex)
+    {
+        zod_destroy_scaler();
+        g_logical_w = w;
+        g_logical_h = h;
+
+        // Aspect-correct scaling; also makes SDL map mouse events into this space.
+        SDL_RenderSetLogicalSize(g_renderer, w, h);
+        SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 255);
+
+        g_frame_tex = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_ARGB8888,
+                                        SDL_TEXTUREACCESS_STREAMING, w, h);
+        g_frame_surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
+    }
+
+    return g_frame_surface;
 }
 
 int SDL_Flip(SDL_Surface * /*screen*/)
 {
-    if (!g_compat_window) return -1;
-    return SDL_UpdateWindowSurface(g_compat_window);
+    if (!g_renderer || !g_frame_tex || !g_frame_surface) return -1;
+
+    SDL_UpdateTexture(g_frame_tex, NULL, g_frame_surface->pixels, g_frame_surface->pitch);
+    SDL_RenderClear(g_renderer);
+    SDL_RenderCopy(g_renderer, g_frame_tex, NULL, NULL);
+    SDL_RenderPresent(g_renderer);
+    return 0;
 }
 
 void SDL_WM_SetCaption(const char *title, const char * /*icon*/)

@@ -2313,19 +2313,37 @@ void ZPlayer::ProcessSDL()
 			ExitProgram();
 			break;
 		case SDL_WINDOWEVENT:
-			if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
-			    event.window.event == SDL_WINDOWEVENT_RESIZED)
-			{
-				init_w = event.window.data1;
-				init_h = event.window.data2;
-				ehandler.ProcessEvent(SDL_EVENT, RESIZE_EVENT, NULL, 0, 0);
-			}
+			// Window resizes are handled automatically by the scaled-framebuffer
+			// renderer (SDL_RenderSetLogicalSize in sdl12_compat.cpp), which scales
+			// the fixed logical resolution to any window size. Re-syncing init_w/h
+			// to the window here would collapse that logical framebuffer, so it's
+			// intentionally a no-op now.
 			break;
 		case SDL_MOUSEWHEEL:
-			if (event.wheel.y > 0)
-				ehandler.ProcessEvent(SDL_EVENT, WHEELUP_EVENT, NULL, 0, 0);
-			else if (event.wheel.y < 0)
-				ehandler.ProcessEvent(SDL_EVENT, WHEELDOWN_EVENT, NULL, 0, 0);
+			// When a UI panel is open the wheel scrolls it (production list, menus).
+			// Otherwise, two-finger / wheel scrolling pans the map in both axes.
+			// NB: gui_factory_list is always allocated, so test IsVisible(), not
+			// just the pointer — otherwise the pan branch is never reached.
+			if (active_menu || gui_window || (gui_factory_list && gui_factory_list->IsVisible()))
+			{
+				if (event.wheel.y > 0)
+					ehandler.ProcessEvent(SDL_EVENT, WHEELUP_EVENT, NULL, 0, 0);
+				else if (event.wheel.y < 0)
+					ehandler.ProcessEvent(SDL_EVENT, WHEELDOWN_EVENT, NULL, 0, 0);
+			}
+			else
+			{
+				const float pan = 30.0f;  // map pixels per scroll unit
+				int dx = (int)(event.wheel.preciseX * pan);
+				int dy = (int)(event.wheel.preciseY * pan);
+
+				do_focus_to = false;  // cancel any in-progress camera glide
+
+				if (dx > 0)      zmap.ShiftViewRight(dx);
+				else if (dx < 0) zmap.ShiftViewLeft(-dx);
+				if (dy > 0)      zmap.ShiftViewUp(dy);
+				else if (dy < 0) zmap.ShiftViewDown(-dy);
+			}
 			break;
 		case SDL_MOUSEMOTION:
 			StartMouseScrolling(event.motion.x, event.motion.y);
