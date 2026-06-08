@@ -1,7 +1,9 @@
 CC=g++
-MYSQL_PREFIX=/opt/homebrew/opt/mysql-client
-CFLAGS=-c -g `sdl2-config --cflags` -I$(MYSQL_PREFIX)/include -D DISABLE_OPENGL -D DISABLE_REGCHECK -Wno-deprecated -Wno-write-strings
-LDFLAGS=`sdl2-config --libs` -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lm -L$(MYSQL_PREFIX)/lib -lmysqlclient
+# MySQL was only used by the original online master-server for user accounts /
+# win-loss rankings; it's irrelevant to local play and is compiled out
+# (-D DISABLE_MYSQL), so the binary no longer depends on libmysqlclient.
+CFLAGS=-c -g `sdl2-config --cflags` -D DISABLE_OPENGL -D DISABLE_REGCHECK -D DISABLE_MYSQL -Wno-deprecated -Wno-write-strings
+LDFLAGS=`sdl2-config --libs` -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lm
 INCLUDES=
 BASEFILES = common.cpp sdl12_compat.cpp zsdl.cpp event_handler.cpp socket_handler.cpp server_socket.cpp client_socket.cpp zhud.cpp zfont_engine.cpp zfont.cpp zmini_map.cpp cursor.cpp zgui_window.cpp zbuildlist.cpp zsound_engine.cpp zmusic_engine.cpp zcomp_message_engine.cpp zpath_finding.cpp zpath_finding_astar.cpp zsettings.cpp zsdl_opengl.cpp zportrait.cpp zteam.cpp ztray.cpp zmysql.cpp zpsettings.cpp ztime.cpp zvote.cpp zunitrating.cpp zencrypt_aes.cpp zolists.cpp zgui_main_menu_base.cpp zgui_main_menu_widget.cpp
 COREFILES = zcore.cpp zserver.cpp zserver_events.cpp zserver_commands.cpp zclient.cpp zplayer.cpp zplayer_events.cpp zbot.cpp zbot_events.cpp SDL_rotozoom.cpp
