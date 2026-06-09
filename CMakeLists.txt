@@ -52,8 +52,9 @@ target_link_libraries(zod PRIVATE
   m)
 
 # Windows: the engine's client/server code uses Winsock (WSAStartup, socket, …)
+# and the IP Helper API (GetAdaptersInfo).
 if(WIN32)
-  target_link_libraries(zod PRIVATE ws2_32)
+  target_link_libraries(zod PRIVATE ws2_32 iphlpapi)
 endif()
 
 # --- install (binary -> bin/, game data -> share/zod/) ---
