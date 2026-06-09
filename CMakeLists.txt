@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(zod CXX)
 
-# The original code is pre-C++11 and was built with the compiler default, so we
-# don't force a standard here. Default to a Release (optimized) build.
+# Pin to C++14: the code is pre-C++11, and on Windows `using namespace std`
+# (C++17's std::byte) clashes with <windows.h>'s `byte` type ("reference to
+# 'byte' is ambiguous"). C++14 has no std::byte, so the collision disappears.
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Default to a Release (optimized) build.
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
