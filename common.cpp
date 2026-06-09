@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>   // time/localtime/asctime — Linux headers don't pull this in transitively
 #include "common.h"
 
 #ifdef _WIN32
