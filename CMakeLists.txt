@@ -51,6 +51,11 @@ target_link_libraries(zod PRIVATE
   PkgConfig::SDL2_TTF
   m)
 
+# Windows: the engine's client/server code uses Winsock (WSAStartup, socket, …)
+if(WIN32)
+  target_link_libraries(zod PRIVATE ws2_32)
+endif()
+
 # --- install (binary -> bin/, game data -> share/zod/) ---
 install(TARGETS zod RUNTIME DESTINATION bin)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION share/zod)
