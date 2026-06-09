@@ -76,6 +76,9 @@ void ZServer::Setup()
 	//needed for pathfinding
 	ZMap::ServerInit();
 
+	//resume the single-player campaign where we left off
+	LoadCampaignProgress();
+
 	LoadNextMap();
 
 	//start listen socket
@@ -456,7 +459,56 @@ int ZServer::NextInMapList()
 	if(current_map_i != -1)
 		printf("NextInMapList::returning %d '%s'\n", current_map_i, map_list[current_map_i].c_str());
 
+	//remember how far the campaign has progressed
+	SaveCampaignProgress();
+
 	return current_map_i;
+}
+
+string ZServer::CampaignProgressPath()
+{
+	const char *home = getenv("HOME");
+#ifdef _WIN32
+	if(!home || !*home) home = getenv("USERPROFILE");
+#endif
+	if(!home || !*home) return "";
+	return string(home) + "/.zod_campaign_progress";
+}
+
+void ZServer::SaveCampaignProgress()
+{
+	//only meaningful for a sequential (non-random) map-list campaign
+	if(load_maps_randomly) return;
+	if(!map_list.size()) return;
+
+	string path = CampaignProgressPath();
+	if(!path.size()) return;
+
+	FILE *fp = fopen(path.c_str(), "w");
+	if(!fp) return;
+	fprintf(fp, "%d\n", current_map_i);
+	fclose(fp);
+}
+
+void ZServer::LoadCampaignProgress()
+{
+	if(load_maps_randomly) return;
+	if(!map_list.size()) return;
+
+	string path = CampaignProgressPath();
+	if(!path.size()) return;
+
+	FILE *fp = fopen(path.c_str(), "r");
+	if(!fp) return;
+
+	int idx = -1;
+	if(fscanf(fp, "%d", &idx) == 1 && idx >= 0 && idx < (int)map_list.size())
+	{
+		//resume AT idx: set current_map_i so the first NextInMapList() lands on it
+		current_map_i = idx - 1;
+		printf("ZServer: resuming campaign at map %d ('%s')\n", idx, map_list[idx].c_str());
+	}
+	fclose(fp);
 }
 
 bool ZServer::ReadMapList()

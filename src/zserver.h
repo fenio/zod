@@ -49,6 +49,11 @@ class ZServer : public ZCore
 		bool ReadSelectableMapList();
 		bool ReadSelectableMapListFromFolder(string foldername = "");
 		int NextInMapList();
+		//single-player campaign progress: remember which map in the list we
+		//reached, so the campaign resumes there instead of restarting at map 0.
+		string CampaignProgressPath();
+		void SaveCampaignProgress();
+		void LoadCampaignProgress();
 		void ProcessEndGame();
 		void CheckEndGame();
 		void CheckResetGame();
