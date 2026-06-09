@@ -490,7 +490,9 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 			}
 			break;
 		case 27: //esc key
-			exit(0);
+			//was exit(0) — an accidental ESC instantly killed the game. Toggle
+			//the in-game menu instead (it has Quit, which itself confirms).
+			p->LoadMainMenu(GMM_MAIN_MAIN, true);
 			break;
 		case 305: // rctrl
 			p->rctrl_down = true;

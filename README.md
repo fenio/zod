@@ -9,6 +9,8 @@ This is a fork of the Zod Engine by Michael Bok / Nighsoft
 original gameplay is intact; this fork focuses on getting it building and
 running well on modern systems.
 
+![Zod gameplay](docs/screenshot.png)
+
 ## What's new in this fork
 
 - **Ported from SDL 1.2 to SDL 2** (via a small `sdl12_compat` shim).
