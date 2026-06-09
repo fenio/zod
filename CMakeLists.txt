@@ -60,6 +60,5 @@ endif()
 # --- install (binary -> bin/, game data -> share/zod/) ---
 install(TARGETS zod RUNTIME DESTINATION bin)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION share/zod)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/maps"   DESTINATION share/zod)
 install(FILES     "${CMAKE_CURRENT_SOURCE_DIR}/map_list.txt" DESTINATION share/zod)
-file(GLOB ZOD_MAPS "${CMAKE_CURRENT_SOURCE_DIR}/*.map")
-install(FILES ${ZOD_MAPS} DESTINATION share/zod)
