@@ -22,13 +22,13 @@ pkg_check_modules(SDL2_TTF   REQUIRED IMPORTED_TARGET SDL2_ttf)
 # --- sources ---
 # The game is every *.cpp except the separate map-editor / utility / Windows
 # files (mirrors the source selection the hand-written makefile used).
-file(GLOB ZOD_SRCS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB ZOD_SRCS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM ZOD_SRCS
-  "${CMAKE_CURRENT_SOURCE_DIR}/map_editor.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/map_merger.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tile_info_editor.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/win_tray.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/zgfile.cpp")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/map_editor.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/map_merger.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/tile_info_editor.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/win_tray.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/zgfile.cpp")
 
 # Where assets are installed; baked into the binary as a fallback so it can
 # find them after `make install` (see chdir_to_data_dir() in main.cpp).

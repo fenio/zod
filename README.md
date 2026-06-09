@@ -27,6 +27,23 @@ running well on modern systems.
   straight into the single-player campaign with no arguments.
 - **CMake build** + this README + CI.
 
+## Install
+
+### macOS — Homebrew (easiest)
+
+```sh
+brew install fenio/tap/zod
+zod
+```
+
+This pulls a prebuilt binary (a bottle) when one is available for your arch,
+otherwise it builds from source. `zod` with no arguments launches the
+single-player campaign. (Equivalently: `brew tap fenio/tap && brew install zod`.)
+
+### From source (macOS / Linux)
+
+See **Build & run** below.
+
 ## Build & run
 
 Dependencies: a C++ compiler, CMake, pkg-config, and SDL2 with the image,
