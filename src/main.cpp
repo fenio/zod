@@ -19,6 +19,14 @@ TCHAR *optarg;
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
+#ifdef _WIN32
+#include <windows.h>
+#include <direct.h>
+#define ZOD_CHDIR _chdir
+#else
+#include <unistd.h>
+#define ZOD_CHDIR chdir
+#endif
 
 #include "main.h"
 #include "common.h"
@@ -65,23 +73,24 @@ static std::string get_exe_dir()
 	uint32_t size = sizeof(buf);
 	if(_NSGetExecutablePath(buf, &size) != 0) return "";
 #elif defined(_WIN32)
-	return "";
+	DWORD n = GetModuleFileNameA(NULL, buf, sizeof(buf));
+	if(n == 0 || n >= sizeof(buf)) return "";
+	buf[n] = 0;
 #else
 	ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
 	if(n <= 0) return "";
 	buf[n] = 0;
 #endif
 	std::string p(buf);
-	size_t slash = p.find_last_of('/');
+	size_t slash = p.find_last_of("/\\");   // handle Windows backslashes too
 	return slash == std::string::npos ? "" : p.substr(0, slash);
 }
 
 static void chdir_to_data_dir()
 {
-#ifndef _WIN32
 	// 1. explicit override
 	const char *env = getenv("ZOD_DATA");
-	if(env && dir_has_assets(env)) { if(chdir(env)){} return; }
+	if(env && dir_has_assets(env)) { if(ZOD_CHDIR(env)){} return; }
 
 	// 2. already in a dir that has assets/ (running from the source tree)
 	if(dir_has_assets(".")) return;
@@ -89,19 +98,18 @@ static void chdir_to_data_dir()
 	std::string exe = get_exe_dir();
 	if(!exe.empty())
 	{
-		// 3. assets sit right next to the binary
-		if(dir_has_assets(exe)) { if(chdir(exe.c_str())){} return; }
+		// 3. assets sit right next to the binary (Windows zip / portable layout)
+		if(dir_has_assets(exe)) { if(ZOD_CHDIR(exe.c_str())){} return; }
 		// 4. installed layout: <prefix>/bin/zod -> <prefix>/share/zod/assets
 		std::string share = exe + "/../share/zod";
-		if(dir_has_assets(share)) { if(chdir(share.c_str())){} return; }
+		if(dir_has_assets(share)) { if(ZOD_CHDIR(share.c_str())){} return; }
 	}
 
 	// 5. compiled-in install datadir (set by package builds)
 	std::string datadir = ZOD_DATADIR;
-	if(!datadir.empty() && dir_has_assets(datadir)) { if(chdir(datadir.c_str())){} return; }
+	if(!datadir.empty() && dir_has_assets(datadir)) { if(ZOD_CHDIR(datadir.c_str())){} return; }
 
 	// else: leave cwd as-is (assets/ had better be here)
-#endif
 }
 
 #undef main
