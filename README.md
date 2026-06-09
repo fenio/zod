@@ -40,6 +40,21 @@ This pulls a prebuilt binary (a bottle) when one is available for your arch,
 otherwise it builds from source. `zod` with no arguments launches the
 single-player campaign. (Equivalently: `brew tap fenio/tap && brew install zod`.)
 
+### Windows — Scoop (experimental)
+
+```powershell
+scoop bucket add fenio https://github.com/fenio/scoop-bucket
+scoop install zod
+zod
+```
+
+Or grab the `zod-windows-x86_64.zip` straight from the
+[Releases](https://github.com/fenio/zod/releases) page and run `zod.exe`.
+
+> ⚠️ **The Windows build is experimental and not yet runtime-tested** — it
+> compiles and links in CI, but the game hasn't been verified actually running
+> on Windows. Reports welcome.
+
 ### From source (macOS / Linux)
 
 See **Build & run** below.
