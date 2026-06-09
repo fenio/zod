@@ -1848,15 +1848,12 @@ void ZPlayer::ProcessFocusCamerato()
 
 void ZPlayer::StartMouseScrolling(int new_mouse_x, int new_mouse_y)
 {
-	//(used to bail out when the mouse wasn't grabbed; edge-scroll now works in
-	// windowed mode too, so the grab requirement was removed here and below)
-
-	if(!(mouse_x < 10) && (new_mouse_x < 10))
+	if(!(mouse_x < 10) && (new_mouse_x < 10)) 
 	{
 		horz_scroll_over = 0;
 		last_horz_scroll_time = current_time();
 	}
-	else if(!(mouse_x > screen->w - 10) && (new_mouse_x > screen->w - 10)) 
+	else if(!(mouse_x > init_w - 10) && (new_mouse_x > init_w - 10)) 
 	{
 		horz_scroll_over = 0;
 		last_horz_scroll_time = current_time();
@@ -1867,7 +1864,7 @@ void ZPlayer::StartMouseScrolling(int new_mouse_x, int new_mouse_y)
 		vert_scroll_over = 0;
 		last_vert_scroll_time = current_time();
 	}
-	else if(!(mouse_y > screen->h - 10) && (new_mouse_y > screen->h - 10)) 
+	else if(!(mouse_y > init_h - 10) && (new_mouse_y > init_h - 10)) 
 	{
 		vert_scroll_over = 0;
 		last_vert_scroll_time = current_time();
@@ -1879,22 +1876,22 @@ void ZPlayer::StartMouseScrolling(int new_mouse_x, int new_mouse_y)
 // mouse to an edge scrolls the map again.
 bool ZPlayer::DoMouseScrollRight()
 {
-	return mouse_x > screen->w - 10;
+	return (mouse_x > init_w - 10);
 }
 
 bool ZPlayer::DoMouseScrollLeft()
 {
-	return mouse_x < 10;
+	return (mouse_x < 10);
 }
 
 bool ZPlayer::DoMouseScrollUp()
 {
-	return mouse_y < 10;
+	return (mouse_y < 10);
 }
 
 bool ZPlayer::DoMouseScrollDown()
 {
-	return mouse_y > screen->h - 10;
+	return (mouse_y > init_h - 10);
 }
 
 bool ZPlayer::DoKeyScrollRight()

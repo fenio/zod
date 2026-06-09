@@ -84,27 +84,25 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 		return;
 	}
 
-	//FocusCameraTo
+	// Middle-button drag pans the viewport directly. The old SDL1 code warped the
+	// cursor back to the press point on every motion event; under SDL2/scaled
+	// rendering that can suppress or distort motion deltas.
 	if(p->mbutton.down)
 	{
 		int change_x, change_y;
+		int shift_x, shift_y;
 
 		change_x = p->mouse_x - p->mbutton.x;
 		change_y = p->mouse_y - p->mbutton.y;
 
 		if(!change_x && !change_y) return;
 
-		p->mbutton.map_x += change_x;
-		p->mbutton.map_y += change_y;
+		p->zmap.GetViewShift(shift_x, shift_y);
+		p->zmap.SetViewShift(shift_x + change_x, shift_y + change_y);
+		p->do_focus_to = false;
 
-		p->FocusCameraTo(p->mbutton.map_x, p->mbutton.map_y);
-
-		//move the mouse back
-		SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
-		SDL_WarpMouse(p->mbutton.x, p->mbutton.y);
-		SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
-		p->mouse_x = p->mbutton.x;
-		p->mouse_y = p->mbutton.y;
+		p->mbutton.x = p->mouse_x;
+		p->mbutton.y = p->mouse_y;
 		return;
 	}
 

@@ -60,9 +60,10 @@ namespace ZPath_Finding_AStar
 		//		return;
 		//	}
 		//}
-		if(int i = closed_list.point_index[np.x][np.y] != -1)
+		int closed_i = closed_list.point_index[np.x][np.y];
+		if(closed_i != -1)
 		{
-			pf_point &ip = closed_list.list[i];
+			pf_point &ip = closed_list.list[closed_i];
 
 			if(ip.g > (gf(cp.x, cp.y, np.x, np.y, response) + cp.g))
 			{
