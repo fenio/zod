@@ -76,8 +76,21 @@ static inline int SDL_EnableKeyRepeat(int /*delay*/, int /*interval*/) { return 
 #define SDL_DEFAULT_REPEAT_INTERVAL 30
 #endif
 
-// SDL_CreateThread gained a name parameter in SDL2. Redirect 2-arg calls.
+// SDL_CreateThread gained a name parameter in SDL2; map the old 2-arg calls.
+// On Windows, SDL's own SDL_CreateThread is a macro that also injects the C
+// runtime's _beginthreadex/_endthreadex, so we must pass those too (replicating
+// what that macro does) — otherwise we'd call the underlying 5-arg function with
+// too few arguments.
+#undef SDL_CreateThread
+#ifdef _WIN32
+#include <process.h>
+#define SDL_CreateThread(fn, data) \
+    SDL_CreateThread((fn), #fn, (data), \
+        (pfnSDL_CurrentBeginThread)_beginthreadex, \
+        (pfnSDL_CurrentEndThread)_endthreadex)
+#else
 #define SDL_CreateThread(fn, data) SDL_CreateThread((fn), #fn, (data))
+#endif
 
 // SDL2's SDL_CreateRGBSurface validates the RGBA masks against its set of
 // known SDL_PIXELFORMAT_* values and fails with "Unknown pixel format" if
