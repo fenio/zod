@@ -48,7 +48,7 @@ jobs:
             | while read -r dll; do cp "$dll" "$DIST"/; done
           cp -r assets maps "$DIST"/
           cp map_list.txt README.md LICENSE "$DIST"/
-          printf 'EXPERIMENTAL, UNTESTED Windows build of Zod.\r\nDouble-click zod.exe to start the single-player campaign.\r\n' > "$DIST/READ_ME_FIRST.txt"
+          printf 'EXPERIMENTAL Windows build of Zod (confirmed to run; some input quirks remain).\r\nDouble-click zod.exe to start the single-player campaign.\r\n' > "$DIST/READ_ME_FIRST.txt"
 
       - name: Zip and upload to the release
         shell: pwsh

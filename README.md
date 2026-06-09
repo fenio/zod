@@ -53,9 +53,8 @@ zod
 Or grab the `zod-windows-x86_64.zip` straight from the
 [Releases](https://github.com/fenio/zod/releases) page and run `zod.exe`.
 
-> ⚠️ **The Windows build is experimental and not yet runtime-tested** — it
-> compiles and links in CI, but the game hasn't been verified actually running
-> on Windows. Reports welcome.
+> ⚠️ **The Windows build is experimental** — it's confirmed to run, but a few
+> input quirks are still being smoothed out. Reports and fixes welcome.
 
 ### From source (macOS / Linux)
 
