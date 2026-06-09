@@ -118,6 +118,22 @@ int SDL_Flip(SDL_Surface * /*screen*/)
     return 0;
 }
 
+// The game passes logical (render) coordinates; map them to window coordinates
+// for the scaled framebuffer so warps land where the cursor visually is.
+// (Without this, middle-button drag-scroll mis-warps and the deltas skew.)
+void SDL_WarpMouse(int x, int y)
+{
+    if (!g_compat_window) return;
+    if (g_renderer)
+    {
+        int wx = x, wy = y;
+        SDL_RenderLogicalToWindow(g_renderer, (float)x, (float)y, &wx, &wy);
+        SDL_WarpMouseInWindow(g_compat_window, wx, wy);
+    }
+    else
+        SDL_WarpMouseInWindow(g_compat_window, x, y);
+}
+
 void SDL_WM_SetCaption(const char *title, const char * /*icon*/)
 {
     if (g_compat_window && title) SDL_SetWindowTitle(g_compat_window, title);

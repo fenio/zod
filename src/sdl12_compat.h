@@ -116,10 +116,9 @@ static inline void SDL_GL_SwapBuffers(void)
 {
     if (g_compat_window) SDL_GL_SwapWindow(g_compat_window);
 }
-static inline void SDL_WarpMouse(int x, int y)
-{
-    if (g_compat_window) SDL_WarpMouseInWindow(g_compat_window, x, y);
-}
+// x,y are in the game's logical (render) coordinates; the implementation maps
+// them to window coordinates for the scaled framebuffer before warping.
+void SDL_WarpMouse(int x, int y);
 
 // SDL_DisplayFormatAlpha was removed; closest equivalent is ConvertSurfaceFormat.
 // SDL_ConvertSurfaceFormat can fail (returns NULL) when the source has an
