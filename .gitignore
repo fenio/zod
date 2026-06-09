@@ -3,6 +3,11 @@
 /zod
 /zod_map_editor
 
+# CMake out-of-source build dir
+/build/
+CMakeCache.txt
+CMakeFiles/
+
 # Large redundant archives (assets/ is already unpacked; z.zip is a source snapshot)
 *.rar
 *.zip
