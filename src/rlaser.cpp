@@ -45,10 +45,10 @@ void RLaser::PlaySelectedWav()
 	//{
 	//	ch = rand() % 6;
 
-	//	ZMix_PlayChannel(-1, selected_wav[ch], 0);
+	//	ZSDL_PlayChannel(-1, selected_wav[ch], 0);
 	//}
 	//else
-	//	ZMix_PlayChannel(-1, selected_robot_wav[LASER], 0);
+	//	ZSDL_PlayChannel(-1, selected_robot_wav[LASER], 0);
 }
 
 void RLaser::PlaySelectedAnim(ZPortrait &portrait)

@@ -11,7 +11,7 @@ ZSDL_Surface ZMap::zone_marker[MAX_TEAM_TYPES];
 ZSDL_Surface ZMap::zone_marker_water[MAX_TEAM_TYPES];
 SDL_Mutex *ZMap::init_mutex = SDL_CreateMutex();
 
-//Mix_Music *ZMap::music[MAX_PLANET_TYPES];
+//ZAudio_Music *ZMap::music[MAX_PLANET_TYPES];
 
 using namespace COMMON;
 
@@ -64,7 +64,7 @@ void ZMap::Init()
 		string filename;
 		
 		//filename = "assets/sounds/music_" + planet_type_string[i] + ".mp3";
-		//music[i] = MUS_Load_Error ( filename.c_str() );
+		//music[i] = ZSDL_LoadMusic ( filename.c_str() );
 
 
 		//load BMP palette
@@ -162,7 +162,7 @@ void ZMap::LoadPaletteInfo(int terrain_type)
 //	else
 //		;
 //
-//	Mix_VolumeMusic(128);
+//	ZAudio_SetMusicVolume(128);
 //}
 
 bool ZMap::Loaded()

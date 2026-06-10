@@ -215,19 +215,19 @@ void ZObject::Init(TTF_Font *ttf_font)
 	//for(i=0;i<6;i++)
 	//{
 	//	sprintf(filename_c, "assets/sounds/selected_%02d.wav", i);
-	//	selected_wav[i] = MIX_Load_Error(filename_c);
+	//	selected_wav[i] = ZSDL_LoadSound(filename_c);
 	//}
 
 	//for(i=0;i<MAX_ROBOT_TYPES;i++)
 	//{
 	//	sprintf(filename_c, "assets/sounds/selected_%s.wav", robot_type_string[i].c_str());
-	//	selected_robot_wav[i] = MIX_Load_Error(filename_c);
+	//	selected_robot_wav[i] = ZSDL_LoadSound(filename_c);
 	//}
 
 	//for(i=0;i<12;i++)
 	//{
 	//	sprintf(filename_c, "assets/sounds/acknowledge_%02d.wav", i);
-	//	acknowledge_wav[i] = MIX_Load_Error(filename_c);
+	//	acknowledge_wav[i] = ZSDL_LoadSound(filename_c);
 	//}
 }
 
@@ -391,7 +391,7 @@ void ZObject::PlaySelectedWav()
 
 	//ch = rand() % 6;
 
-	//ZMix_PlayChannel(-1, selected_wav[ch], 0);
+	//ZSDL_PlayChannel(-1, selected_wav[ch], 0);
 }
 
 void ZObject::PlaySelectedAnim(ZPortrait &portrait)
@@ -411,7 +411,7 @@ void ZObject::PlayAcknowledgeWav()
 
 	//ch = rand() % 12;
 
-	//ZMix_PlayChannel(-1, acknowledge_wav[ch], 0);
+	//ZSDL_PlayChannel(-1, acknowledge_wav[ch], 0);
 }
 
 void ZObject::PlayAcknowledgeAnim(ZPortrait &portrait, bool no_way)

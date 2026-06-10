@@ -45,10 +45,10 @@ void RPsycho::PlaySelectedWav()
 	//{
 	//	ch = rand() % 6;
 
-	//	ZMix_PlayChannel(-1, selected_wav[ch], 0);
+	//	ZSDL_PlayChannel(-1, selected_wav[ch], 0);
 	//}
 	//else
-	//	ZMix_PlayChannel(-1, selected_robot_wav[PSYCHO], 0);
+	//	ZSDL_PlayChannel(-1, selected_robot_wav[PSYCHO], 0);
 }
 
 void RPsycho::PlaySelectedAnim(ZPortrait &portrait)

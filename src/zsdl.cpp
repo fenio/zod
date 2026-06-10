@@ -426,20 +426,20 @@ void ZSDL_SetMusicOn(bool iton)
 	zsdl_play_music = iton;
 }
 
-int ZSDL_PlayMusic(Mix_Music *music, int eh)
+int ZSDL_PlayMusic(ZAudio_Music *music, int eh)
 {
 	if(!zsdl_play_music) return 0;
 	if(!music) return 0;
 
-	return Mix_PlayMusic(music, eh);
+	return ZAudio_PlayMusic(music, eh);
 }
 
-int ZMix_PlayChannel(int ch, Mix_Chunk *wav, int repeat)
+int ZSDL_PlayChannel(int ch, ZAudio_Sound *wav, int repeat)
 {
 	int ret;
 	if(!zsdl_play_music) return 0;
 
-	ret = Mix_PlayChannel(ch, wav, repeat);
+	ret = ZAudio_PlayChannel(ch, wav, repeat);
 
 	if(ret == -1) printf("unable to play wav\n");
 
@@ -486,20 +486,20 @@ SDL_Surface *IMG_Load_Error(string filename)
 	return ret;
 }
 
-Mix_Music *MUS_Load_Error(string filename)
+ZAudio_Music *ZSDL_LoadMusic(string filename)
 {
-	Mix_Music *ret;
+	ZAudio_Music *ret;
 	
-	if(!(ret = Mix_LoadMUS(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
+	if(!(ret = ZAudio_LoadMusic(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
 	
 	return ret;
 }
 
-Mix_Chunk *MIX_Load_Error(string filename)
+ZAudio_Sound *ZSDL_LoadSound(string filename)
 {
-	Mix_Chunk *ret;
+	ZAudio_Sound *ret;
 	
-	if(!(ret = Mix_LoadWAV(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
+	if(!(ret = ZAudio_LoadSound(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
 	
 	return ret;
 }
@@ -748,6 +748,6 @@ void ZSDL_DestroySurface(SDL_Surface *&surface)
 
 void ZSDL_Quit()
 {
-	Mix_CloseAudio();
+	ZAudio_Close();
 	SDL_Quit();
 }

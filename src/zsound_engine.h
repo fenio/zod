@@ -50,7 +50,7 @@ public:
 	void RepeatSound();
 	void StopRepeatSound();
 
-	Mix_Chunk *snd_chunk;
+	ZAudio_Sound *snd_chunk;
 	double next_play_time;
 	double play_time_shift;
 	int base_volume;

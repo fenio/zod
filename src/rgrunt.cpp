@@ -46,10 +46,10 @@ void RGrunt::PlaySelectedWav()
 	//{
 	//	ch = rand() % 6;
 
-	//	ZMix_PlayChannel(-1, selected_wav[ch], 0);
+	//	ZSDL_PlayChannel(-1, selected_wav[ch], 0);
 	//}
 	//else
-	//	ZMix_PlayChannel(-1, selected_robot_wav[GRUNT], 0);
+	//	ZSDL_PlayChannel(-1, selected_robot_wav[GRUNT], 0);
 }
 
 void RGrunt::PlaySelectedAnim(ZPortrait &portrait)

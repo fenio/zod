@@ -386,7 +386,7 @@ class ZPlayer : public ZClient
 		int sound_setting;
 		
 		ZSDL_Surface splash_screen;
-		Mix_Music *splash_music;
+		ZAudio_Music *splash_music;
 		SDL_Surface *game_icon;
 		SDL_Thread *gload_thread;
 		ZHud zhud;

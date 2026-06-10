@@ -6,7 +6,7 @@
 #include <SDL3/SDL_mutex.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#include "sdl3_mixer_compat.h"
+#include "zaudio.h"
 #include "zvideo.h"
 #include "zsdl_helpers.h"
 #include <string>
@@ -69,14 +69,14 @@ private:
 SDL_Surface *ZSDL_ConvertImage(SDL_Surface *src);
 SDL_Surface *ZSDL_IMG_Load(string filename);
 SDL_Surface *IMG_Load_Error(string filename);
-Mix_Music *MUS_Load_Error(string filename);
-Mix_Chunk *MIX_Load_Error(string filename);
+ZAudio_Music *ZSDL_LoadMusic(string filename);
+ZAudio_Sound *ZSDL_LoadSound(string filename);
 SDL_Surface *CopyImage(SDL_Surface *original);
 SDL_Surface *CopyImageShifted(SDL_Surface *original, int x, int y);
 void put32pixel(SDL_Surface *surface, int x, int y, SDL_Color color);
 SDL_Color get32pixel(SDL_Surface *surface, int x, int y);
-int ZSDL_PlayMusic(Mix_Music *music, int eh);
-int ZMix_PlayChannel(int ch, Mix_Chunk *wav, int repeat);
+int ZSDL_PlayMusic(ZAudio_Music *music, int eh);
+int ZSDL_PlayChannel(int ch, ZAudio_Sound *wav, int repeat);
 void ZSDL_SetMusicOn(bool iton);
 void draw_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int max_x, int max_y);
 void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int max_x, int max_y);

@@ -565,9 +565,9 @@ class ZObject
 		static ZSettings default_zsettings;
 
 		static ZSDL_Surface group_tag[10];
-		//static Mix_Chunk *selected_wav[6];
-		//static Mix_Chunk *selected_robot_wav[MAX_ROBOT_TYPES];
-		//static Mix_Chunk *acknowledge_wav[12];
+		//static ZAudio_Sound *selected_wav[6];
+		//static ZAudio_Sound *selected_robot_wav[MAX_ROBOT_TYPES];
+		//static ZAudio_Sound *acknowledge_wav[12];
 
 		static vector<damage_missile> *damage_missile_list;
 

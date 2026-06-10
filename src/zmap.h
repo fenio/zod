@@ -325,7 +325,7 @@ class ZMap
 		static ZSDL_Surface zone_marker_water[MAX_TEAM_TYPES];
 		
 		//music
-		//static Mix_Music *music[MAX_PLANET_TYPES];
+		//static ZAudio_Music *music[MAX_PLANET_TYPES];
 
 		//effect stuff
 		vector<map_effect_info> map_effect_list;

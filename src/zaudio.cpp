@@ -1,29 +1,28 @@
-#include "sdl3_mixer_compat.h"
+#include "zaudio.h"
 #include <vector>
 
 // One mixer device; SFX play on a pool of tracks (emulating SDL2_mixer
-// "channels"); music gets its own dedicated track. SDL2 volumes were 0..128;
-// MIX_ gains are 0.0..1.0 floats.
-static MIX_Mixer            *g_mixer = NULL;
+// "channels"); music gets its own dedicated track. The engine's volumes are
+// 0..ZAUDIO_MAX_VOLUME ints; MIX_ gains are 0.0..1.0 floats.
+static MIX_Mixer              *g_mixer = NULL;
 static std::vector<MIX_Track*> g_channels;
-static MIX_Track            *g_music = NULL;
+static MIX_Track              *g_music = NULL;
 
-int Mix_Init(int flags)
+bool ZAudio_Init(void)
 {
-    MIX_Init();
-    return flags;
+    return MIX_Init();
 }
 
-int Mix_OpenAudio(int /*frequency*/, Uint16 /*format*/, int /*channels*/, int /*chunksize*/)
+bool ZAudio_Open(int /*frequency*/, Uint16 /*format*/, int /*channels*/, int /*chunksize*/)
 {
-    if (!MIX_Init()) return -1;
+    if (!MIX_Init()) return false;
     g_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
-    if (!g_mixer) return -1;
+    if (!g_mixer) return false;
     g_music = MIX_CreateTrack(g_mixer);
-    return 0;
+    return true;
 }
 
-void Mix_CloseAudio(void)
+void ZAudio_Close(void)
 {
     for (MIX_Track *t : g_channels) if (t) MIX_DestroyTrack(t);
     g_channels.clear();
@@ -32,16 +31,16 @@ void Mix_CloseAudio(void)
     MIX_Quit();
 }
 
-int Mix_QuerySpec(int *frequency, Uint16 *format, int *channels)
+bool ZAudio_QuerySpec(int *frequency, Uint16 *format, int *channels)
 {
     // The engine only uses these loosely; report sane defaults.
     if (frequency) *frequency = 44100;
-    if (format)    *format = AUDIO_S16;
+    if (format)    *format = SDL_AUDIO_S16LE;
     if (channels)  *channels = 2;
-    return 1;
+    return true;
 }
 
-int Mix_AllocateChannels(int numchans)
+int ZAudio_AllocateChannels(int numchans)
 {
     if (!g_mixer || numchans < 0) return 0;
     for (MIX_Track *t : g_channels) if (t) MIX_DestroyTrack(t);
@@ -50,13 +49,13 @@ int Mix_AllocateChannels(int numchans)
     return numchans;
 }
 
-Mix_Chunk *Mix_LoadWAV(const char *file)
+ZAudio_Sound *ZAudio_LoadSound(const char *file)
 {
     if (!g_mixer) return NULL;
     return MIX_LoadAudio(g_mixer, file, true);   // predecode short SFX
 }
 
-Mix_Music *Mix_LoadMUS(const char *file)
+ZAudio_Music *ZAudio_LoadMusic(const char *file)
 {
     if (!g_mixer) return NULL;
     return MIX_LoadAudio(g_mixer, file, false);  // stream music
@@ -67,7 +66,7 @@ static bool play_track(MIX_Track *t, MIX_Audio *audio, int loops)
     if (!t || !audio) return false;
     if (!MIX_SetTrackAudio(t, audio)) return false;
     SDL_PropertiesID props = 0;
-    if (loops != 0)   // SDL2: 0 = once, -1 = forever, N = repeat N times
+    if (loops != 0)   // legacy: 0 = once, -1 = forever, N = repeat N times
     {
         props = SDL_CreateProperties();
         SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loops);
@@ -77,7 +76,7 @@ static bool play_track(MIX_Track *t, MIX_Audio *audio, int loops)
     return ok;
 }
 
-int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
+int ZAudio_PlayChannel(int channel, ZAudio_Sound *sound, int loops)
 {
     if (!g_mixer) return -1;
     if (channel < 0)   // find a free channel
@@ -87,52 +86,48 @@ int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
         if (channel < 0) return -1;
     }
     if (channel >= (int)g_channels.size() || !g_channels[channel]) return -1;
-    return play_track(g_channels[channel], chunk, loops) ? channel : -1;
+    return play_track(g_channels[channel], sound, loops) ? channel : -1;
 }
 
-int Mix_HaltChannel(int channel)
+void ZAudio_HaltChannel(int channel)
 {
-    if (channel < 0) { for (MIX_Track *t : g_channels) if (t) MIX_StopTrack(t, 0); return 0; }
+    if (channel < 0) { for (MIX_Track *t : g_channels) if (t) MIX_StopTrack(t, 0); return; }
     if (channel < (int)g_channels.size() && g_channels[channel]) MIX_StopTrack(g_channels[channel], 0);
-    return 0;
 }
 
-int Mix_Playing(int channel)
+bool ZAudio_ChannelPlaying(int channel)
 {
     if (channel < 0)
     {
-        int n = 0;
-        for (MIX_Track *t : g_channels) if (t && MIX_TrackPlaying(t)) n++;
-        return n;
+        for (MIX_Track *t : g_channels) if (t && MIX_TrackPlaying(t)) return true;
+        return false;
     }
     if (channel < (int)g_channels.size() && g_channels[channel])
-        return MIX_TrackPlaying(g_channels[channel]) ? 1 : 0;
-    return 0;
+        return MIX_TrackPlaying(g_channels[channel]);
+    return false;
 }
 
-int Mix_Volume(int channel, int volume)
+void ZAudio_SetChannelVolume(int channel, int volume)
 {
-    float gain = (volume < 0) ? 1.0f : (volume / (float)MIX_MAX_VOLUME);
+    float gain = (volume < 0) ? 1.0f : (volume / (float)ZAUDIO_MAX_VOLUME);
     if (channel < 0) { for (MIX_Track *t : g_channels) if (t) MIX_SetTrackGain(t, gain); }
     else if (channel < (int)g_channels.size() && g_channels[channel])
         MIX_SetTrackGain(g_channels[channel], gain);
-    return volume;
 }
 
-int Mix_PlayMusic(Mix_Music *music, int loops)
+bool ZAudio_PlayMusic(ZAudio_Music *music, int loops)
 {
-    return play_track(g_music, music, loops) ? 0 : -1;
+    return play_track(g_music, music, loops);
 }
 
-int Mix_VolumeMusic(int volume)
+void ZAudio_SetMusicVolume(int volume)
 {
-    if (g_music) MIX_SetTrackGain(g_music, volume < 0 ? 1.0f : volume / (float)MIX_MAX_VOLUME);
-    return volume;
+    if (g_music) MIX_SetTrackGain(g_music, volume < 0 ? 1.0f : volume / (float)ZAUDIO_MAX_VOLUME);
 }
 
-int Mix_SetMusicPosition(double position)
+bool ZAudio_SetMusicPosition(double position)
 {
-    if (!g_music) return -1;
+    if (!g_music) return false;
     Sint64 frames = MIX_TrackMSToFrames(g_music, (Sint64)(position * 1000.0));
-    return MIX_SetTrackPlaybackPosition(g_music, frames) ? 0 : -1;
+    return MIX_SetTrackPlaybackPosition(g_music, frames);
 }

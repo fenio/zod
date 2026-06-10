@@ -50,8 +50,8 @@ private:
 
 	static bool sound_system_on;
 
-	static Mix_Music *splash_music;
-	static Mix_Music *planet_music[MAX_PLANET_TYPES];
+	static ZAudio_Music *splash_music;
+	static ZAudio_Music *planet_music[MAX_PLANET_TYPES];
 
 	static bool playing_planet_music;
 	static int d_level;

@@ -5,8 +5,8 @@ using namespace COMMON;
 
 bool ZMusicEngine::sound_system_on = true;
 
-Mix_Music *ZMusicEngine::splash_music;
-Mix_Music *ZMusicEngine::planet_music[MAX_PLANET_TYPES];
+ZAudio_Music *ZMusicEngine::splash_music;
+ZAudio_Music *ZMusicEngine::planet_music[MAX_PLANET_TYPES];
 
 bool ZMusicEngine::playing_planet_music = false;
 int ZMusicEngine::d_level = M_CALM;
@@ -21,12 +21,12 @@ void ZMusicEngine::Init()
 {
 	string filename;
 
-	splash_music = MUS_Load_Error("assets/sounds/ABATTLE.mp3");
+	splash_music = ZSDL_LoadMusic("assets/sounds/ABATTLE.mp3");
 	
 	for(int i=0;i<MAX_PLANET_TYPES;i++)
 	{
 		filename = "assets/sounds/music_" + planet_type_string[i] + ".ogg";
-		planet_music[i] = MUS_Load_Error ( filename.c_str() );
+		planet_music[i] = ZSDL_LoadMusic ( filename.c_str() );
 	}
 
 	//fixes
@@ -186,7 +186,7 @@ void ZMusicEngine::PlaySplashMusic()
 	if(!sound_system_on) return;
 
 	ZSDL_PlayMusic(splash_music, -1);
-	//Mix_VolumeMusic(128);
+	//ZAudio_SetMusicVolume(128);
 
 	playing_planet_music = false;
 }
@@ -201,7 +201,7 @@ void ZMusicEngine::PlayPlanetMusic(int p_type_)
 	p_type = p_type_;
 
 	ZSDL_PlayMusic(planet_music[p_type], -1);
-	//Mix_VolumeMusic(80);
+	//ZAudio_SetMusicVolume(80);
 
 	playing_planet_music = true;
 
@@ -352,8 +352,8 @@ void ZMusicEngine::ResetMusic()
 	//printf("ResetMusic:: p:%d d:%d ran:%d\n", p_type, d_level, random_s);
 
 	//set the position
-	if(Mix_SetMusicPosition(d_level_start[p_type][d_level][random_s].position)==-1)
-		printf("Mix_SetMusicPosition: %s\n", Mix_GetError());
+	if(!ZAudio_SetMusicPosition(d_level_start[p_type][d_level][random_s].position))
+		printf("ZAudio_SetMusicPosition: %s\n", SDL_GetError());
 
 	//tell the system when to reset again
 	double the_time = current_time();

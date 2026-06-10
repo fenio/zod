@@ -363,7 +363,7 @@ void ZPlayer::Setup()
 void ZPlayer::InitSDL()
 {
 	int audio_rate = 22050;
-	Uint16 audio_format = AUDIO_S16; /* 16-bit stereo */
+	Uint16 audio_format = SDL_AUDIO_S16LE; /* 16-bit stereo */
 	int audio_channels = 2;
 	int audio_buffers = 4096;
 
@@ -416,15 +416,15 @@ void ZPlayer::InitSDL()
 
 	//Removed because some sdl_mixer libs dont have  
 	//this function and it is not 100% required
-	//if(Mix_Init(MIX_INIT_MOD | MIX_INIT_OGG) != (MIX_INIT_MOD | MIX_INIT_OGG))
-	//	printf("InitSDL::Mix_Init() error\n");
+	//if(ZAudio_Init(MIX_INIT_MOD | MIX_INIT_OGG) != (MIX_INIT_MOD | MIX_INIT_OGG))
+	//	printf("InitSDL::ZAudio_Init() error\n");
 
-	if(Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_buffers) == -1)
-		printf("InitSDL::Mix_OpenAudio() error\n");
+	if(!ZAudio_Open(audio_rate, audio_format, audio_channels, audio_buffers))
+		printf("InitSDL::ZAudio_Open() error\n");
 
-	Mix_QuerySpec(&audio_rate, &audio_format, &audio_channels);
-	Mix_Volume(-1, 128);
-	Mix_VolumeMusic(80);
+	ZAudio_QuerySpec(&audio_rate, &audio_format, &audio_channels);
+	ZAudio_SetChannelVolume(-1, 128);
+	ZAudio_SetMusicVolume(80);
 	sound_setting = SOUND_100;
 
 	//TTF
@@ -434,7 +434,7 @@ void ZPlayer::InitSDL()
 	if (!ttf_font) printf("could not load assets/arial.ttf\n");
 
 	//splash sound best loaded here
-	//splash_music = MUS_Load_Error("assets/sounds/ABATTLE.mp3");
+	//splash_music = ZSDL_LoadMusic("assets/sounds/ABATTLE.mp3");
 	splash_screen.LoadBaseImage("assets/splash.bmp");// = IMG_Load("assets/splash.bmp");
 	splash_screen.UseDisplayFormat(); //Regular needs this to do fading
 
@@ -449,14 +449,14 @@ void ZPlayer::InitSDL()
 //	}
 
 	//test
-	//Mix_Chunk *test_wav = Mix_LoadWAV("test.wav");
-	//ZMix_PlayChannel(-1, test_wav, 0);
+	//ZAudio_Sound *test_wav = ZAudio_LoadSound("test.wav");
+	//ZSDL_PlayChannel(-1, test_wav, 0);
 
 	//repeat music
 	//if(splash_music)
 	//{
 	//	ZSDL_PlayMusic(splash_music, -1);
-	//	Mix_VolumeMusic(128);
+	//	ZAudio_SetMusicVolume(128);
 	//}
 }
 
@@ -2285,7 +2285,7 @@ void ZPlayer::DetermineCursor()
 
 void ZPlayer::ExitProgram()
 {
-	Mix_CloseAudio();
+	ZAudio_Close();
 	exit(0);
 }
 
@@ -2437,12 +2437,12 @@ void ZPlayer::DoSplash()
 			
 			switch(sound_setting)
 			{
-			case SOUND_25: Mix_VolumeMusic((80 / 4) * splash_fade / 255); break;
-			case SOUND_50: Mix_VolumeMusic((80 / 2) * splash_fade / 255); break;
-			case SOUND_75: Mix_VolumeMusic((80 * 3 / 4) * splash_fade / 255); break;
-			case SOUND_100: Mix_VolumeMusic((80) * splash_fade / 255); break;
+			case SOUND_25: ZAudio_SetMusicVolume((80 / 4) * splash_fade / 255); break;
+			case SOUND_50: ZAudio_SetMusicVolume((80 / 2) * splash_fade / 255); break;
+			case SOUND_75: ZAudio_SetMusicVolume((80 * 3 / 4) * splash_fade / 255); break;
+			case SOUND_100: ZAudio_SetMusicVolume((80) * splash_fade / 255); break;
 			}
-			//Mix_VolumeMusic((int)(128.0 * splash_fade / 255));
+			//ZAudio_SetMusicVolume((int)(128.0 * splash_fade / 255));
 
 			//if(splash_screen)
 			//SDL_SetAlpha(splash_screen,SDL_RLEACCEL | SDL_SRCALPHA,(Uint8)splash_fade);
@@ -2492,10 +2492,10 @@ void ZPlayer::DoSplash()
 			ZMusicEngine::PlayPlanetMusic(zmap.GetMapBasics().terrain_type);
 			switch(sound_setting)
 			{
-			case SOUND_25: Mix_VolumeMusic((80 / 4)); break;
-			case SOUND_50: Mix_VolumeMusic((80 / 2)); break;
-			case SOUND_75: Mix_VolumeMusic((80 * 3 / 4)); break;
-			case SOUND_100: Mix_VolumeMusic((80)); break;
+			case SOUND_25: ZAudio_SetMusicVolume((80 / 4)); break;
+			case SOUND_50: ZAudio_SetMusicVolume((80 / 2)); break;
+			case SOUND_75: ZAudio_SetMusicVolume((80 * 3 / 4)); break;
+			case SOUND_100: ZAudio_SetMusicVolume((80)); break;
 			}
 		}
 			//if(music_on) zmap.PlayMusic();
@@ -3890,28 +3890,28 @@ void ZPlayer::SetSoundSetting(int sound_setting_)
 	switch(sound_setting)
 	{
 	case SOUND_0: 
-		Mix_Volume(-1, 0); 
-		Mix_VolumeMusic(0);
+		ZAudio_SetChannelVolume(-1, 0); 
+		ZAudio_SetMusicVolume(0);
 		AddNewsEntry("volume off");
 		break;
 	case SOUND_25: 
-		Mix_Volume(-1, 128 / 4); 
-		Mix_VolumeMusic(80 / 4);
+		ZAudio_SetChannelVolume(-1, 128 / 4); 
+		ZAudio_SetMusicVolume(80 / 4);
 		AddNewsEntry("volume 25%");
 		break;
 	case SOUND_50: 
-		Mix_Volume(-1, 128 / 2); 
-		Mix_VolumeMusic(80 / 2);
+		ZAudio_SetChannelVolume(-1, 128 / 2); 
+		ZAudio_SetMusicVolume(80 / 2);
 		AddNewsEntry("volume 50%");
 		break;
 	case SOUND_75: 
-		Mix_Volume(-1, 128 * 3 / 4); 
-		Mix_VolumeMusic(80 * 3 / 4);
+		ZAudio_SetChannelVolume(-1, 128 * 3 / 4); 
+		ZAudio_SetMusicVolume(80 * 3 / 4);
 		AddNewsEntry("volume 75%");
 		break;
 	case SOUND_100: 
-		Mix_Volume(-1, 128); 
-		Mix_VolumeMusic(80);
+		ZAudio_SetChannelVolume(-1, 128); 
+		ZAudio_SetMusicVolume(80);
 		AddNewsEntry("volume full");
 		break;
 	}
