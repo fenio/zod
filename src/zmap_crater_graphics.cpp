@@ -41,7 +41,7 @@ void ZMapCraterGraphics::Init()
 					//n too high?
 					if(n>=MAX_KNOWN_CRATER_N)
 					{
-						SDL_FreeSurface(surface);
+						SDL_DestroySurface(surface);
 						printf("ZMapCraterGraphics::Init:n:%d for %s small type:%d too high (%d)\n", n, planet_type_string[p].c_str(), t, MAX_KNOWN_CRATER_N);
 						break;
 					}
@@ -68,7 +68,7 @@ void ZMapCraterGraphics::Init()
 					//n too high?
 					if(n>=MAX_KNOWN_CRATER_N)
 					{
-						SDL_FreeSurface(surface);
+						SDL_DestroySurface(surface);
 						printf("ZMapCraterGraphics::Init:n:%d for %s large type:%d too high (%d)\n", n, planet_type_string[p].c_str(), t, MAX_KNOWN_CRATER_N);
 						break;
 					}

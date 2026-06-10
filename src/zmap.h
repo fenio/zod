@@ -239,7 +239,7 @@ class ZMap
 		
 		static void Init();
 		static void ServerInit();
-		static SDL_mutex *init_mutex;
+		static SDL_Mutex *init_mutex;
 		
 		//palette stuff
 		static ZSDL_Surface &GetMapPalette(planet_type palette);

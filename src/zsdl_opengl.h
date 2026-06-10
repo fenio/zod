@@ -6,10 +6,10 @@
 #endif
 
 #ifndef DISABLE_OPENGL
-#include <SDL_opengl.h>
+#include <SDL3/SDL_opengl.h>
 #endif
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include "SDL_rotozoom.h"
 #include <string>
 
@@ -24,7 +24,7 @@ public:
 	static void SetUseOpenGL(bool use_opengl_);
 	static void SetMainSoftwareSurface(SDL_Surface *screen_);
 	static void SetScreenDimensions(int w_, int h_);
-	static void ZSDL_FillRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst = NULL);
+	static void ZSDL_FillSurfaceRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst = NULL);
 	static void SetMapPlace(int x, int y);
 	static void SetHasHud(bool has_hud_);
 	static void GetScreenDimensions(int &w_, int &h_) { w_ = screen_w; h_ = screen_h; }
@@ -87,7 +87,7 @@ private:
 
 void InitOpenGL();
 void ResetOpenGLViewPort(int width, int height);
-inline void ZSDL_FillRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst = NULL)
-	{ ZSDL_Surface::ZSDL_FillRect(dstrect, r, g, b, dst); }
+inline void ZSDL_FillSurfaceRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst = NULL)
+	{ ZSDL_Surface::ZSDL_FillSurfaceRect(dstrect, r, g, b, dst); }
 
 #endif

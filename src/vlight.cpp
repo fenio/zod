@@ -58,7 +58,7 @@ void VLight::Init()
 		for(k=0;k<3;k++)
 			base_damaged[0][j][k] = base[0][j][k] = temp_surface;
 
-	ZSDL_FreeSurface(temp_surface);
+	ZSDL_DestroySurface(temp_surface);
 	
 	//bases
 	for(i=1;i<MAX_TEAM_TYPES;i++)

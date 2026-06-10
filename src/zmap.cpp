@@ -9,7 +9,7 @@ vector<unsigned int> ZMap::map_water_plist[MAX_PLANET_TYPES];
 vector<unsigned int> ZMap::map_water_effect_plist[MAX_PLANET_TYPES];
 ZSDL_Surface ZMap::zone_marker[MAX_TEAM_TYPES];
 ZSDL_Surface ZMap::zone_marker_water[MAX_TEAM_TYPES];
-SDL_mutex *ZMap::init_mutex = SDL_CreateMutex();
+SDL_Mutex *ZMap::init_mutex = SDL_CreateMutex();
 
 //Mix_Music *ZMap::music[MAX_PLANET_TYPES];
 
@@ -310,7 +310,7 @@ void ZMap::RenderMap()
 	//the_box.y = 0;
 	//the_box.w = basic_info.width * 16;
 	//the_box.h = basic_info.height * 16;
-	//ZSDL_FillRect(&the_box, 0, 0, 0, &full_render);
+	//ZSDL_FillSurfaceRect(&the_box, 0, 0, 0, &full_render);
 	
 	if(!planet_template[basic_info.terrain_type].GetBaseSurface())
 	{
@@ -633,7 +633,7 @@ void ZMap::DeRenderMap()
 	full_render.Unload();
 	//if(full_render)
 	//{
-	//	SDL_FreeSurface(full_render);
+	//	SDL_DestroySurface(full_render);
 	//	full_render = NULL;
 	//}
 }

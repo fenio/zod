@@ -105,7 +105,7 @@ void ZGFile::AddFile(string filename, SDL_Surface *img)
 	to_rect.y = 0;
 	to_rect.w = img->w;
 	to_rect.h = img->h;
-	//SDL_FillRect(write_img, &to_rect, SDL_MapRGB(write_img->format, 0, 0, 0));
+	//SDL_FillSurfaceRect(write_img, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(write_img->format), SDL_GetSurfacePalette(write_img), 0, 0, 0));
 	SDL_BlitSurface(img, &to_rect, write_img, &to_rect);
 
 	//needed to make ftell give us the right value
@@ -126,7 +126,7 @@ void ZGFile::AddFile(string filename, SDL_Surface *img)
 	if(!ret)
 	{
 		printf("ZGFile::AddFile: could not write entry\n");
-		SDL_FreeSurface(write_img);
+		SDL_DestroySurface(write_img);
 		fclose(fp);
 		return;
 	}
@@ -138,7 +138,7 @@ void ZGFile::AddFile(string filename, SDL_Surface *img)
 	if(!ret)
 	{
 		printf("ZGFile::AddFile: could not write data\n");
-		SDL_FreeSurface(write_img);
+		SDL_DestroySurface(write_img);
 		fclose(fp);
 		return;
 	}
@@ -146,7 +146,7 @@ void ZGFile::AddFile(string filename, SDL_Surface *img)
 	fclose(fp);
 
 	//free our write img
-	SDL_FreeSurface(write_img);
+	SDL_DestroySurface(write_img);
 }
 
 SDL_Surface *ZGFile::LoadFile(string filename)
@@ -191,7 +191,7 @@ SDL_Surface *ZGFile::LoadFile(string filename)
 	//to_rect.y = 0;
 	//to_rect.w = entry_list[e_num].w;
 	//to_rect.h = entry_list[e_num].h;
-	//SDL_FillRect(read_img, &to_rect, SDL_MapRGB(read_img->format, 0, 0, 0));
+	//SDL_FillSurfaceRect(read_img, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(read_img->format), SDL_GetSurfacePalette(read_img), 0, 0, 0));
 
 	//was the image made?
 	if(!read_img)
@@ -209,7 +209,7 @@ SDL_Surface *ZGFile::LoadFile(string filename)
 	if(!ret)
 	{
 		printf("ZGFile::LoadFile: could not read in sdl surface\n");
-		SDL_FreeSurface(read_img);
+		SDL_DestroySurface(read_img);
 		fclose(fp);
 		return NULL;
 	}

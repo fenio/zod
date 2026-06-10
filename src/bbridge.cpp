@@ -260,9 +260,9 @@ bool BBridge::UnderCursorCanAttack(int &map_x, int &map_y)
 
 void BBridge::UnRenderImages()
 {
-	//ZSDL_FreeSurface(render_img);
-	//ZSDL_FreeSurface(render_damaged_img);
-	//ZSDL_FreeSurface(render_destroyed_img);
+	//ZSDL_DestroySurface(render_img);
+	//ZSDL_DestroySurface(render_damaged_img);
+	//ZSDL_DestroySurface(render_destroyed_img);
 	render_img.Unload();
 	render_damaged_img.Unload();
 	render_destroyed_img.Unload();
@@ -279,7 +279,7 @@ void BBridge::IndividualReRender(ZSDL_Surface &surface)
 	}
 	else if(surface.GetBaseSurface()->w != width_pix || surface.GetBaseSurface()->h != height_pix)
 	{
-		//ZSDL_FreeSurface(surface);	
+		//ZSDL_DestroySurface(surface);	
 		//surface = ZSDL_NewSurface(width_pix, height_pix);
 		surface.LoadNewSurface(width_pix, height_pix);
 	}

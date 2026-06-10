@@ -21,7 +21,7 @@ static int           g_scanline_alpha = 64;  // ZOD_SCANLINES value = darkness 0
 static void zod_destroy_scaler()
 {
     if (g_frame_tex)     { SDL_DestroyTexture(g_frame_tex); g_frame_tex = NULL; }
-    if (g_frame_surface) { SDL_FreeSurface(g_frame_surface); g_frame_surface = NULL; }
+    if (g_frame_surface) { SDL_DestroySurface(g_frame_surface); g_frame_surface = NULL; }
 }
 
 SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
@@ -32,11 +32,10 @@ SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
     bool fullscreen = (flags & SDL_WINDOW_FULLSCREEN) != 0;
 
     // --- look-tuning knobs (env vars, so they can be compared without rebuilds) ---
-    // ZOD_FILTER:    1 = linear/smooth (default), 0 = nearest/crisp, 2 = best
+    // ZOD_FILTER:    1 = linear/smooth (default), 0 = nearest/crisp
     // ZOD_INTEGER:   1 = force perfectly-even integer scaling (may add bars)
     // ZOD_SCANLINES: 0 = off (default), or 1-255 = CRT scanline darkness
-    const char *e_filter = getenv("ZOD_FILTER");
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, e_filter ? e_filter : "1");
+    const char *e_filter = getenv("ZOD_FILTER");   // applied per-texture below (SDL3)
     const char *e_scan = getenv("ZOD_SCANLINES");
     if (e_scan) { g_scanline_alpha = atoi(e_scan); g_scanlines = g_scanline_alpha > 0; }
 
@@ -45,35 +44,31 @@ SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
         // Size the window to fill ~90% of the desktop while preserving the
         // game's aspect ratio, so the logical framebuffer scales up nicely.
         int win_w = w, win_h = h;
-        SDL_DisplayMode dm;
-        if (SDL_GetDesktopDisplayMode(0, &dm) == 0 && dm.w > 0 && dm.h > 0)
+        const SDL_DisplayMode *dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+        if (dm && dm->w > 0 && dm->h > 0)
         {
-            double sx = (double)(dm.w * 9 / 10) / w;
-            double sy = (double)(dm.h * 9 / 10) / h;
+            double sx = (double)(dm->w * 9 / 10) / w;
+            double sy = (double)(dm->h * 9 / 10) / h;
             double s  = sx < sy ? sx : sy;
             if (s < 1.0) s = 1.0;
             win_w = (int)(w * s);
             win_h = (int)(h * s);
         }
 
-        Uint32 wflags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
-        if (fullscreen) wflags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+        Uint32 wflags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE;
+        if (fullscreen) wflags |= SDL_WINDOW_FULLSCREEN;
 
-        g_compat_window = SDL_CreateWindow("Zod Engine",
-                                           SDL_WINDOWPOS_CENTERED,
-                                           SDL_WINDOWPOS_CENTERED,
-                                           win_w, win_h, wflags);
+        g_compat_window = SDL_CreateWindow("Zod Engine", win_w, win_h, wflags);
         if (!g_compat_window) return NULL;
+        SDL_SetWindowPosition(g_compat_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
-        g_renderer = SDL_CreateRenderer(g_compat_window, -1,
-                                        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-        if (!g_renderer)
-            g_renderer = SDL_CreateRenderer(g_compat_window, -1, 0);  // software fallback
+        g_renderer = SDL_CreateRenderer(g_compat_window, NULL);
         if (!g_renderer) return NULL;
+        SDL_SetRenderVSync(g_renderer, 1);
     }
     else
     {
-        SDL_SetWindowFullscreen(g_compat_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+        SDL_SetWindowFullscreen(g_compat_window, fullscreen);
     }
 
     // (Re)build the logical framebuffer + texture when the resolution changes.
@@ -83,13 +78,18 @@ SDL_Surface *SDL_SetVideoMode(int w, int h, int /*bpp*/, Uint32 flags)
         g_logical_w = w;
         g_logical_h = h;
 
-        // Aspect-correct scaling; also makes SDL map mouse events into this space.
-        SDL_RenderSetLogicalSize(g_renderer, w, h);
-        SDL_RenderSetIntegerScale(g_renderer, getenv("ZOD_INTEGER") ? SDL_TRUE : SDL_FALSE);
+        // Aspect-correct (or integer) scaling; also maps mouse events into this space.
+        SDL_SetRenderLogicalPresentation(g_renderer, w, h,
+            getenv("ZOD_INTEGER") ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+                                  : SDL_LOGICAL_PRESENTATION_LETTERBOX);
         SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 255);
 
         g_frame_tex = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_ARGB8888,
                                         SDL_TEXTUREACCESS_STREAMING, w, h);
+        // SDL3 sets scale quality per-texture (SDL_HINT_RENDER_SCALE_QUALITY is gone).
+        SDL_SetTextureScaleMode(g_frame_tex,
+            (e_filter && e_filter[0] == '0') ? SDL_SCALEMODE_NEAREST : SDL_SCALEMODE_LINEAR);
+
         g_frame_surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
     }
 
@@ -102,7 +102,7 @@ int SDL_Flip(SDL_Surface * /*screen*/)
 
     SDL_UpdateTexture(g_frame_tex, NULL, g_frame_surface->pixels, g_frame_surface->pitch);
     SDL_RenderClear(g_renderer);
-    SDL_RenderCopy(g_renderer, g_frame_tex, NULL, NULL);
+    SDL_RenderTexture(g_renderer, g_frame_tex, NULL, NULL);
 
     // Optional CRT-style scanlines: a translucent dark line over every other
     // logical row (drawn in logical space, so it scales with the image).
@@ -111,7 +111,7 @@ int SDL_Flip(SDL_Surface * /*screen*/)
         SDL_SetRenderDrawBlendMode(g_renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, (Uint8)g_scanline_alpha);
         for (int y = 0; y < g_logical_h; y += 2)
-            SDL_RenderDrawLine(g_renderer, 0, y, g_logical_w - 1, y);
+            SDL_RenderLine(g_renderer, 0.0f, (float)y, (float)(g_logical_w - 1), (float)y);
     }
 
     SDL_RenderPresent(g_renderer);
@@ -126,12 +126,12 @@ void SDL_WarpMouse(int x, int y)
     if (!g_compat_window) return;
     if (g_renderer)
     {
-        int wx = x, wy = y;
-        SDL_RenderLogicalToWindow(g_renderer, (float)x, (float)y, &wx, &wy);
+        float wx = (float)x, wy = (float)y;
+        SDL_RenderCoordinatesToWindow(g_renderer, (float)x, (float)y, &wx, &wy);
         SDL_WarpMouseInWindow(g_compat_window, wx, wy);
     }
     else
-        SDL_WarpMouseInWindow(g_compat_window, x, y);
+        SDL_WarpMouseInWindow(g_compat_window, (float)x, (float)y);
 }
 
 void SDL_WM_SetCaption(const char *title, const char * /*icon*/)
@@ -148,7 +148,7 @@ int SDL_WM_GrabInput(int mode)
 {
     if (!g_compat_window) return SDL_GRAB_OFF;
     if (mode == SDL_GRAB_QUERY)
-        return SDL_GetWindowGrab(g_compat_window) ? SDL_GRAB_ON : SDL_GRAB_OFF;
-    SDL_SetWindowGrab(g_compat_window, mode ? SDL_TRUE : SDL_FALSE);
+        return SDL_GetWindowMouseGrab(g_compat_window) ? SDL_GRAB_ON : SDL_GRAB_OFF;
+    SDL_SetWindowMouseGrab(g_compat_window, mode ? true : false);
     return mode;
 }

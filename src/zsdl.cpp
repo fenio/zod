@@ -185,7 +185,7 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	SDL_Rect line_box;
 	//int sdlmap;
 
-	//sdlmap = SDL_MapRGB(surface->format, color.r, color.g, color.b);
+	//sdlmap = SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), SDL_GetSurfacePalette(surface), color.r, color.g, color.b);
 
 	dim.x -= padding;
 	dim.y -= padding;
@@ -209,8 +209,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	line_box.x = dim.x;
 	line_box.y = dim.y;
@@ -220,8 +220,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//top right corner
 	line_box.x = (dim.x + dim.w) - the_len;
@@ -232,8 +232,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	line_box.x = (dim.x + dim.w);
 	line_box.y = dim.y;
@@ -243,8 +243,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//bottom left corner
 	line_box.x = dim.x;
@@ -255,8 +255,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	line_box.x = dim.x;
 	line_box.y = (dim.y + dim.h) - the_len;
@@ -266,8 +266,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//bottom right corner
 	line_box.x = (dim.x + dim.w) - the_len;
@@ -278,8 +278,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	line_box.x = (dim.x + dim.w);
 	line_box.y = (dim.y + dim.h) - the_len;
@@ -289,8 +289,8 @@ void draw_selection_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int
 	if(line_box.x + line_box.w >= max_x) line_box.w = max_x - line_box.x;
 	if(line_box.y + line_box.h >= max_y) line_box.h = max_y - line_box.y;
 	if(max_x - line_box.x > 0 && max_y - line_box.y > 0)
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 
 	//y_i = dim.y+(dim.h);
@@ -340,7 +340,7 @@ void draw_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int max_x, in
 	SDL_Rect line_box;
 	//int sdlmap;
 
-	//sdlmap = SDL_MapRGB(surface->format, color.r, color.g, color.b);
+	//sdlmap = SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), SDL_GetSurfacePalette(surface), color.r, color.g, color.b);
 
 	if(dim.x >= max_x) return;
 	if(dim.y >= max_y) return;
@@ -350,32 +350,32 @@ void draw_box(SDL_Surface *surface, SDL_Rect dim, SDL_Color color, int max_x, in
 	line_box.y = dim.y;
 	line_box.w = dim.w;
 	line_box.h = 1;
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//bottom line
 	line_box.x = dim.x;
 	line_box.y = dim.y + dim.h;
 	line_box.w = dim.w;
 	line_box.h = 1;
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//left line
 	line_box.x = dim.x;
 	line_box.y = dim.y;
 	line_box.w = 1;
 	line_box.h = dim.h;
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//right line
 	line_box.x = dim.x + dim.w;
 	line_box.y = dim.y;
 	line_box.w = 1;
 	line_box.h = dim.h;
-	//SDL_FillRect(surface, &line_box, sdlmap);
-	ZSDL_FillRect(&line_box, color.r, color.g, color.b);
+	//SDL_FillSurfaceRect(surface, &line_box, sdlmap);
+	ZSDL_FillSurfaceRect(&line_box, color.r, color.g, color.b);
 
 	//printf("color:%d %d %d\n", color.r, color.g, color.b);
 
@@ -435,7 +435,7 @@ SDL_Surface *ZSDL_ConvertImage(SDL_Surface *src)
 		SDL_Surface *new_ret;
 
 		new_ret = SDL_DisplayFormatAlpha(src);
-		SDL_FreeSurface( src );
+		SDL_DestroySurface( src );
 		src = new_ret;
 	}
 
@@ -525,7 +525,7 @@ void ZSDL_ModifyBlack(SDL_Surface *surface)
 	SDL_Rect White_Pix_Rect;
 	int rgb_map;
 
-	rgb_map = SDL_MapRGB(surface->format, 1, 0, 0);
+	rgb_map = SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), SDL_GetSurfacePalette(surface), 1, 0, 0);
 
 	for(int i=0;i<surface->w;i++)
 		for(int j=0;j<surface->h;j++)
@@ -533,8 +533,8 @@ void ZSDL_ModifyBlack(SDL_Surface *surface)
 			Uint8 r, g, b, a;
 			Uint32 pixel;
 
-			pixel = *(Uint32*)((Uint8*)surface->pixels + j * surface->pitch + i * surface->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, surface->format, &r, &g, &b, &a);
+			pixel = *(Uint32*)((Uint8*)surface->pixels + j * surface->pitch + i * SDL_GetPixelFormatDetails(surface->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(surface->format), SDL_GetSurfacePalette(surface), &r, &g, &b, &a);
 
 			if(!r && !g && !b && a)
 			{
@@ -542,8 +542,8 @@ void ZSDL_ModifyBlack(SDL_Surface *surface)
 				White_Pix_Rect.y = j;
 				White_Pix_Rect.w = 1;
 				White_Pix_Rect.h = 1;
-				//SDL_FillRect(&White_Pix_Rect, 1, 0, 0, surface);
-				SDL_FillRect(surface, &White_Pix_Rect, rgb_map);
+				//SDL_FillSurfaceRect(&White_Pix_Rect, 1, 0, 0, surface);
+				SDL_FillSurfaceRect(surface, &White_Pix_Rect, rgb_map);
 			}
 		}
 }
@@ -586,9 +586,9 @@ void ZSDL_BlitHitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, 
 	if(!src) return;
 	if(!dst) return;
 
-	//Red_Pix = SDL_MapRGB(dst->format, 255, 0, 0);
+	//Red_Pix = SDL_MapRGB(SDL_GetPixelFormatDetails(dst->format), SDL_GetSurfacePalette(dst), 255, 0, 0);
 
-	//White_Pix = SDL_MapRGB(dst->format, 255, 255, 255);
+	//White_Pix = SDL_MapRGB(SDL_GetPixelFormatDetails(dst->format), SDL_GetSurfacePalette(dst), 255, 255, 255);
 	White_Pix_Rect.w = 1;
 	White_Pix_Rect.h = 1;
 
@@ -635,8 +635,8 @@ void ZSDL_BlitHitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, 
 			Uint8 r, g, b, a;
 			Uint32 pixel;
 
-			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + i * src->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, src->format, &r, &g, &b, &a);
+			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + i * SDL_GetPixelFormatDetails(src->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), &r, &g, &b, &a);
 
 			if(a)
 			{
@@ -644,8 +644,8 @@ void ZSDL_BlitHitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, 
 				White_Pix_Rect.y = dstrect->y + j;
 				White_Pix_Rect.w = 1;
 				White_Pix_Rect.h = 1;
-				//SDL_FillRect(dst, &White_Pix_Rect, White_Pix);
-				ZSDL_FillRect(&White_Pix_Rect, 0, 0, 0);
+				//SDL_FillSurfaceRect(dst, &White_Pix_Rect, White_Pix);
+				ZSDL_FillSurfaceRect(&White_Pix_Rect, 0, 0, 0);
 			}
 			//else
 			//{
@@ -653,7 +653,7 @@ void ZSDL_BlitHitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, 
 			//	White_Pix_Rect.y = dstrect->y + j;
 			//	White_Pix_Rect.w = 1;
 			//	White_Pix_Rect.h = 1;
-			//	SDL_FillRect(dst, &White_Pix_Rect, Red_Pix);
+			//	SDL_FillSurfaceRect(dst, &White_Pix_Rect, Red_Pix);
 			//}
 		}
 }
@@ -674,7 +674,6 @@ SDL_Surface *ZSDL_NewSurface(int w, int h)
 
 void put32pixel(SDL_Surface *surface, int x, int y, SDL_Color color)
 {
-	SDL_PixelFormat *fmt;
 	//SDL_Surface *surface;
 	SDL_Color return_color;
 	Uint32 temp, *pixel;
@@ -685,13 +684,12 @@ void put32pixel(SDL_Surface *surface, int x, int y, SDL_Color color)
 	if(x>=surface->w) return;
 	if(y>=surface->h) return;
 
-	fmt = surface->format;
 	//SDL_LockSurface(surface);
 	//pixel = *((Uint32*)surface->pixels);
-	//pixel = *((Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel));
+	//pixel = *((Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * SDL_GetPixelFormatDetails(surface->format)->bytes_per_pixel));
 	//SDL_UnlockSurface(surface);
 	
-	pixel = (Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel);
+	pixel = (Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * SDL_GetPixelFormatDetails(surface->format)->bytes_per_pixel);
 	
 	//clear red
 	((Uint8*)pixel)[2] = color.r;
@@ -702,41 +700,16 @@ void put32pixel(SDL_Surface *surface, int x, int y, SDL_Color color)
 
 SDL_Color get32pixel(SDL_Surface *surface, int x, int y)
 {
-	SDL_PixelFormat *fmt;
-	//SDL_Surface *surface;
 	SDL_Color return_color;
-	Uint32 temp, pixel;
+	Uint32 pixel;
 	Uint8 red, green, blue, alpha;
 
-	fmt = surface->format;
-	//SDL_LockSurface(surface);
-	//pixel = *((Uint32*)surface->pixels);
-	pixel = *((Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel));
-	//SDL_UnlockSurface(surface);
-	 
-	/* Get Red component */
-	temp = pixel & fmt->Rmask;  /* Isolate red component */
-	temp = temp >> fmt->Rshift; /* Shift it down to 8-bit */
-	temp = temp << fmt->Rloss;  /* Expand to a full 8-bit number */
-	red = (Uint8)temp;
-	 
-	/* Get Green component */
-	temp = pixel & fmt->Gmask;  /* Isolate green component */
-	temp = temp >> fmt->Gshift; /* Shift it down to 8-bit */
-	temp = temp << fmt->Gloss;  /* Expand to a full 8-bit number */
-	green = (Uint8)temp;
-	
-	/* Get Blue component */
-	temp = pixel & fmt->Bmask;  /* Isolate blue component */
-	temp = temp >> fmt->Bshift; /* Shift it down to 8-bit */
-	temp = temp << fmt->Bloss;  /* Expand to a full 8-bit number */
-	blue = (Uint8)temp;
-	 
-	/* Get Alpha component */
-	temp = pixel & fmt->Amask;  /* Isolate alpha component */
-	temp = temp >> fmt->Ashift; /* Shift it down to 8-bit */
-	temp = temp << fmt->Aloss;  /* Expand to a full 8-bit number */
-	alpha = (Uint8)temp;
+	// SDL3: pixel-format details (masks/shifts) live in SDL_PixelFormatDetails,
+	// and SDL_GetRGBA does the component extraction (the old Rloss-style fields
+	// are gone), so let it do the work.
+	const SDL_PixelFormatDetails *fmt = SDL_GetPixelFormatDetails(surface->format);
+	pixel = *((Uint32*)((Uint8 *)surface->pixels + y * surface->pitch + x * fmt->bytes_per_pixel));
+	SDL_GetRGBA(pixel, fmt, SDL_GetSurfacePalette(surface), &red, &green, &blue, &alpha);
 
 	return_color.r = red;
 	return_color.g = green;
@@ -746,11 +719,11 @@ SDL_Color get32pixel(SDL_Surface *surface, int x, int y)
 	return return_color;
 }
 
-void ZSDL_FreeSurface(SDL_Surface *&surface)
+void ZSDL_DestroySurface(SDL_Surface *&surface)
 {
 	if(surface)
 	{
-		SDL_FreeSurface(surface);
+		SDL_DestroySurface(surface);
 		surface = NULL;
 	}
 }

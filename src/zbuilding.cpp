@@ -523,7 +523,7 @@ void ZBuilding::ResetShowTime(int new_time)
 	show_time_img.Unload();
 	//if(show_time_img)
 	//{
-	//	SDL_FreeSurface(show_time_img);
+	//	SDL_DestroySurface(show_time_img);
 	//	show_time_img = NULL;
 	//}
 

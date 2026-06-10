@@ -55,7 +55,7 @@ void VMissileLauncher::Init()
 		for(k=0;k<3;k++)
 			base[0][j][k] = temp_surface;
 
-	ZSDL_FreeSurface(temp_surface);
+	ZSDL_DestroySurface(temp_surface);
 	
 	for(i=1;i<MAX_TEAM_TYPES;i++)
 		for(j=0;j<MAX_ANGLE_TYPES;j++)

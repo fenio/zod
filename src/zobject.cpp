@@ -112,8 +112,8 @@ ZObject::~ZObject()
 	if(zmap) cur_wp_info.clear_and_kill(*zmap);
 
 	//alittle mem mangement
-	//if(hover_name_img) SDL_FreeSurface(hover_name_img);
-	//if(hover_name_star_img) SDL_FreeSurface(hover_name_star_img);
+	//if(hover_name_img) SDL_DestroySurface(hover_name_img);
+	//if(hover_name_star_img) SDL_DestroySurface(hover_name_star_img);
 }
 
 void ZObject::InitTypeId(unsigned char ot, unsigned char oid)
@@ -208,8 +208,8 @@ void ZObject::Init(TTF_Font *ttf_font)
 		textcolor.b = 200;
 
 		sprintf(filename_c, "%d", i);
-		//group_tag[i] = TTF_RenderText_Solid(ttf_font, filename_c, textcolor);
-		group_tag[i].LoadBaseImage(TTF_RenderText_Solid(ttf_font, filename_c, textcolor));
+		//group_tag[i] = TTF_RenderText_Solid(ttf_font, filename_c, 0, textcolor);
+		group_tag[i].LoadBaseImage(TTF_RenderText_Solid(ttf_font, filename_c, 0, textcolor));
 	}
 
 	//for(i=0;i<6;i++)
@@ -618,9 +618,9 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 	const char g_r = 82, g_g = 190, g_b = 33;
 	const char y_r = 247, y_g = 203, y_b = 107;
 	const char b_r = 0, b_g = 0, b_b = 0;
-	//int green_map = SDL_MapRGB(dest->format, 82, 190, 33);
-	//int yellow_map = SDL_MapRGB(dest->format, 247, 203, 107);
-	//int black_map = SDL_MapRGB(dest->format, 0, 0, 0);
+	//int green_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 82, 190, 33);
+	//int yellow_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 247, 203, 107);
+	//int black_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 0, 0, 0);
 	const int bar_x_shift = -3;
 	const int bar_y_shift = -8;
 	const int max_dist = 30 + 6;
@@ -645,7 +645,7 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 	//the_box.w = total_dist;
 	//the_box.h = 4;
 
-	//SDL_FillRect(dest, &the_box, black_map);
+	//SDL_FillSurfaceRect(dest, &the_box, black_map);
 
 	if(zmap.GetBlitInfo(x + bar_x_shift, y + bar_y_shift, total_dist, 4, from_rect, to_rect))
 	{
@@ -654,8 +654,8 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 		the_box.w = from_rect.w;
 		the_box.h = from_rect.h;
 
-		//SDL_FillRect(dest, &the_box, black_map);
-		ZSDL_FillRect(&the_box, b_r, b_g, b_b);
+		//SDL_FillSurfaceRect(dest, &the_box, black_map);
+		ZSDL_FillSurfaceRect(&the_box, b_r, b_g, b_b);
 	}
 
 	//draw green
@@ -664,7 +664,7 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 	//the_box.w = green_dist;
 	//the_box.h = 2;
 
-	//SDL_FillRect(dest, &the_box, green_map);
+	//SDL_FillSurfaceRect(dest, &the_box, green_map);
 
 	if(zmap.GetBlitInfo(x + bar_x_shift + 1, y + bar_y_shift + 1, green_dist, 2, from_rect, to_rect))
 	{
@@ -673,8 +673,8 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 		the_box.w = from_rect.w;
 		the_box.h = from_rect.h;
 
-		//SDL_FillRect(dest, &the_box, green_map);
-		ZSDL_FillRect(&the_box, g_r, g_g, g_b);
+		//SDL_FillSurfaceRect(dest, &the_box, green_map);
+		ZSDL_FillSurfaceRect(&the_box, g_r, g_g, g_b);
 	}
 
 	//draw yellow
@@ -684,7 +684,7 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 	//the_box.h = 2;
 
 	//if(the_box.w)
-	//	SDL_FillRect(dest, &the_box, yellow_map);
+	//	SDL_FillSurfaceRect(dest, &the_box, yellow_map);
 
 	if(yellow_dist - green_dist)
 	if(zmap.GetBlitInfo(x + bar_x_shift + 1 + green_dist, y + bar_y_shift + 1, yellow_dist - green_dist, 2, from_rect, to_rect))
@@ -694,8 +694,8 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 		the_box.w = from_rect.w;
 		the_box.h = from_rect.h;
 
-		//SDL_FillRect(dest, &the_box, yellow_map);
-		ZSDL_FillRect(&the_box, y_r, y_g, y_b);
+		//SDL_FillSurfaceRect(dest, &the_box, yellow_map);
+		ZSDL_FillSurfaceRect(&the_box, y_r, y_g, y_b);
 	}
 }
 
@@ -729,7 +729,7 @@ void ZObject::RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*>
 
 	//init stuff
 	//team_type &t = owner;
-	//rgb_map = SDL_MapRGB(dest->format, team_color[t].r, team_color[t].g, team_color[t].b); 
+	//rgb_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), team_color[t].r, team_color[t].g, team_color[t].b); 
 	to_rect.w = 3;
 	to_rect.h = 3;
 
@@ -745,8 +745,8 @@ void ZObject::RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*>
 		to_rect.h = 2;
 		if((to_rect.x >= 0 && to_rect.x + 2 < view_w) && (to_rect.y >= 0 && to_rect.y + 2 < view_h))
 			if(!WithinAttackRadiusOf(avoid_list, to_rect.x + shift_x, to_rect.y + shift_y))
-				ZSDL_FillRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
-				//SDL_FillRect(dest, &to_rect, rgb_map);
+				ZSDL_FillSurfaceRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
+				//SDL_FillSurfaceRect(dest, &to_rect, rgb_map);
 
 		to_rect.x = -mx + cx;
 		to_rect.y = -my + cy;
@@ -754,8 +754,8 @@ void ZObject::RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*>
 		to_rect.h = 2;
 		if((to_rect.x >= 0 && to_rect.x + 2 < view_w) && (to_rect.y >= 0 && to_rect.y + 2 < view_h))
 			if(!WithinAttackRadiusOf(avoid_list, to_rect.x + shift_x, to_rect.y + shift_y))
-				ZSDL_FillRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
-				//SDL_FillRect(dest, &to_rect, rgb_map);
+				ZSDL_FillSurfaceRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
+				//SDL_FillSurfaceRect(dest, &to_rect, rgb_map);
 
 		to_rect.x = -mx + cx;
 		to_rect.y = my + cy;
@@ -763,8 +763,8 @@ void ZObject::RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*>
 		to_rect.h = 2;
 		if((to_rect.x >= 0 && to_rect.x + 2 < view_w) && (to_rect.y >= 0 && to_rect.y + 2 < view_h))
 			if(!WithinAttackRadiusOf(avoid_list, to_rect.x + shift_x, to_rect.y + shift_y))
-				ZSDL_FillRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
-				//SDL_FillRect(dest, &to_rect, rgb_map);
+				ZSDL_FillSurfaceRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
+				//SDL_FillSurfaceRect(dest, &to_rect, rgb_map);
 
 		to_rect.x = mx + cx;
 		to_rect.y = -my + cy;
@@ -772,8 +772,8 @@ void ZObject::RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*>
 		to_rect.h = 2;
 		if((to_rect.x >= 0 && to_rect.x + 2 < view_w) && (to_rect.y >= 0 && to_rect.y + 2 < view_h))
 			if(!WithinAttackRadiusOf(avoid_list, to_rect.x + shift_x, to_rect.y + shift_y))
-				ZSDL_FillRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
-				//SDL_FillRect(dest, &to_rect, rgb_map);
+				ZSDL_FillSurfaceRect(&to_rect, team_color[owner].r, team_color[owner].g, team_color[owner].b);
+				//SDL_FillSurfaceRect(dest, &to_rect, rgb_map);
 	}
 }
 
@@ -1117,7 +1117,7 @@ void ZObject::DoRenderWaypoints(ZMap &the_map, SDL_Surface *dest, vector<ZObject
 	const int glvl = 170;
 	SDL_Rect the_box;
 	vector<waypoint>::iterator i;
-	//Uint32 mappedrgb = SDL_MapRGB(dest->format, glvl, glvl, glvl);
+	//Uint32 mappedrgb = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), glvl, glvl, glvl);
 	double tx,ty;
 	double txp, typ;
 	double dx, dy;
@@ -1192,8 +1192,8 @@ void ZObject::DoRenderWaypoints(ZMap &the_map, SDL_Surface *dest, vector<ZObject
 				the_box.w = 2;
 				the_box.h = 2;
 
-				//SDL_FillRect(dest, &the_box, mappedrgb);
-				ZSDL_FillRect(&the_box, glvl, glvl, glvl);
+				//SDL_FillSurfaceRect(dest, &the_box, mappedrgb);
+				ZSDL_FillSurfaceRect(&the_box, glvl, glvl, glvl);
 			}
 
 			tx += txp;
@@ -1284,8 +1284,8 @@ void ZObject::DoRenderWaypoints(ZMap &the_map, SDL_Surface *dest, vector<ZObject
 				the_box.w = 2;
 				the_box.h = 2;
 
-				//SDL_FillRect(dest, &the_box, mappedrgb);
-				ZSDL_FillRect(&the_box, glvl, glvl, glvl);
+				//SDL_FillSurfaceRect(dest, &the_box, mappedrgb);
+				ZSDL_FillSurfaceRect(&the_box, glvl, glvl, glvl);
 			}
 
 			tx += txp;
@@ -1399,8 +1399,8 @@ void ZObject::RenderWaypointLine(int sx, int sy, int ex, int ey, int view_h, int
 			the_box.w = 2;
 			the_box.h = 2;
 
-			//SDL_FillRect(dest, &the_box, mappedrgb);
-			ZSDL_FillRect(&the_box, glvl, glvl, glvl);
+			//SDL_FillSurfaceRect(dest, &the_box, mappedrgb);
+			ZSDL_FillSurfaceRect(&the_box, glvl, glvl, glvl);
 		}
 
 		tx += txp;

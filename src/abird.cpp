@@ -68,7 +68,7 @@ void ABird::DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x, int shift_y)
 	//if(the_map.GetBlitInfo(render_img, x - (render_img->w >> 1), (y - ((rise - 1) * 50)) - (render_img->h >> 1), from_rect, to_rect))
 	//	SDL_BlitSurface( render_img, &from_rect, dest, &to_rect);
 
-	//SDL_FreeSurface(render_img);
+	//SDL_DestroySurface(render_img);
 }
 
 int ABird::Process()

@@ -6,7 +6,7 @@
 #include "zsdl.h"
 #include "common.h"
 
-#include <SDL_ttf.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 using namespace COMMON;
 using namespace std;
@@ -27,7 +27,7 @@ SDL_Surface *screen;
 TTF_Font *ttf_font;
 int palette_chosen;
 SDL_Thread *process_thread;
-SDL_mutex *process_mutex;
+SDL_Mutex *process_mutex;
 
 int current_process_tile;
 int current_mode;
@@ -115,21 +115,21 @@ int main(int argc, char **argv)
 		while(SDL_PollEvent(&event))
 		switch( event.type ) 
 		{
-			case SDL_QUIT:
+			case SDL_EVENT_QUIT:
 				return 0;
 				break;
-			case SDL_MOUSEBUTTONDOWN:
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
 // 				event.button.x;
 // 				event.button.y;
 				tile = ZMap::GetPaletteTile(event.button.x, event.button.y);
 				process_thread = SDL_CreateThread(process_tile, (void*)&tile);
 				break;
-			case SDL_MOUSEMOTION:
+			case SDL_EVENT_MOUSE_MOTION:
 // 				event.motion.x;
 // 				event.motion.y;
 				hover_tile(ZMap::GetPaletteTile(event.motion.x, event.motion.y));
 				break;
-			case SDL_KEYDOWN:
+			case SDL_EVENT_KEY_DOWN:
 				switch(event.key.keysym.unicode)
 				{
 					case 'm':
@@ -363,7 +363,7 @@ void display_tile_info_normal(int tile)
 	clr_box.y = 384;
 	clr_box.w = 320;
 	clr_box.h = 40;
-	SDL_FillRect(screen, &clr_box, SDL_MapRGB(screen->format, 0, 0, 0));
+	SDL_FillSurfaceRect(screen, &clr_box, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), 0, 0, 0));
 	
 	//append attribute info
 	if(p_info.is_usable) strcat(message, " usable");
@@ -406,7 +406,7 @@ void display_tile_info_map(int tile)
 	clr_box.y = 384;
 	clr_box.w = 320;
 	clr_box.h = 40;
-	SDL_FillRect(screen, &clr_box, SDL_MapRGB(screen->format, 0, 0, 0));
+	SDL_FillSurfaceRect(screen, &clr_box, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), 0, 0, 0));
 	
 	//append attribute info
 	if(p_info.is_starter_tile) strcat(message, " starter");
@@ -498,7 +498,7 @@ void blit_message(const char *message, int x, int y)
 	location.x = x;
 	location.y = y;
 			
-	text = TTF_RenderText_Solid(ttf_font, message, textcolor);
+	text = TTF_RenderText_Solid(ttf_font, message, 0, textcolor);
 	
 	SDL_BlitSurface( text, NULL, screen, &location);
 }

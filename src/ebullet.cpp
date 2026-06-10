@@ -78,10 +78,10 @@ void EBullet::DoRender(ZMap &zmap, SDL_Surface *dest)
 	//if(!rgb_map)
 	//{
 	//	team_type &t = owner;
-	//	rgb_map = SDL_MapRGB(dest->format, team_color[t].r, team_color[t].g, team_color[t].b);
+	//	rgb_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), team_color[t].r, team_color[t].g, team_color[t].b);
 	//}
 
-	//SDL_FillRect(dest, &the_box, rgb_map);
+	//SDL_FillSurfaceRect(dest, &the_box, rgb_map);
 	team_type &t = owner;
-	ZSDL_FillRect(&the_box, team_color[t].r, team_color[t].g, team_color[t].b);
+	ZSDL_FillSurfaceRect(&the_box, team_color[t].r, team_color[t].g, team_color[t].b);
 }

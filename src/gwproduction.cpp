@@ -147,7 +147,7 @@ void GWProduction::Process()
 
 			health_percent = new_percent;
 
-			//ZSDL_FreeSurface(health_percent_img);
+			//ZSDL_DestroySurface(health_percent_img);
 			sprintf(message, "%d%c", health_percent, '%');
 			//printf("%s\n", message);
 			//health_percent_img = ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(message);
@@ -269,7 +269,7 @@ void GWProduction::ResetShowTime(int new_time)
 
 	//if(show_time_img)
 	//{
-	//	SDL_FreeSurface(show_time_img);
+	//	SDL_DestroySurface(show_time_img);
 	//	show_time_img = NULL;
 	//}
 

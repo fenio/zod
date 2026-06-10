@@ -32,8 +32,8 @@ bool ZTeam_Palette::LoadSurfacePalette(SDL_Surface *src)
 
 		//base color
 		{
-			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + 0 * src->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, src->format, &r, &g, &b, &a);
+			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + 0 * SDL_GetPixelFormatDetails(src->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), &r, &g, &b, &a);
 
 			nc.r = r;
 			nc.g = g;
@@ -45,8 +45,8 @@ bool ZTeam_Palette::LoadSurfacePalette(SDL_Surface *src)
 
 		//replace color
 		{
-			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + 1 * src->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, src->format, &r, &g, &b, &a);
+			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + 1 * SDL_GetPixelFormatDetails(src->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), &r, &g, &b, &a);
 
 			nc.r = r;
 			nc.g = g;
@@ -96,7 +96,7 @@ bool ZTeam_Palette::SaveSurfacePalette(string filename)
 			point_rect.w = 1;
 			point_rect.h = 1;
 
-			SDL_FillRect(src, &point_rect, SDL_MapRGB(src->format, c.r, c.g, c.b));
+			SDL_FillSurfaceRect(src, &point_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), c.r, c.g, c.b));
 		}
 
 		//replace color
@@ -108,7 +108,7 @@ bool ZTeam_Palette::SaveSurfacePalette(string filename)
 			point_rect.w = 1;
 			point_rect.h = 1;
 
-			SDL_FillRect(src, &point_rect, SDL_MapRGB(src->format, c.r, c.g, c.b));
+			SDL_FillSurfaceRect(src, &point_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), c.r, c.g, c.b));
 		}
 	}
 
@@ -116,7 +116,7 @@ bool ZTeam_Palette::SaveSurfacePalette(string filename)
 	SDL_SaveBMP(src, filename.c_str());
 
 	//free surface
-	SDL_FreeSurface(src);
+	SDL_DestroySurface(src);
 
 	//good
 	return true;
@@ -277,7 +277,7 @@ void ZTeam::LoadPalette(int team)
 
 	//load it and free it
 	team_palette[team].LoadSurfacePalette(surface);
-	SDL_FreeSurface(surface);
+	SDL_DestroySurface(surface);
 }
 
 void ZTeam::SavePalette(int team)
@@ -332,11 +332,11 @@ void ZTeam::AppendPalette(int team, SDL_Surface *bv, SDL_Surface *rv)
 			Uint8 rr, rg, rb, ra;
 			Uint32 pixel;
 
-			pixel = *(Uint32*)((Uint8*)bv->pixels + j * bv->pitch + i * bv->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, bv->format, &br, &bg, &bb, &ba);
+			pixel = *(Uint32*)((Uint8*)bv->pixels + j * bv->pitch + i * SDL_GetPixelFormatDetails(bv->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(bv->format), SDL_GetSurfacePalette(bv), &br, &bg, &bb, &ba);
 
-			pixel = *(Uint32*)((Uint8*)rv->pixels + j * rv->pitch + i * rv->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, rv->format, &rr, &rg, &rb, &ra);
+			pixel = *(Uint32*)((Uint8*)rv->pixels + j * rv->pitch + i * SDL_GetPixelFormatDetails(rv->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(rv->format), SDL_GetSurfacePalette(rv), &rr, &rg, &rb, &ra);
 
 			//add to the list?
 			if(br != rr || bg != rg || bb != rb)
@@ -400,10 +400,10 @@ SDL_Surface *ZTeam::Make(int team, SDL_Surface *base_version)
 			Uint32 pixel;
 			SDL_Color c;
 
-			//pixel = *(Uint32*)((Uint8*)nw->pixels + j * nw->pitch + i * nw->format->BytesPerPixel);
+			//pixel = *(Uint32*)((Uint8*)nw->pixels + j * nw->pitch + i * SDL_GetPixelFormatDetails(nw->format)->bytes_per_pixel);
 			pixel = *pixel_ptr;
 			pixel_ptr++;
-			SDL_GetRGBA(pixel, nw->format, &r, &g, &b, &a);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(nw->format), SDL_GetSurfacePalette(nw), &r, &g, &b, &a);
 
 			//bypass invisible
 			if(!a) continue;
@@ -417,7 +417,7 @@ SDL_Surface *ZTeam::Make(int team, SDL_Surface *base_version)
 				point_rect.w = 1;
 				point_rect.h = 1;
 
-				SDL_FillRect(nw, &point_rect, SDL_MapRGB(nw->format, c.r, c.g, c.b));
+				SDL_FillSurfaceRect(nw, &point_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(nw->format), SDL_GetSurfacePalette(nw), c.r, c.g, c.b));
 			}
 		}
 

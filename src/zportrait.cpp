@@ -323,7 +323,7 @@ void ZPortrait::DoRender()
 			to_rect.w = 86;
 			to_rect.h = 74;
 
-			ZSDL_FillRect(&to_rect, 0, 0, 0);
+			ZSDL_FillSurfaceRect(&to_rect, 0, 0, 0);
 		}
 		else
 		{

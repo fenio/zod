@@ -56,7 +56,7 @@ TCHAR *optarg;
 #include "ohut.h"
 #include "omapobject.h"
 
-#include <SDL_ttf.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 #define SEP_SHIFT_X 320
 #define SEP_WIDTH 16
@@ -386,10 +386,10 @@ int main(int argc, char **argv)
 		while(SDL_PollEvent(&event))
 		switch( event.type ) 
 		{
-			case SDL_QUIT:
+			case SDL_EVENT_QUIT:
 				return 0;
 				break;
-			case SDL_WINDOWEVENT:
+			case SDL_EVENT_WINDOW_RESIZED:
 				if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
 				   event.window.event == SDL_WINDOWEVENT_RESIZED)
 				{
@@ -399,33 +399,33 @@ int main(int argc, char **argv)
 					draw_everything();
 				}
 				break;
-			case SDL_MOUSEWHEEL:
+			case SDL_EVENT_MOUSE_WHEEL:
 				if(event.wheel.y > 0)
 					process_mouse_wheel_up(0, 0);
 				else if(event.wheel.y < 0)
 					process_mouse_wheel_down(0, 0);
 				break;
-			case SDL_MOUSEMOTION:
+			case SDL_EVENT_MOUSE_MOTION:
 				process_mouse_movement(event.motion.x, event.motion.y);
 				break;
-			case SDL_MOUSEBUTTONDOWN:
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
 				switch(event.button.button)
 				{
 				default:
 					click_down = true;
 					process_mouse_click(event.button.x, event.button.y);
 					break;
-				// SDL2: mouse wheel is its own SDL_MOUSEWHEEL event (handled above)
+				// SDL2: mouse wheel is its own SDL_EVENT_MOUSE_WHEEL event (handled above)
 				}
 				break;
-			case SDL_MOUSEBUTTONUP:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
 				click_down = false;
 				break;
-			case SDL_KEYDOWN:
-				process_button_pressed(event.key.keysym.sym);
+			case SDL_EVENT_KEY_DOWN:
+				process_button_pressed(event.key.key);
 				break;
-			case SDL_KEYUP:
-				process_button_unpressed(event.key.keysym.sym);
+			case SDL_EVENT_KEY_UP:
+				process_button_unpressed(event.key.key);
 				break;
 		}
 		
@@ -510,7 +510,7 @@ void do_print_screen()
 		SDL_SaveBMP(print_surface, bmp_filename.c_str());
 	}
 
-	SDL_FreeSurface(print_surface);
+	SDL_DestroySurface(print_surface);
 }
 
 void init_main_objects()
@@ -1744,7 +1744,7 @@ void blit_message(const char *message, int x, int y, int r, int g, int b)
 	location.x = x;
 	location.y = y;
 			
-	text = TTF_RenderText_Solid(ttf_font, message, textcolor);
+	text = TTF_RenderText_Solid(ttf_font, message, 0, textcolor);
 	
 	SDL_BlitSurface( text, NULL, screen, &location);
 }
@@ -1801,7 +1801,7 @@ void draw_map_ruler()
 		b = 255;
 	}
 
-	colorkey = SDL_MapRGB(screen->format, r, g, b);
+	colorkey = SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), r, g, b);
 
 	//even drawing the map?
 	if(screen->w < MAP_SHIFT_X) return;
@@ -1822,7 +1822,7 @@ void draw_map_ruler()
 			line_rect.w = 1;
 			line_rect.h = 4;
         
-			SDL_FillRect(screen, &line_rect, colorkey );
+			SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 
 			if(!(xi%5))
 			{
@@ -1836,7 +1836,7 @@ void draw_map_ruler()
 					line_rect.w = 1;
 					line_rect.h = screen->h;
         
-					SDL_FillRect(screen, &line_rect, colorkey );
+					SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 				}
 			}
 		}
@@ -1846,7 +1846,7 @@ void draw_map_ruler()
 		line_rect.w = 1;
 		line_rect.h = 4;
         
-		SDL_FillRect(screen, &line_rect, colorkey );
+		SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 	}
 
 	//left and right
@@ -1862,7 +1862,7 @@ void draw_map_ruler()
 			line_rect.w = 4;
 			line_rect.h = 1;
         
-			SDL_FillRect(screen, &line_rect, colorkey );
+			SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 
 			if(!(yi%5))
 			{
@@ -1876,7 +1876,7 @@ void draw_map_ruler()
 					line_rect.w = screen->w - MAP_SHIFT_X;
 					line_rect.h = 1;
         
-					SDL_FillRect(screen, &line_rect, colorkey );
+					SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 				}
 			}
 		}
@@ -1886,7 +1886,7 @@ void draw_map_ruler()
 		line_rect.w = 4;
 		line_rect.h = 1;
         
-		SDL_FillRect(screen, &line_rect, colorkey );
+		SDL_FillSurfaceRect(screen, &line_rect, colorkey );
 	}
 }
 
@@ -2322,7 +2322,7 @@ void draw_info(bool flip)
 		clr_box.y = 384;
 		clr_box.w = 320;
 		clr_box.h = screen->h - 384;
-		SDL_FillRect(screen, &clr_box, SDL_MapRGB(screen->format, 0, 0, 0));
+		SDL_FillSurfaceRect(screen, &clr_box, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), 0, 0, 0));
 	}
 	
 	if(changes_made) blit_message("-------------------------- Changes Made! Press S to save!! --------------------------", 5, 390+j, 255, 0, 0);

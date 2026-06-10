@@ -94,7 +94,7 @@ void ZCore::InitEncryption()
 
 bool ZCore::CheckRegistration()
 {
-	static SDL_mutex *check_mutex = SDL_CreateMutex();
+	static SDL_Mutex *check_mutex = SDL_CreateMutex();
 	FILE *fp;
 	int ret;
 	char buf_enc[16];

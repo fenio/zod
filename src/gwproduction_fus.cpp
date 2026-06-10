@@ -133,7 +133,7 @@ void GWPFullUnitSelector::DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x
 			the_box.w = from_rect.w;
 			the_box.h = from_rect.h;
 
-			ZSDL_FillRect(&the_box, 57, 57, 57);
+			ZSDL_FillSurfaceRect(&the_box, 57, 57, 57);
 		}
 	}
 

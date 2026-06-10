@@ -60,8 +60,8 @@ class ZPortrait;
 #include <string>
 #include <vector>
 #include <math.h>
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 
 using namespace std;
 

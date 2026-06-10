@@ -2,10 +2,11 @@
 #define _ZSDL_H_
 
 #include "sdl12_compat.h"
-#include <SDL_thread.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_mutex.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
+#include "sdl3_mixer_compat.h"
 #include <string>
 #include "SDL_rotozoom.h"
 #include "zsdl_opengl.h"
@@ -83,7 +84,7 @@ void ZSDL_ModifyBlack(SDL_Surface *surface);
 void ZSDL_BlitSurface(SDL_Surface *src, int fx, int fy, int fw, int fh, SDL_Surface *dest, int x, int y);
 void ZSDL_BlitHitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect, bool render_hit = true);
 void ZSDL_BlitTileSurface(SDL_Surface *src, int fx, int fy, SDL_Surface *dest, int x, int y);
-void ZSDL_FreeSurface(SDL_Surface *&surface);
+void ZSDL_DestroySurface(SDL_Surface *&surface);
 void ZSDL_Quit();
 
 #endif

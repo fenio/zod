@@ -174,7 +174,7 @@ void ZHud::ResetGame()
 	a_ref_id = -1;
 	SetSelectedObject(NULL);
 	unit_amount = -1;
-	//ZSDL_FreeSurface(unit_amount_text);
+	//ZSDL_DestroySurface(unit_amount_text);
 	unit_amount_text.Unload();
 }
 
@@ -855,8 +855,8 @@ void ZHud::RenderChatMessage(SDL_Surface *dest, int off_x, int off_y)
 		//to_rect.w = 419 - 206;
 		to_rect.w = clear_w;
 		to_rect.h = 478 - 460;
-		//SDL_FillRect(dest, &to_rect, SDL_MapRGB(dest->format, 115,115,115));
-		ZSDL_FillRect(&to_rect, 115, 115, 115);
+		//SDL_FillSurfaceRect(dest, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 115,115,115));
+		ZSDL_FillSurfaceRect(&to_rect, 115, 115, 115);
 	}
 
 	if(show_chat && chat_message_img.GetBaseSurface() && (clear_w - 6 > 0))
@@ -905,8 +905,8 @@ void ZHud::RenderUnitAmountBar(SDL_Surface *dest, int off_x, int off_y)
 		to_rect.y = off_y + 460;
 		to_rect.w = 62;
 		to_rect.h = 16;
-		//SDL_FillRect(dest, &to_rect, SDL_MapRGB(dest->format, 0,0,0));
-		ZSDL_FillRect(&to_rect, 0, 0, 0);
+		//SDL_FillSurfaceRect(dest, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 0,0,0));
+		ZSDL_FillSurfaceRect(&to_rect, 0, 0, 0);
 	}
 
 	percent_to_max = 1.0 * unit_amount / max_units;
@@ -929,7 +929,7 @@ void ZHud::RenderUnitAmountBar(SDL_Surface *dest, int off_x, int off_y)
 	{
 		sprintf(message, "%d", unit_amount);
 
-		//ZSDL_FreeSurface(unit_amount_text);
+		//ZSDL_DestroySurface(unit_amount_text);
 		//unit_amount_text.Unload();
 
 		//unit_amount_text = ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(message);
@@ -1075,7 +1075,7 @@ void ZHud::RenderTime(SDL_Surface *dest, int off_x, int off_y)
 		//if(surface)
 		//{
 		//	SDL_BlitSurface(surface, NULL, dest, &to_rect);
-		//	SDL_FreeSurface(surface);
+		//	SDL_DestroySurface(surface);
 		//}
 
 		//render hours
@@ -1089,7 +1089,7 @@ void ZHud::RenderTime(SDL_Surface *dest, int off_x, int off_y)
 		//if(surface)
 		//{
 		//	SDL_BlitSurface(surface, NULL, dest, &to_rect);
-		//	SDL_FreeSurface(surface);
+		//	SDL_DestroySurface(surface);
 		//}
 		surface.LoadBaseImage(ZFontEngine::GetFont(BIG_WHITE_FONT).Render(message));
 		surface.BlitSurface(NULL, &to_rect);
@@ -1104,7 +1104,7 @@ void ZHud::RenderTime(SDL_Surface *dest, int off_x, int off_y)
 		//if(surface)
 		//{
 		//	SDL_BlitSurface(surface, NULL, dest, &to_rect);
-		//	SDL_FreeSurface(surface);
+		//	SDL_DestroySurface(surface);
 		//}
 		surface.LoadBaseImage(ZFontEngine::GetFont(BIG_WHITE_FONT).Render(message));
 		surface.BlitSurface(NULL, &to_rect);
@@ -1119,7 +1119,7 @@ void ZHud::RenderTime(SDL_Surface *dest, int off_x, int off_y)
 		//if(surface)
 		//{
 		//	SDL_BlitSurface(surface, NULL, dest, &to_rect);
-		//	SDL_FreeSurface(surface);
+		//	SDL_DestroySurface(surface);
 		//}
 		surface.LoadBaseImage(ZFontEngine::GetFont(BIG_WHITE_FONT).Render(message));
 		surface.BlitSurface(NULL, &to_rect);
@@ -1164,8 +1164,8 @@ void ZHud::RenderBackdrop(SDL_Surface *dest, int off_x, int off_y)
 		//	to_rect.w = 86;
 		//	to_rect.h = 74;
 
-		//	//SDL_FillRect(dest, &to_rect, SDL_MapRGB(dest->format, 0, 0, 0));
-		//	ZSDL_FillRect(&to_rect, 0, 0, 0);
+		//	//SDL_FillSurfaceRect(dest, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 0, 0, 0));
+		//	ZSDL_FillSurfaceRect(&to_rect, 0, 0, 0);
 		//}
 	}
 }
@@ -1206,7 +1206,7 @@ void ZHud::ShowChatMessage(bool show_chat_)
 	if(!show_chat)
 	{
 		chat_message.clear();
-		//ZSDL_FreeSurface(chat_message_img);
+		//ZSDL_DestroySurface(chat_message_img);
 		chat_message_img.Unload();
 	}
 	else
@@ -1219,7 +1219,7 @@ void ZHud::SetChatMessage(string message)
 {
 	chat_message = "Say:: " + message;
 
-	//ZSDL_FreeSurface(chat_message_img);
+	//ZSDL_DestroySurface(chat_message_img);
 	//chat_message_img = ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(chat_message.c_str());
 	chat_message_img.LoadBaseImage(ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(chat_message.c_str()));
 	//chat_message_img.LoadBaseImage(ZFontEngine::GetFont(YELLOW_MENU_FONT).Render(chat_message.c_str()));

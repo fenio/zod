@@ -720,7 +720,7 @@ void ZPlayer::display_news_event(ZPlayer *p, char *data, int size, int dummy)
 	{
 		ZSDL_ModifyBlack(new_entry->text_image.GetBaseSurface());
 		new_entry->text_image.UseDisplayFormat();
-		SDL_SetColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
+		SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
 	}
 
 

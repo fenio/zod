@@ -356,7 +356,7 @@ void ZPlayer::Setup()
 	ORock::Init();
 	SetupSelectionImages();
 
-	//if(!disable_zcursor) SDL_ShowCursor(SDL_DISABLE);
+	//if(!disable_zcursor) SDL_HideCursor();
 
 	gload_thread = SDL_CreateThread(Load_Graphics, this);
 }
@@ -413,15 +413,15 @@ void ZPlayer::InitSDL()
 		ZSDL_Surface::SetMainSoftwareSurface(screen);
 	}
 
-	if(!disable_zcursor) SDL_ShowCursor(SDL_DISABLE);
+	if(!disable_zcursor) SDL_HideCursor();
 
 	//some initial mouse stuff
 	//don't grab input in windowed mode, otherwise it hijacks the
 	//keyboard/mouse and you can't switch to other apps (press 'm' to toggle)
 	SDL_WM_GrabInput(is_windowed ? SDL_GRAB_OFF : SDL_GRAB_ON);
-	//SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
+	//SDL_EventState(SDL_EVENT_MOUSE_MOTION, SDL_IGNORE);
 	SDL_WarpMouse(init_w>>1, init_h>>1);
-	//SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
+	//SDL_EventState(SDL_EVENT_MOUSE_MOTION, SDL_ENABLE);
 
 	//Removed because some sdl_mixer libs dont have  
 	//this function and it is not 100% required
@@ -450,11 +450,11 @@ void ZPlayer::InitSDL()
 //	if(splash_screen)
 //	{
 //		SDL_Surface* bmpFile2 = SDL_DisplayFormat( splash_screen );
-//		SDL_FreeSurface( splash_screen );
+//		SDL_DestroySurface( splash_screen );
 //		splash_screen = bmpFile2;
 //// 		SDL_Surface* tempScreen = SDL_CreateRGBSurface( SDL_SWSURFACE | SDL_SRCALPHA, splash_screen->w, splash_screen->h, 32, 0xff000000,0x00ff0000,0x0000ff00,0x000000ff);
 //// 		SDL_Surface* tempScreen2 = SDL_DisplayFormat( tempScreen );
-//// 		SDL_FreeSurface( tempScreen );
+//// 		SDL_DestroySurface( tempScreen );
 //	}
 
 	//test
@@ -628,7 +628,7 @@ void ZPlayer::AddNewsEntry(string message, int r, int g, int b)
 	//{
 	//	ZSDL_ModifyBlack(new_entry->text_image.GetBaseSurface());
 	//	new_entry->text_image.UseDisplayFormat();
-	//	SDL_SetColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
+	//	SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
 	//}
 
 	//set death time
@@ -874,8 +874,8 @@ void ZPlayer::SetupSelectionImages()
 
 		//selection_img[t] = SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, 4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
 		selection_img[t].LoadBaseImage(SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, 4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF));
-		//SDL_FillRect(selection_img[t], &the_box, SDL_MapRGB(selection_img[t]->format, r, g, b));
-		ZSDL_FillRect(&the_box, r, g, b, &selection_img[t]);
+		//SDL_FillSurfaceRect(selection_img[t], &the_box, SDL_MapRGB(selection_img[t]->format, r, g, b));
+		ZSDL_FillSurfaceRect(&the_box, r, g, b, &selection_img[t]);
 	}
 }
 
@@ -1274,7 +1274,7 @@ void ZPlayer::RenderScreen()
 		//if(surface)
 		//{
 		//	SDL_BlitSurface( surface, NULL, screen, NULL);
-		//	SDL_FreeSurface(surface);
+		//	SDL_DestroySurface(surface);
 		//}
 
 		//vote
@@ -1339,8 +1339,8 @@ void ZPlayer::RenderSmallMapFiller()
 		//box.h = screen->h - HUD_HEIGHT;
 		box.h = init_h - HUD_HEIGHT;
 
-		//SDL_FillRect(screen, &box, SDL_MapRGB(screen->format, 0, 0, 0));
-		ZSDL_FillRect(&box, 0, 0, 0);
+		//SDL_FillSurfaceRect(screen, &box, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), 0, 0, 0));
+		ZSDL_FillSurfaceRect(&box, 0, 0, 0);
 	}
 
 	//bottom need blacked out?
@@ -1352,8 +1352,8 @@ void ZPlayer::RenderSmallMapFiller()
 		box.w = init_w - HUD_WIDTH;
 		box.h = h_dif;
 
-		//SDL_FillRect(screen, &box, SDL_MapRGB(screen->format, 0, 0, 0));
-		ZSDL_FillRect(&box, 0, 0, 0);
+		//SDL_FillSurfaceRect(screen, &box, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), 0, 0, 0));
+		ZSDL_FillSurfaceRect(&box, 0, 0, 0);
 	}
 }
 
@@ -2310,17 +2310,17 @@ void ZPlayer::ProcessSDL()
 	while(SDL_PollEvent(&event))
 		switch( event.type ) 
 	{
-		case SDL_QUIT:
+		case SDL_EVENT_QUIT:
 			ExitProgram();
 			break;
-		case SDL_WINDOWEVENT:
+		case SDL_EVENT_WINDOW_RESIZED:
 			// Window resizes are handled automatically by the scaled-framebuffer
 			// renderer (SDL_RenderSetLogicalSize in sdl12_compat.cpp), which scales
 			// the fixed logical resolution to any window size. Re-syncing init_w/h
 			// to the window here would collapse that logical framebuffer, so it's
 			// intentionally a no-op now.
 			break;
-		case SDL_MOUSEWHEEL:
+		case SDL_EVENT_MOUSE_WHEEL:
 			// When a UI panel is open the wheel scrolls it (production list, menus).
 			// Otherwise, two-finger / wheel scrolling pans the map in both axes.
 			// NB: gui_factory_list is always allocated, so test IsVisible(), not
@@ -2335,8 +2335,8 @@ void ZPlayer::ProcessSDL()
 			else
 			{
 				const float pan = 30.0f;  // map pixels per scroll unit
-				int dx = (int)(event.wheel.preciseX * pan);
-				int dy = (int)(event.wheel.preciseY * pan);
+				int dx = (int)(event.wheel.x * pan);
+				int dy = (int)(event.wheel.y * pan);
 
 				do_focus_to = false;  // cancel any in-progress camera glide
 
@@ -2346,14 +2346,14 @@ void ZPlayer::ProcessSDL()
 				else if (dy < 0) zmap.ShiftViewDown(-dy);
 			}
 			break;
-		case SDL_MOUSEMOTION:
+		case SDL_EVENT_MOUSE_MOTION:
 			StartMouseScrolling(event.motion.x, event.motion.y);
 			mouse_x = event.motion.x;
 			mouse_y = event.motion.y;
 			//ehandler.AddEvent(new Event(SDL_EVENT, MOTION_EVENT, 0, NULL, 0));
 			ehandler.ProcessEvent(SDL_EVENT, MOTION_EVENT, NULL, 0, 0);
 			break;
-		case SDL_MOUSEBUTTONDOWN:
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			zmap.GetViewShift(shift_x, shift_y);
 			switch(event.button.button)
 			{
@@ -2381,10 +2381,10 @@ void ZPlayer::ProcessSDL()
 				//ehandler.AddEvent(new Event(SDL_EVENT, MCLICK_EVENT, 0, NULL, 0));
 				ehandler.ProcessEvent(SDL_EVENT, MCLICK_EVENT, NULL, 0, 0);
 				break;
-			// SDL2: mouse wheel is its own SDL_MOUSEWHEEL event (handled above).
+			// SDL2: mouse wheel is its own SDL_EVENT_MOUSE_WHEEL event (handled above).
 			}
 			break;
-		case SDL_MOUSEBUTTONUP:
+		case SDL_EVENT_MOUSE_BUTTON_UP:
 			switch(event.button.button)
 			{
 			case SDL_BUTTON_LEFT:
@@ -2401,17 +2401,17 @@ void ZPlayer::ProcessSDL()
 				break;
 			}
 			break;
-		case SDL_KEYDOWN:
-			the_key.the_key = event.key.keysym.sym;
-			the_key.the_unicode = (event.key.keysym.sym < 128) ? event.key.keysym.sym : 0;
+		case SDL_EVENT_KEY_DOWN:
+			the_key.the_key = event.key.key;
+			the_key.the_unicode = (event.key.key < 128) ? event.key.key : 0;
 			ehandler.ProcessEvent(SDL_EVENT, KEYDOWN_EVENT_, (char*)&the_key, sizeof(key_event), 0);
 			break;
-		case SDL_KEYUP:
-			the_key.the_key = event.key.keysym.sym;
-			the_key.the_unicode = (event.key.keysym.sym < 128) ? event.key.keysym.sym : 0;
+		case SDL_EVENT_KEY_UP:
+			the_key.the_key = event.key.key;
+			the_key.the_unicode = (event.key.key < 128) ? event.key.key : 0;
 			ehandler.ProcessEvent(SDL_EVENT, KEYUP_EVENT_, (char*)&the_key, sizeof(key_event), 0);
 			break;
-		case SDL_TEXTINPUT:
+		case SDL_EVENT_TEXT_INPUT:
 			if (event.text.text[0])
 			{
 				the_key.the_key = 0;

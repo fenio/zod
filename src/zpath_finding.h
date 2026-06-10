@@ -3,7 +3,8 @@
 
 #include "zpath_finding_astar.h"
 
-#include <SDL_thread.h>
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_mutex.h>
 #include <vector>
 
 using namespace std;
@@ -149,7 +150,7 @@ public:
 private:
 	void AllocAllTileInfo();
 
-	SDL_mutex* list_mutex;
+	SDL_Mutex* list_mutex;
 	vector<ZPath_Finding_Response*> respone_list;
 
 	int next_thread_id;

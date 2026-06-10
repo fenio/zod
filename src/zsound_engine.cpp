@@ -52,8 +52,7 @@ void ZSound::LoadSound(string filename, int base_volume_, int volume_shift_, dou
 	play_time_shift = play_time_shift_;
 	snd_chunk = MIX_Load_Error(filename);
 
-	if(snd_chunk)
-		snd_chunk->volume = base_volume;
+	// (SDL3_mixer has no per-chunk volume; it's applied per-channel at play time)
 }
 
 void ZSound::PlaySound()
@@ -68,10 +67,9 @@ void ZSound::PlaySound()
 
 	next_play_time = the_time + play_time_shift + 0.01 * (rand() % 31);
 
-	//add some uniqueness to each sound
-	snd_chunk->volume = base_volume + (rand() % volume_shift);
-
-	ZMix_PlayChannel(-1, snd_chunk, 0);
+	//add some uniqueness to each sound (volume applied per-channel in SDL3_mixer)
+	int ch = ZMix_PlayChannel(-1, snd_chunk, 0);
+	if(ch >= 0) Mix_Volume(ch, base_volume + (rand() % volume_shift));
 }
 
 void ZSound::RepeatSound()
@@ -95,6 +93,7 @@ void ZSound::RepeatSound()
 	repeat_channel = i;
 
 	ZMix_PlayChannel(repeat_channel, snd_chunk, -1);
+	Mix_Volume(repeat_channel, base_volume);
 
 }
 

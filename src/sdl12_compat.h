@@ -4,7 +4,7 @@
 // Thin SDL1.2 → SDL2 compatibility shim for the Zod Engine port.
 // Provides the small subset of removed/renamed APIs the codebase uses.
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <string>
 
 // Removed surface flags — map to 0 (SDL2 ignores most legacy creation flags
@@ -81,15 +81,21 @@ static inline int SDL_EnableKeyRepeat(int /*delay*/, int /*interval*/) { return 
 // runtime's _beginthreadex/_endthreadex, so we must pass those too (replicating
 // what that macro does) — otherwise we'd call the underlying 5-arg function with
 // too few arguments.
+// SDL3's SDL_CreateThread is itself a macro over SDL_CreateThreadRuntime (it
+// injects the platform begin/end-thread funcs). Our 2-arg compat form must
+// expand to the runtime call directly (can't recurse through the SDL macro).
 #undef SDL_CreateThread
-#ifdef _WIN32
-#include <process.h>
 #define SDL_CreateThread(fn, data) \
-    SDL_CreateThread((fn), #fn, (data), \
-        (pfnSDL_CurrentBeginThread)_beginthreadex, \
-        (pfnSDL_CurrentEndThread)_endthreadex)
-#else
-#define SDL_CreateThread(fn, data) SDL_CreateThread((fn), #fn, (data))
+    SDL_CreateThreadRuntime((fn), #fn, (data), \
+        (SDL_FunctionPointer)SDL_BeginThreadFunction, \
+        (SDL_FunctionPointer)SDL_EndThreadFunction)
+
+// SDL3 removed the SDL_ENABLE/SDL_DISABLE state constants.
+#ifndef SDL_ENABLE
+#define SDL_ENABLE  1
+#endif
+#ifndef SDL_DISABLE
+#define SDL_DISABLE 0
 #endif
 
 // SDL2's SDL_CreateRGBSurface validates the RGBA masks against its set of
@@ -99,17 +105,26 @@ static inline int SDL_EnableKeyRepeat(int /*delay*/, int /*interval*/) { return 
 // that SDL2 rejects. When that happens, retry with SDL_CreateRGBSurfaceWithFormat
 // using ARGB8888 — which is always supported and renders correctly through
 // SDL_BlitSurface format conversion.
+// SDL3 removed SDL_CreateRGBSurface*/format-from-masks; surfaces are created
+// with a pixel-format enum via SDL_CreateSurface. Derive the format from the
+// legacy masks (falling back to ARGB8888 for the engine's non-standard 32-bit
+// layout, as before).
 static inline SDL_Surface *zod_CreateRGBSurface_compat(
-    Uint32 flags, int w, int h, int depth,
+    Uint32 /*flags*/, int w, int h, int depth,
     Uint32 rmask, Uint32 gmask, Uint32 bmask, Uint32 amask)
 {
-    SDL_Surface *s = SDL_CreateRGBSurface(flags, w, h, depth, rmask, gmask, bmask, amask);
-    if (!s && depth == 32)
-        s = SDL_CreateRGBSurfaceWithFormat(flags, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
-    return s;
+    SDL_PixelFormat fmt = SDL_GetPixelFormatForMasks(depth, rmask, gmask, bmask, amask);
+    if (fmt == SDL_PIXELFORMAT_UNKNOWN)
+        fmt = (depth == 32) ? SDL_PIXELFORMAT_ARGB8888 : SDL_PIXELFORMAT_XRGB8888;
+    return SDL_CreateSurface(w, h, fmt);
 }
 #define SDL_CreateRGBSurface(flags, w, h, depth, r, g, b, a) \
     zod_CreateRGBSurface_compat((flags), (w), (h), (depth), (r), (g), (b), (a))
+// SDL_CreateRGBSurfaceWithFormat(flags,w,h,depth,fmt) -> SDL_CreateSurface(w,h,fmt)
+#define SDL_CreateRGBSurfaceWithFormat(flags, w, h, depth, fmt) \
+    SDL_CreateSurface((w), (h), (fmt))
+// SDL_ConvertSurfaceFormat(src,fmt,flags) -> SDL_ConvertSurface(src,fmt)
+#define SDL_ConvertSurfaceFormat(src, fmt, flags) SDL_ConvertSurface((src), (fmt))
 
 // Window-target versions of these became required in SDL2.
 static inline void SDL_GL_SwapBuffers(void)
@@ -127,31 +142,19 @@ void SDL_WarpMouse(int x, int y);
 static inline SDL_Surface *SDL_DisplayFormatAlpha(SDL_Surface *src)
 {
     if (!src) return NULL;
-    SDL_Surface *out = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_ARGB8888, 0);
-    if (out) return out;
-    SDL_PixelFormat *fmt = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
-    if (!fmt) return NULL;
-    out = SDL_ConvertSurface(src, fmt, 0);
-    SDL_FreeFormat(fmt);
-    return out;
+    return SDL_ConvertSurface(src, SDL_PIXELFORMAT_ARGB8888);
 }
 
 // SDL_DisplayFormat was removed; in SDL2 we just convert to a 32-bit RGB format.
 static inline SDL_Surface *SDL_DisplayFormat(SDL_Surface *src)
 {
     if (!src) return NULL;
-    SDL_Surface *out = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_RGB888, 0);
-    if (out) return out;
-    SDL_PixelFormat *fmt = SDL_AllocFormat(SDL_PIXELFORMAT_RGB888);
-    if (!fmt) return NULL;
-    out = SDL_ConvertSurface(src, fmt, 0);
-    SDL_FreeFormat(fmt);
-    return out;
+    return SDL_ConvertSurface(src, SDL_PIXELFORMAT_XRGB8888);
 }
 
-// SDL_SRCCOLORKEY flag removed — pass SDL_TRUE to SDL_SetColorKey instead.
+// SDL_SRCCOLORKEY flag removed — pass true to SDL_SetSurfaceColorKey instead.
 #ifndef SDL_SRCCOLORKEY
-#define SDL_SRCCOLORKEY SDL_TRUE
+#define SDL_SRCCOLORKEY true
 #endif
 
 // SDL_RLEACCEL is gone — folded into SDL_SetSurfaceRLE; map to 0 here so it

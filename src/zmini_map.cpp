@@ -88,8 +88,8 @@ void ZMiniMap::DoRender(SDL_Surface *dest, int x, int y)
 	to_rect.w = render_area.w;
 	to_rect.h = render_area.h;
 
-	//SDL_FillRect(dest, &to_rect, SDL_MapRGB(dest->format, 10, 10, 10));
-	ZSDL_FillRect(&to_rect, 10, 10, 10);
+	//SDL_FillSurfaceRect(dest, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 10, 10, 10));
+	ZSDL_FillSurfaceRect(&to_rect, 10, 10, 10);
 
 	//render terrain
 	if(show_terrain)
@@ -110,7 +110,7 @@ void ZMiniMap::DoRender(SDL_Surface *dest, int x, int y)
 		water_rect.x += to_rect.x;
 		water_rect.y += to_rect.y;
 
-		ZSDL_FillRect(&water_rect, 0, 0, 250);
+		ZSDL_FillSurfaceRect(&water_rect, 0, 0, 250);
 	}
 
 
@@ -141,9 +141,9 @@ void ZMiniMap::DoRender(SDL_Surface *dest, int x, int y)
 		if(zone_rect.w > 0 && zone_rect.h > 0)
 		{
 			int sdlmap;
-			//sdlmap = SDL_MapRGB(dest->format, team_color[i->owner].r * 0.4, team_color[i->owner].g * 0.4, team_color[i->owner].b * 0.4);
-			//SDL_FillRect(dest, &zone_rect, sdlmap);
-			ZSDL_FillRect(&zone_rect, team_color[i->owner].r * 0.4, team_color[i->owner].g * 0.4, team_color[i->owner].b * 0.4);
+			//sdlmap = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), team_color[i->owner].r * 0.4, team_color[i->owner].g * 0.4, team_color[i->owner].b * 0.4);
+			//SDL_FillSurfaceRect(dest, &zone_rect, sdlmap);
+			ZSDL_FillSurfaceRect(&zone_rect, team_color[i->owner].r * 0.4, team_color[i->owner].g * 0.4, team_color[i->owner].b * 0.4);
 		}
 	}
 
@@ -175,9 +175,9 @@ void ZMiniMap::DoRender(SDL_Surface *dest, int x, int y)
 		int sdlmap;
 		int towner;
 		towner = (*i)->GetOwner();
-		//sdlmap = SDL_MapRGB(dest->format, team_color[towner].r, team_color[towner].g , team_color[towner].b);
-		//SDL_FillRect(dest, &obj_rect, sdlmap);
-		ZSDL_FillRect(&obj_rect, team_color[towner].r, team_color[towner].g , team_color[towner].b);
+		//sdlmap = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), team_color[towner].r, team_color[towner].g , team_color[towner].b);
+		//SDL_FillSurfaceRect(dest, &obj_rect, sdlmap);
+		ZSDL_FillSurfaceRect(&obj_rect, team_color[towner].r, team_color[towner].g , team_color[towner].b);
 	}
 
 	//draw view area

@@ -85,8 +85,8 @@ ZSDL_Surface& ZSDL_Surface::operator=(SDL_Surface *rhs)
 
 void ZSDL_Surface::Unload()
 {
-	if(sdl_surface) SDL_FreeSurface(sdl_surface);
-	if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+	if(sdl_surface) SDL_DestroySurface(sdl_surface);
+	if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 #ifndef DISABLE_OPENGL
 	if(gl_texture_loaded) glDeleteTextures(1, &gl_texture);
 #endif
@@ -125,7 +125,7 @@ void ZSDL_Surface::LoadNewSurface(int w, int h)
 	the_box.y = 0;
 	the_box.w = w;
 	the_box.h = h;
-	ZSDL_FillRect(&the_box, 0, 0, 0, this);
+	ZSDL_FillSurfaceRect(&the_box, 0, 0, 0, this);
 }
 
 void ZSDL_Surface::LoadBaseImage(SDL_Surface *sdl_surface_, bool delete_surface)
@@ -143,7 +143,7 @@ void ZSDL_Surface::LoadBaseImage(SDL_Surface *sdl_surface_, bool delete_surface)
 	//convert to a guaranteed good format
 	SDL_Surface *new_ret;
 	new_ret = SDL_DisplayFormatAlpha(sdl_surface);
-	if(delete_surface) SDL_FreeSurface( sdl_surface );
+	if(delete_surface) SDL_DestroySurface( sdl_surface );
 	sdl_surface = new_ret;
 
 	//checks
@@ -164,7 +164,7 @@ void ZSDL_Surface::UseDisplayFormat()
 
 	SDL_Surface *new_ret;
 	new_ret = SDL_DisplayFormat(sdl_surface);
-	SDL_FreeSurface( sdl_surface );
+	SDL_DestroySurface( sdl_surface );
 	sdl_surface = new_ret;
 
 	SetAlpha(alpha);
@@ -179,7 +179,7 @@ void ZSDL_Surface::MakeAlphable()
 
 	ZSDL_ModifyBlack(sdl_surface);
 	UseDisplayFormat();
-	SDL_SetColorKey(sdl_surface, SDL_SRCCOLORKEY, 0x000000); 
+	SDL_SetSurfaceColorKey(sdl_surface, SDL_SRCCOLORKEY, 0x000000); 
 }
 
 bool ZSDL_Surface::LoadRotoZoomSurface()
@@ -191,7 +191,7 @@ bool ZSDL_Surface::LoadRotoZoomSurface()
 	}
 
 	//unload if loaded
-	if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+	if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 
 	sdl_rotozoom = rotozoomSurface(sdl_surface, angle, size, 0);
 
@@ -221,15 +221,15 @@ bool ZSDL_Surface::LoadGLtexture()
 	if(gl_texture_loaded)
 		glDeleteTextures(1, &gl_texture);
 
-	nOfColors = sdl_surface->format->BytesPerPixel;
+	nOfColors = SDL_GetPixelFormatDetails(sdl_surface->format)->bytes_per_pixel;
 	switch(nOfColors)
 	{
 	case 4:
-		if (sdl_surface->format->Rmask == 0x000000ff) texture_format = GL_RGBA;   
+		if (SDL_GetPixelFormatDetails(sdl_surface->format)->Rmask == 0x000000ff) texture_format = GL_RGBA;   
 		else texture_format = GL_BGRA;
 		break;
 	case 3:
-		if (sdl_surface->format->Rmask == 0x000000ff) texture_format = GL_RGB;
+		if (SDL_GetPixelFormatDetails(sdl_surface->format)->Rmask == 0x000000ff) texture_format = GL_RGB;
 		else texture_format = GL_BGR;
 		break;
 	default:
@@ -291,7 +291,7 @@ void ZSDL_Surface::SetSize(float size_)
 	//unload rotozoom surface?
 	if(!use_opengl && size != size_)
 	{
-		if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+		if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 		sdl_rotozoom = NULL;
 		rotozoom_loaded = false;
 	}
@@ -304,7 +304,7 @@ void ZSDL_Surface::SetAngle(float angle_)
 	//unload rotozoom surface?
 	if(!use_opengl && angle != angle_)
 	{
-		if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+		if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 		sdl_rotozoom = NULL;
 		rotozoom_loaded = false;
 	}
@@ -327,7 +327,7 @@ void ZSDL_Surface::FillRectOnToMe(SDL_Rect *dstrect, char r, char g, char b)
 {
 	if(!sdl_surface) return;
 
-	SDL_FillRect(sdl_surface, dstrect, SDL_MapRGB(sdl_surface->format, r,g,b));
+	SDL_FillSurfaceRect(sdl_surface, dstrect, SDL_MapRGB(SDL_GetPixelFormatDetails(sdl_surface->format), SDL_GetSurfacePalette(sdl_surface), r,g,b));
 
 	if(gl_texture_loaded) 
 	{
@@ -340,7 +340,7 @@ void ZSDL_Surface::FillRectOnToMe(SDL_Rect *dstrect, char r, char g, char b)
 	//unload rotozoom surface?
 	if(!use_opengl)
 	{
-		if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+		if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 		sdl_rotozoom = NULL;
 		rotozoom_loaded = false;
 	}
@@ -363,14 +363,14 @@ void ZSDL_Surface::BlitOnToMe(SDL_Rect *srcrect, SDL_Rect *dstrect, SDL_Surface 
 	//unload rotozoom surface?
 	if(!use_opengl)
 	{
-		if(sdl_rotozoom) SDL_FreeSurface(sdl_rotozoom);
+		if(sdl_rotozoom) SDL_DestroySurface(sdl_rotozoom);
 		sdl_rotozoom = NULL;
 		rotozoom_loaded = false;
 	}
 }
 
 //ZSDL_Surface has made itself into an engine it seems...
-void ZSDL_Surface::ZSDL_FillRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst)
+void ZSDL_Surface::ZSDL_FillSurfaceRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst)
 {
 	if(dst)
 	{
@@ -417,7 +417,7 @@ void ZSDL_Surface::ZSDL_FillRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL
 	}
 	else
 	{
-		if(screen) SDL_FillRect(screen, dstrect, SDL_MapRGB(screen->format, r,g,b));
+		if(screen) SDL_FillSurfaceRect(screen, dstrect, SDL_MapRGB(SDL_GetPixelFormatDetails(screen->format), SDL_GetSurfacePalette(screen), r,g,b));
 	}
 }
 
@@ -794,8 +794,8 @@ void ZSDL_Surface::BlitHitSurface(SDL_Rect *srcrect, SDL_Rect *dstrect, ZSDL_Sur
 			Uint8 r, g, b, a;
 			Uint32 pixel;
 
-			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + i * src->format->BytesPerPixel);
-			SDL_GetRGBA(pixel, src->format, &r, &g, &b, &a);
+			pixel = *(Uint32*)((Uint8*)src->pixels + j * src->pitch + i * SDL_GetPixelFormatDetails(src->format)->bytes_per_pixel);
+			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), &r, &g, &b, &a);
 
 			if(a)
 			{
@@ -803,7 +803,7 @@ void ZSDL_Surface::BlitHitSurface(SDL_Rect *srcrect, SDL_Rect *dstrect, ZSDL_Sur
 				White_Pix_Rect.y = to_y + j;
 				White_Pix_Rect.w = 1;
 				White_Pix_Rect.h = 1;
-				ZSDL_FillRect(&White_Pix_Rect, 255, 255, 255, dst);
+				ZSDL_FillSurfaceRect(&White_Pix_Rect, 255, 255, 255, dst);
 			}
 		}
 }
