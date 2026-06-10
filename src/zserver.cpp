@@ -2041,12 +2041,22 @@ void ZServer::CheckFlagCaptures()
 		next_time = the_time + 0.2;
 
 		for(f=ols.flag_olist.begin();f!=ols.flag_olist.end();f++)
+		{
+			// Find which team(s) have a mobile unit standing on this flag. A
+			// flag is only captured when exactly ONE team occupies it (and it
+			// isn't already the owner). If two or more teams contest it the
+			// ownership holds — otherwise a flag touched by both sides strobes
+			// between them every cycle, re-triggering the capture jingles.
+			team_type contender = NULL_TEAM;
+			ZObject *contender_obj = NULL;
+			bool contested = false;
+
 			for(o=ols.mobile_olist.begin();o!=ols.mobile_olist.end();o++)
 			{
 				unsigned char ot, oid;
+				team_type o_team = (*o)->GetOwner();
 
-				if((*o)->GetOwner() == NULL_TEAM) continue;
-				if((*f)->GetOwner() == (*o)->GetOwner()) continue;
+				if(o_team == NULL_TEAM) continue;
 
 				(*o)->GetObjectID(ot, oid);
 
@@ -2056,12 +2066,23 @@ void ZServer::CheckFlagCaptures()
 				//they intersect?
 				if(!(*f)->IntersectsObject(**o)) continue;
 
-				//ok they intersect so lets give the team the zone
-				AwardZone((OFlag*)*f, *o);
-
-				//escape looking for objects that could capture this flag
-				break;
+				if(contender == NULL_TEAM)
+				{
+					contender = o_team;
+					contender_obj = *o;
+				}
+				else if(o_team != contender)
+				{
+					//a second team is also present → contested, hold ownership
+					contested = true;
+					break;
+				}
 			}
+
+			//exactly one team present and it isn't the current owner: capture
+			if(!contested && contender != NULL_TEAM && contender != (*f)->GetOwner())
+				AwardZone((OFlag*)*f, contender_obj);
+		}
 	}
 }
 
