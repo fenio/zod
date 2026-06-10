@@ -6,14 +6,18 @@ on:
 
 jobs:
   linux:
-    name: Linux (Ubuntu)
+    name: Linux (Ubuntu 26.04)
     runs-on: ubuntu-latest
+    # The GitHub ubuntu-latest runner is still 24.04, whose apt has no SDL3 at
+    # all. SDL3 + the new MIX_-API SDL3_mixer (3.2.4) first land in Ubuntu 26.04,
+    # so build inside a 26.04 container where apt can satisfy every SDL3 dep.
+    container: ubuntu:26.04
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          apt-get update
+          apt-get install -y --no-install-recommends \
             build-essential cmake pkg-config \
             libsdl3-dev libsdl3-image-dev libsdl3-mixer-dev libsdl3-ttf-dev
       - name: Configure
