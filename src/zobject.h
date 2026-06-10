@@ -1,6 +1,11 @@
 #ifndef _ZOBJECT_H_
 #define _ZOBJECT_H_
 
+// Master toggle for the render-only movement-smoothing layer (compare on/off
+// live with the 'Y' key; default from the ZOD_SMOOTH env var). Purely visual —
+// it never affects gameplay, pathfinding, selection, or combat.
+extern bool zod_render_smoothing;
+
 #include "constants.h"
 #include "common.h"
 #include "zsdl.h"
@@ -425,6 +430,9 @@ class ZObject
 		virtual bool WithinSelection(int &map_left, int &map_right, int &map_top, int &map_bottom);
 		virtual bool CannonNotPlacable(int &map_left, int &map_right, int &map_top, int &map_bottom);
 		void SetLoc(object_location new_loc);
+		// Render-only position smoothing (does NOT touch gameplay loc):
+		void ProcessRenderSmoothing(double the_time);
+		void GetRenderOffset(double &ox, double &oy);
 		void SetGroup(int group_num_);
 		int GetHealth();
 		int GetMaxHealth();
@@ -594,6 +602,11 @@ class ZObject
 		double loc_update_int;
 		object_location loc;
 		object_location last_loc;
+		// Render-only smoothing state (never fed back into loc):
+		double render_off_x, render_off_y;   // decaying visual offset (draw = loc + offset)
+		double render_prev_x, render_prev_y; // last frame's loc, for snap detection
+		double render_smooth_time;
+		bool render_inited;
 		int center_x, center_y;
 		float xover, yover;
 		server_flag sflags;

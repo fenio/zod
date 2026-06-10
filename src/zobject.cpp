@@ -4,6 +4,10 @@
 
 using namespace COMMON;
 
+// Render-only movement smoothing toggle (set from ZOD_SMOOTH env at startup,
+// flipped live with 'Y'). Default on.
+bool zod_render_smoothing = true;
+
 ZSettings ZObject::default_zsettings;
 
 ZSDL_Surface ZObject::group_tag[10];
@@ -28,6 +32,14 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	object_name = "object";
 	owner = NULL_TEAM;
 	last_process_time = the_time;
+
+	//render-only smoothing state
+	render_off_x = 0;
+	render_off_y = 0;
+	render_prev_x = 0;
+	render_prev_y = 0;
+	render_smooth_time = the_time;
+	render_inited = false;
 	width = 0;
 	height = 0;
 	width_pix = 0;
@@ -1028,6 +1040,9 @@ int ZObject::ProcessObject()
 
 	//smooth the walk because of lag
 	SmoothMove(the_time);
+
+	//render-only smoothing of position snaps (visual only, after loc is final)
+	ProcessRenderSmoothing(the_time);
 
 	//attack radius
 	{
@@ -3813,6 +3828,59 @@ void ZObject::SmoothMove(double &the_time)
 	//set centers
 	center_x = x + (width_pix >> 1);
 	center_y = y + (height_pix >> 1);
+}
+
+// Render-only smoothing. The client already extrapolates loc per frame from the
+// last SEND_LOC velocity (SmoothMove), so straight-line motion is smooth; what
+// jumps is the *correction* when a new SEND_LOC arrives (direction / terrain-
+// speed / stop changes), plus the 1px floor() quantization. This absorbs those
+// discontinuities into a small visual offset that decays to zero, so the sprite
+// eases instead of snapping — with NO steady-state lag during constant motion
+// (because the predicted-vs-actual difference is ~0 while extrapolating). The
+// offset is applied only at blit time (see ZMap::RenderZSurface); loc is never
+// touched, so gameplay/selection/collision/combat are unaffected.
+void ZObject::ProcessRenderSmoothing(double the_time)
+{
+	if(!zod_render_smoothing || !render_inited)
+	{
+		render_off_x = render_off_y = 0;
+		render_prev_x = loc.x;
+		render_prev_y = loc.y;
+		render_smooth_time = the_time;
+		render_inited = true;
+		return;
+	}
+
+	double dt = the_time - render_smooth_time;
+	render_smooth_time = the_time;
+	if(dt <= 0) { render_prev_x = loc.x; render_prev_y = loc.y; return; }
+
+	// Where loc "should" be from last frame + its velocity; the leftover is the
+	// discontinuous snap (≈0 during normal extrapolation).
+	double pred_x = render_prev_x + loc.dx * dt;
+	double pred_y = render_prev_y + loc.dy * dt;
+	render_off_x -= (loc.x - pred_x);
+	render_off_y -= (loc.y - pred_y);
+	render_prev_x = loc.x;
+	render_prev_y = loc.y;
+
+	// Large offset (teleport / respawn / big correction): snap, don't slide.
+	const double max_off = 32.0;
+	if(render_off_x*render_off_x + render_off_y*render_off_y > max_off*max_off)
+		render_off_x = render_off_y = 0;
+
+	// Ease the absorbed offset back to zero.
+	const double tau = 0.08;   // ~80ms visual catch-up
+	double decay = exp(-dt / tau);
+	render_off_x *= decay;
+	render_off_y *= decay;
+}
+
+void ZObject::GetRenderOffset(double &ox, double &oy)
+{
+	if(!zod_render_smoothing) { ox = 0; oy = 0; return; }
+	ox = render_off_x;
+	oy = render_off_y;
 }
 
 void ZObject::RecalcDirection()

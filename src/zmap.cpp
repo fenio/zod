@@ -18,6 +18,8 @@ using namespace COMMON;
 ZMap::ZMap()
 {
 	//full_render = NULL;
+	render_offset_x = 0;
+	render_offset_y = 0;
 	last_shift_time = 0;
 	submerge_info_setup = false;
 	rock_list_setup = false;
@@ -1405,7 +1407,10 @@ int ZMap::WithinView(int x, int y, int w, int h)
 
 void ZMap::RenderZSurface(ZSDL_Surface *surface, int x, int y, bool render_hit, bool about_center)
 {
-	surface->RenderSurface((x - shift_x), (y - shift_y), render_hit, about_center);
+	// render_offset_* is the render-only movement-smoothing delta (0 except while
+	// drawing a moving object); it nudges the blit position only, never loc.
+	surface->RenderSurface((int)lround(x - shift_x + render_offset_x),
+	                       (int)lround(y - shift_y + render_offset_y), render_hit, about_center);
 }
 
 void ZMap::RenderZSurfaceHorzRepeat(ZSDL_Surface *surface, int x, int y, int w_total, bool render_hit)

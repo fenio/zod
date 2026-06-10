@@ -224,6 +224,8 @@ class ZMap
 		int GetBlitInfo(int x, int y, int w, int h, SDL_Rect &from_rect, SDL_Rect &to_rect);
 		int WithinView(int x, int y, int w, int h);
 		void RenderZSurface(ZSDL_Surface *surface, int x, int y, bool render_hit = false, bool about_center = false);
+		// render-only draw offset for movement smoothing (set per object during render)
+		void SetRenderOffset(double ox, double oy) { render_offset_x = ox; render_offset_y = oy; }
 		void RenderZSurfaceHorzRepeat(ZSDL_Surface *surface, int x, int y, int w_total, bool render_hit = false);
 		void RenderZSurfaceVertRepeat(ZSDL_Surface *surface, int x, int y, int h_total, bool render_hit = false);
 		
@@ -338,6 +340,8 @@ class ZMap
 		
 		//shift stuff
 		int shift_x, shift_y;
+		// render-only per-object draw offset (movement smoothing); 0 normally
+		double render_offset_x, render_offset_y;
 		int view_w, view_h;
 		double last_shift_time;
 		double shift_overflow;

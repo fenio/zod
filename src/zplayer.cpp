@@ -378,6 +378,9 @@ void ZPlayer::InitSDL()
 	ZVideo_SetCaption("Zod Engine");
 	atexit(ZSDL_Quit);//SDL_Quit);
 
+	// Render-only movement smoothing defaults on; ZOD_SMOOTH=0 disables it.
+	{ const char *e = getenv("ZOD_SMOOTH"); if(e && e[0] == '0') zod_render_smoothing = false; }
+
 #ifdef DISABLE_OPENGL
 	use_opengl = false;
 #endif
@@ -2128,7 +2131,11 @@ void ZPlayer::RenderObjects()
 
 	//draw objects pre stuff
 	for(vector<ZObject*>::iterator i=ols.prender_olist.begin(); i!=ols.prender_olist.end(); i++)
+	{
+		double rox, roy; (*i)->GetRenderOffset(rox, roy); zmap.SetRenderOffset(rox, roy);
 		(*i)->DoPreRender(zmap, screen);
+	}
+	zmap.SetRenderOffset(0, 0);
 
 	//draw rallypoints of "selected" building
 	if(gui_window && gui_window->GetBuildingObj())
@@ -2140,11 +2147,19 @@ void ZPlayer::RenderObjects()
 	
 	//draw objects
 	for(vector<ZObject*>::iterator i=ols.prender_olist.begin(); i!=ols.prender_olist.end(); i++)
+	{
+		double rox, roy; (*i)->GetRenderOffset(rox, roy); zmap.SetRenderOffset(rox, roy);
 		(*i)->DoRender(zmap, screen);
-	
+	}
+	zmap.SetRenderOffset(0, 0);
+
 	//draw after effects
 	for(vector<ZObject*>::iterator i=ols.prender_olist.begin(); i!=ols.prender_olist.end(); i++)
+	{
+		double rox, roy; (*i)->GetRenderOffset(rox, roy); zmap.SetRenderOffset(rox, roy);
 		(*i)->DoAfterEffects(zmap, screen);
+	}
+	zmap.SetRenderOffset(0, 0);
 	
 	//effects
 	for(vector<ZEffect*>::iterator i=effect_list.begin(); i!=effect_list.end(); i++)
@@ -2154,12 +2169,14 @@ void ZPlayer::RenderObjects()
 	for(vector<ZObject*>::iterator i=bird_list.begin(); i!=bird_list.end();i++)
 		(*i)->DoRender(zmap, screen);
 	
-	//draw selection stuff
+	//draw selection stuff (offset so the box/radius track the smoothed sprite)
 	for(vector<ZObject*>::iterator i=select_info.selected_list.begin(); i!=select_info.selected_list.end(); i++)
 	{
+		double rox, roy; (*i)->GetRenderOffset(rox, roy); zmap.SetRenderOffset(rox, roy);
 		(*i)->RenderSelection(zmap, screen);
 		(*i)->RenderAttackRadius(zmap, screen, select_info.selected_list);
 	}
+	zmap.SetRenderOffset(0, 0);
 
 	////draw attack radius for the chosen one
 	//if(zhud.GetSelectedObject())
@@ -3683,6 +3700,12 @@ void ZPlayer::ProcessUnicode(int key)
 		{
 			//toggle on/off
 			show_chat_history = !show_chat_history;
+		}
+		else if(key == 'y' || key == 'Y')
+		{
+			//toggle the render-only movement smoothing (visual only)
+			zod_render_smoothing = !zod_render_smoothing;
+			AddNewsEntry(zod_render_smoothing ? "render smoothing: ON" : "render smoothing: OFF");
 		}
 		else if(key == 'm' || key == 'M')
 		{
