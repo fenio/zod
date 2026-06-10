@@ -2,7 +2,8 @@
 
 A modernized build of the **Zod Engine** — the open-source remake of the 1996
 Bitmap Brothers real-time strategy game *Z* — brought up to date to build and
-play cleanly on current macOS (Apple Silicon) and Linux.
+play cleanly on current macOS (Apple Silicon), Linux, and Windows, on **native
+SDL3**.
 
 This is a fork of the Zod Engine by Michael Bok / Nighsoft
 (<http://zod.sourceforge.net/>), originally released under the GPLv3. All the
@@ -13,18 +14,23 @@ running well on modern systems.
 
 ## What's new in this fork
 
-- **Ported from SDL 1.2 to SDL 2** (via a small `sdl12_compat` shim).
-- **Fixed a family of rendering regressions** the SDL2 port had introduced
-  (sprites that silently failed to draw: zone flags, the resume banner, rock /
-  grenade animations, vehicles, portrait overlays — all the same
-  negative-source-rect clipping bug).
+- **Ported from SDL 1.2 all the way to native SDL3** — no compatibility shims.
+  Modern SDL3 rendering, input, threads, and SDL3_mixer (`MIX_` API) audio
+  throughout; the window/framebuffer and audio layers are honest native modules
+  (`zvideo`, `zaudio`), not faked-SDL facades.
+- **Fixed a family of rendering regressions** introduced along the way (sprites
+  that silently failed to draw: zone flags, the resume banner, rock / grenade
+  animations, vehicles, portrait overlays — a negative-source-rect clipping bug;
+  plus black boxes around rotated alpha sprites from an SDL3 bool-return change).
+- **Fixed input/gameplay issues**: fullscreen cursor offset (window→render
+  coordinate mapping) and contested zone flags strobing between teams.
 - **Modern scaled-framebuffer rendering**: the game renders to a logical
   framebuffer and is GPU-scaled crisp to a large, HiDPI/Retina-aware window
   (no more tiny, OS-blurred output). Smooth scaling by default; optional knobs
   via `ZOD_FILTER`, `ZOD_INTEGER`, `ZOD_SCANLINES`.
 - **Two-finger trackpad panning** of the map.
 - **Dropped the MySQL dependency** (it was only for the old online
-  master-server); the binary now needs only SDL2 + extensions.
+  master-server); the binary now needs only SDL3 + extensions.
 - **Installable**: finds its data when installed to a prefix, and launches
   straight into the single-player campaign with no arguments.
 - **CMake build** + this README + CI.
@@ -62,25 +68,30 @@ See **Build & run** below.
 
 ## Build & run
 
-Dependencies: a C++ compiler, CMake, pkg-config, and SDL2 with the image,
-mixer, and ttf extensions.
+Dependencies: a C++ compiler, CMake, pkg-config, and **SDL3** with the image,
+mixer, and ttf extensions. Note that the audio uses SDL3_mixer's new track-based
+`MIX_` API, which needs **SDL3_mixer ≥ 3.2.4** — fine on Homebrew and MSYS2, but
+only in very recent Linux distros (see the Linux note below).
 
 **macOS (Homebrew):**
 ```sh
-brew install cmake pkg-config sdl2 sdl2_image sdl2_mixer sdl2_ttf
+brew install cmake pkg-config sdl3 sdl3_image sdl3_mixer sdl3_ttf
 ```
 
-**Debian / Ubuntu:**
+**Windows (MSYS2 / MinGW):**
 ```sh
-sudo apt install build-essential cmake pkg-config \
-  libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja \
+  mingw-w64-x86_64-pkgconf mingw-w64-x86_64-sdl3 mingw-w64-x86_64-sdl3-image \
+  mingw-w64-x86_64-sdl3-mixer mingw-w64-x86_64-sdl3-ttf
 ```
 
-**Fedora:**
-```sh
-sudo dnf install gcc-c++ cmake pkgconf-pkg-config \
-  SDL2-devel SDL2_image-devel SDL2_mixer-devel SDL2_ttf-devel
-```
+**Debian / Ubuntu / Fedora:** SDL3 itself is widely packaged now
+(`libsdl3-dev` … on apt, `SDL3-devel` … on dnf), but the `MIX_`-API SDL3_mixer
+(3.2.4) only reached distro repos very recently (Ubuntu 26.04, Fedora 42+). On
+older releases, install SDL3 + SDL3_image + SDL3_ttf from your package manager
+and build **SDL3_mixer** from its upstream release — the
+[CI workflow](.github/workflows/build.yml) shows the exact steps (it builds
+SDL3_mixer 3.2.4 from source inside an Ubuntu container).
 
 Then:
 ```sh
