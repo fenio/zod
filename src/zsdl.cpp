@@ -1,9 +1,27 @@
 #include "zsdl.h"
+#include "zsdl_helpers.h"
 #include "common.h"
 
 using namespace COMMON;
 
 bool zsdl_play_music = true;
+
+// Native-SDL3 surface helpers (declared in zsdl_helpers.h).
+SDL_Surface *ZSDL_CreateSurface(int w, int h, int depth,
+    Uint32 rmask, Uint32 gmask, Uint32 bmask, Uint32 amask)
+{
+    SDL_PixelFormat fmt = SDL_GetPixelFormatForMasks(depth, rmask, gmask, bmask, amask);
+    if (fmt == SDL_PIXELFORMAT_UNKNOWN)
+        fmt = (depth == 32) ? SDL_PIXELFORMAT_ARGB8888 : SDL_PIXELFORMAT_XRGB8888;
+    return SDL_CreateSurface(w, h, fmt);
+}
+
+void ZSDL_SetSurfaceAlpha(SDL_Surface *s, Uint8 alpha)
+{
+    if (!s) return;
+    SDL_SetSurfaceBlendMode(s, SDL_BLENDMODE_BLEND);
+    SDL_SetSurfaceAlphaMod(s, alpha);
+}
 
 SDL_RotoZoomSurface::SDL_RotoZoomSurface()
 {
@@ -434,7 +452,7 @@ SDL_Surface *ZSDL_ConvertImage(SDL_Surface *src)
 	{
 		SDL_Surface *new_ret;
 
-		new_ret = SDL_DisplayFormatAlpha(src);
+		new_ret = SDL_ConvertSurface(src, SDL_PIXELFORMAT_ARGB8888);
 		SDL_DestroySurface( src );
 		src = new_ret;
 	}
@@ -492,7 +510,7 @@ SDL_Surface *CopyImage(SDL_Surface *original)
 	
 	if(!original) return NULL;
 	
-	copy = SDL_DisplayFormatAlpha(original);//SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, original->w, original->h, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
+	copy = SDL_ConvertSurface(original, SDL_PIXELFORMAT_ARGB8888);//ZSDL_CreateSurface(original->w, original->h, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
 	//copy = ZSDL_ConvertImage(copy);
 	
 	SDL_BlitSurface(original, NULL, copy, NULL);
@@ -509,7 +527,7 @@ SDL_Surface *CopyImageShifted(SDL_Surface *original, int x, int y)
 	if(x < 0) return CopyImage(original);
 	if(y < 0) return CopyImage(original);
 	
-	copy = SDL_DisplayFormatAlpha(original);//SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, original->w + x, original->h + y, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
+	copy = SDL_ConvertSurface(original, SDL_PIXELFORMAT_ARGB8888);//ZSDL_CreateSurface(original->w + x, original->h + y, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
 	//copy = ZSDL_ConvertImage(copy);
 	
 	to_rect.x = x;
@@ -665,8 +683,8 @@ SDL_Surface *ZSDL_NewSurface(int w, int h)
 
 	SDL_Surface *copy;
 
-	copy = SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, w, h, 32, 0, 0, 0, 0);
-		//SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, w, h, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
+	copy = ZSDL_CreateSurface(w, h, 32, 0, 0, 0, 0);
+		//ZSDL_CreateSurface(w, h, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
 	//copy = ZSDL_ConvertImage(copy);
 
 	return copy;

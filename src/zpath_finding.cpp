@@ -882,7 +882,7 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 	}
 
 	//start thread
-	the_thread = SDL_CreateThread(Find_Path_Thread, (void*)response);
+	the_thread = SDL_CreateThread(Find_Path_Thread, "pathfind", (void*)response);
 
 	//exit and return zero if thread couldn't start
 	if(!the_thread) 

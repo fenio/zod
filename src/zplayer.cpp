@@ -346,8 +346,7 @@ void ZPlayer::Setup()
 	//get it on
 	ZMusicEngine::PlaySplashMusic();
 	DoSplash();
-	if(use_opengl) SDL_GL_SwapBuffers();
-	else SDL_Flip(screen);
+	ZVideo_Present();
 
 	//important to keep the server from crashing us
 	ZTeam::Init();
@@ -358,7 +357,7 @@ void ZPlayer::Setup()
 
 	//if(!disable_zcursor) SDL_HideCursor();
 
-	gload_thread = SDL_CreateThread(Load_Graphics, this);
+	gload_thread = SDL_CreateThread(Load_Graphics, "gfx_load", this);
 }
 
 void ZPlayer::InitSDL()
@@ -375,11 +374,9 @@ void ZPlayer::InitSDL()
 	game_icon = IMG_Load("assets/icon.png");
 	//ffuts
 
-	if(game_icon) SDL_WM_SetIcon(game_icon, NULL);
-	SDL_WM_SetCaption("Zod Engine", "Zod Engine");
+	if(game_icon) ZVideo_SetIcon(game_icon);
+	ZVideo_SetCaption("Zod Engine");
 	atexit(ZSDL_Quit);//SDL_Quit);
-	SDL_EnableUNICODE(SDL_ENABLE);
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
 #ifdef DISABLE_OPENGL
 	use_opengl = false;
@@ -395,20 +392,14 @@ void ZPlayer::InitSDL()
 		//else
 		//	screen = SDL_SetVideoMode(init_w, init_h, 32, SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_RESIZABLE|SDL_FULLSCREEN);
 
-		if(is_windowed)
-			screen = SDL_SetVideoMode(init_w, init_h, 0, SDL_OPENGL | SDL_RESIZABLE);
-		else
-			screen = SDL_SetVideoMode(init_w, init_h, 0, SDL_OPENGL | SDL_RESIZABLE | SDL_FULLSCREEN);
+		screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
 
 		InitOpenGL();
 		ResetOpenGLViewPort(init_w, init_h);
 	}
 	else
 	{
-		if(is_windowed)
-			screen = SDL_SetVideoMode(init_w, init_h, 32, SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_RESIZABLE);
-		else
-			screen = SDL_SetVideoMode(init_w, init_h, 32, SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_RESIZABLE|SDL_FULLSCREEN);
+		screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
 
 		ZSDL_Surface::SetMainSoftwareSurface(screen);
 	}
@@ -418,9 +409,9 @@ void ZPlayer::InitSDL()
 	//some initial mouse stuff
 	//don't grab input in windowed mode, otherwise it hijacks the
 	//keyboard/mouse and you can't switch to other apps (press 'm' to toggle)
-	SDL_WM_GrabInput(is_windowed ? SDL_GRAB_OFF : SDL_GRAB_ON);
+	ZVideo_SetGrab(!is_windowed);
 	//SDL_EventState(SDL_EVENT_MOUSE_MOTION, SDL_IGNORE);
-	SDL_WarpMouse(init_w>>1, init_h>>1);
+	ZVideo_WarpMouse(init_w>>1, init_h>>1);
 	//SDL_EventState(SDL_EVENT_MOUSE_MOTION, SDL_ENABLE);
 
 	//Removed because some sdl_mixer libs dont have  
@@ -449,11 +440,11 @@ void ZPlayer::InitSDL()
 
 //	if(splash_screen)
 //	{
-//		SDL_Surface* bmpFile2 = SDL_DisplayFormat( splash_screen );
+//		SDL_Surface* bmpFile2 = SDL_ConvertSurface( splash_screen , SDL_PIXELFORMAT_XRGB8888);
 //		SDL_DestroySurface( splash_screen );
 //		splash_screen = bmpFile2;
 //// 		SDL_Surface* tempScreen = SDL_CreateRGBSurface( SDL_SWSURFACE | SDL_SRCALPHA, splash_screen->w, splash_screen->h, 32, 0xff000000,0x00ff0000,0x0000ff00,0x000000ff);
-//// 		SDL_Surface* tempScreen2 = SDL_DisplayFormat( tempScreen );
+//// 		SDL_Surface* tempScreen2 = SDL_ConvertSurface( tempScreen , SDL_PIXELFORMAT_XRGB8888);
 //// 		SDL_DestroySurface( tempScreen );
 //	}
 
@@ -628,7 +619,7 @@ void ZPlayer::AddNewsEntry(string message, int r, int g, int b)
 	//{
 	//	ZSDL_ModifyBlack(new_entry->text_image.GetBaseSurface());
 	//	new_entry->text_image.UseDisplayFormat();
-	//	SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
+	//	SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), true, 0x000000); 
 	//}
 
 	//set death time
@@ -872,8 +863,8 @@ void ZPlayer::SetupSelectionImages()
 		g = team_color[t].g - (int)(team_color[t].g * 0.2);
 		b = team_color[t].b - (int)(team_color[t].b * 0.2);
 
-		//selection_img[t] = SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, 4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
-		selection_img[t].LoadBaseImage(SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, 4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF));
+		//selection_img[t] = ZSDL_CreateSurface(4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
+		selection_img[t].LoadBaseImage(ZSDL_CreateSurface(4, 4, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF));
 		//SDL_FillSurfaceRect(selection_img[t], &the_box, SDL_MapRGB(selection_img[t]->format, r, g, b));
 		ZSDL_FillSurfaceRect(&the_box, r, g, b, &selection_img[t]);
 	}
@@ -1310,10 +1301,7 @@ void ZPlayer::RenderScreen()
 
 	DoSplash();
 
-	if(use_opengl)
-		SDL_GL_SwapBuffers();
-	else
-		SDL_Flip(screen);
+	ZVideo_Present();
 }
 
 void ZPlayer::RenderSmallMapFiller()
@@ -2307,7 +2295,7 @@ void ZPlayer::ProcessSDL()
 	key_event the_key;
 	int shift_x, shift_y;
 	
-	while(SDL_PollEvent(&event) && (ZSDL_ConvertEventCoords(&event), true))
+	while(SDL_PollEvent(&event) && (ZVideo_ConvertEventCoords(&event), true))
 		switch( event.type )
 	{
 		case SDL_EVENT_QUIT:
@@ -3698,14 +3686,14 @@ void ZPlayer::ProcessUnicode(int key)
 		}
 		else if(key == 'm' || key == 'M')
 		{
-			if(SDL_WM_GrabInput(SDL_GRAB_QUERY) == SDL_GRAB_ON)
+			if(ZVideo_GetGrab())
 			{
-				SDL_WM_GrabInput(SDL_GRAB_OFF);
+				ZVideo_SetGrab(false);
 				AddNewsEntry("mouse released");
 			}
 			else
 			{
-				SDL_WM_GrabInput(SDL_GRAB_ON);
+				ZVideo_SetGrab(true);
 				AddNewsEntry("mouse taken");
 			}
 		}

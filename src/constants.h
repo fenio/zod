@@ -2,7 +2,8 @@
 #define _CONSTANTS_H_
 
 #include <string>
-#include "sdl12_compat.h"
+#include <SDL3/SDL.h>
+#include "zvideo.h"
 
 using namespace std;
 

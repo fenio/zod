@@ -2047,30 +2047,6 @@ src/rtough.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/rtough.cpp.s
 .PHONY : src/rtough.cpp.s
 
-src/sdl12_compat.o: src/sdl12_compat.cpp.o
-.PHONY : src/sdl12_compat.o
-
-# target to build an object file
-src/sdl12_compat.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/sdl12_compat.cpp.o
-.PHONY : src/sdl12_compat.cpp.o
-
-src/sdl12_compat.i: src/sdl12_compat.cpp.i
-.PHONY : src/sdl12_compat.i
-
-# target to preprocess a source file
-src/sdl12_compat.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/sdl12_compat.cpp.i
-.PHONY : src/sdl12_compat.cpp.i
-
-src/sdl12_compat.s: src/sdl12_compat.cpp.s
-.PHONY : src/sdl12_compat.s
-
-# target to generate assembly for a file
-src/sdl12_compat.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/sdl12_compat.cpp.s
-.PHONY : src/sdl12_compat.cpp.s
-
 src/sdl3_mixer_compat.o: src/sdl3_mixer_compat.cpp.o
 .PHONY : src/sdl3_mixer_compat.o
 
@@ -3319,6 +3295,30 @@ src/zvehicle.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/zvehicle.cpp.s
 .PHONY : src/zvehicle.cpp.s
 
+src/zvideo.o: src/zvideo.cpp.o
+.PHONY : src/zvideo.o
+
+# target to build an object file
+src/zvideo.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/zvideo.cpp.o
+.PHONY : src/zvideo.cpp.o
+
+src/zvideo.i: src/zvideo.cpp.i
+.PHONY : src/zvideo.i
+
+# target to preprocess a source file
+src/zvideo.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/zvideo.cpp.i
+.PHONY : src/zvideo.cpp.i
+
+src/zvideo.s: src/zvideo.cpp.s
+.PHONY : src/zvideo.s
+
+# target to generate assembly for a file
+src/zvideo.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/zod.dir/build.make CMakeFiles/zod.dir/src/zvideo.cpp.s
+.PHONY : src/zvideo.cpp.s
+
 src/zvote.o: src/zvote.cpp.o
 .PHONY : src/zvote.o
 
@@ -3590,9 +3590,6 @@ help:
 	@echo "... src/rtough.o"
 	@echo "... src/rtough.i"
 	@echo "... src/rtough.s"
-	@echo "... src/sdl12_compat.o"
-	@echo "... src/sdl12_compat.i"
-	@echo "... src/sdl12_compat.s"
 	@echo "... src/sdl3_mixer_compat.o"
 	@echo "... src/sdl3_mixer_compat.i"
 	@echo "... src/sdl3_mixer_compat.s"
@@ -3749,6 +3746,9 @@ help:
 	@echo "... src/zvehicle.o"
 	@echo "... src/zvehicle.i"
 	@echo "... src/zvehicle.s"
+	@echo "... src/zvideo.o"
+	@echo "... src/zvideo.i"
+	@echo "... src/zvideo.s"
 	@echo "... src/zvote.o"
 	@echo "... src/zvote.i"
 	@echo "... src/zvote.s"

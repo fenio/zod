@@ -301,8 +301,8 @@ void ZMap::RenderMap()
 	if(full_render.GetBaseSurface()) DeRenderMap();
 	
 	//begin.
-	//full_render = SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, basic_info.width * 16, basic_info.height * 16, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
-	//full_render.LoadBaseImage(SDL_CreateRGBSurface(SDL_HWSURFACE | SDL_SRCALPHA, basic_info.width * 16, basic_info.height * 16, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF), false);
+	//full_render = ZSDL_CreateSurface(basic_info.width * 16, basic_info.height * 16, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF);
+	//full_render.LoadBaseImage(ZSDL_CreateSurface(basic_info.width * 16, basic_info.height * 16, 32, 0xFF000000, 0x0000FF00, 0x00FF0000, 0x000000FF), false);
 	full_render.LoadNewSurface(basic_info.width * 16, basic_info.height * 16);
 
 	//SDL_Rect the_box;

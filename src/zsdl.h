@@ -1,12 +1,14 @@
 #ifndef _ZSDL_H_
 #define _ZSDL_H_
 
-#include "sdl12_compat.h"
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_thread.h>
 #include <SDL3/SDL_mutex.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include "sdl3_mixer_compat.h"
+#include "zvideo.h"
+#include "zsdl_helpers.h"
 #include <string>
 #include "SDL_rotozoom.h"
 #include "zsdl_opengl.h"

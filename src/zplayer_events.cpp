@@ -168,19 +168,13 @@ void ZPlayer::resize_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	if(p->use_opengl)
 	{
-		if(p->is_windowed)
-			SDL_SetVideoMode(p->init_w, p->init_h, 0, SDL_OPENGL | SDL_RESIZABLE);
-		else
-			SDL_SetVideoMode(p->init_w, p->init_h, 0, SDL_OPENGL | SDL_FULLSCREEN);
+		ZVideo_SetMode(p->init_w, p->init_h, !p->is_windowed);
 
 		ResetOpenGLViewPort(p->init_w, p->init_h);
 	}
 	else
 	{
-		if(p->is_windowed)
-			SDL_SetVideoMode(p->init_w, p->init_h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE);
-		else
-			SDL_SetVideoMode(p->init_w, p->init_h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE | SDL_FULLSCREEN);
+		ZVideo_SetMode(p->init_w, p->init_h, !p->is_windowed);
 	}
 
 	ZSDL_Surface::SetScreenDimensions(p->init_w, p->init_h);
@@ -720,7 +714,7 @@ void ZPlayer::display_news_event(ZPlayer *p, char *data, int size, int dummy)
 	{
 		ZSDL_ModifyBlack(new_entry->text_image.GetBaseSurface());
 		new_entry->text_image.UseDisplayFormat();
-		SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), SDL_SRCCOLORKEY, 0x000000); 
+		SDL_SetSurfaceColorKey(new_entry->text_image.GetBaseSurface(), true, 0x000000); 
 	}
 
 

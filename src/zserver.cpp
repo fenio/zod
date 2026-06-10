@@ -135,7 +135,7 @@ void ZServer::StartBot(int bot_team)
 		return;
 	}
 
-	bot_thread[bot_team] = SDL_CreateThread(StartBotThreadFunc, (void*)&bot[bot_team]);
+	bot_thread[bot_team] = SDL_CreateThread(StartBotThreadFunc, "bot", (void*)&bot[bot_team]);
 
 	printf("ZServer::StartBot: bot started: %s\n", team_type_string[bot_team].c_str());
 }

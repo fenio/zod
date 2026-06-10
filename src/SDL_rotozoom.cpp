@@ -676,11 +676,7 @@ SDL_Surface* rotateSurface90Degrees(SDL_Surface* pSurf, int numClockwiseTurns)
  /* if it's even, our new width will be the same as the source surface */
  newWidth = (numClockwiseTurns % 2) ? (pSurf->h) : (pSurf->w);
  newHeight = (numClockwiseTurns % 2) ? (pSurf->w) : (pSurf->h);
- pSurfOut = SDL_CreateRGBSurface( pSurf->flags, newWidth, newHeight, SDL_GetPixelFormatDetails(pSurf->format)->bits_per_pixel,
-                           SDL_GetPixelFormatDetails(pSurf->format)->Rmask,
-                           SDL_GetPixelFormatDetails(pSurf->format)->Gmask, 
-                           SDL_GetPixelFormatDetails(pSurf->format)->Bmask, 
-                           SDL_GetPixelFormatDetails(pSurf->format)->Amask);
+ pSurfOut = SDL_CreateSurface( newWidth, newHeight, pSurf->format );
  if(!pSurfOut) {
    return NULL;
  }
@@ -876,7 +872,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	 * New source surface is 32bit with a defined RGBA ordering 
 	 */
 	rz_src =
-	    SDL_CreateRGBSurface(SDL_SWSURFACE, src->w, src->h, 32, 
+	    ZSDL_CreateSurface(src->w, src->h, 32, 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
                                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #else
@@ -889,7 +885,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	SDL_BlitSurface(src, NULL, rz_src, NULL);
 
 		if(colorKeyAvailable)
-			SDL_SetSurfaceColorKey(src, SDL_SRCCOLORKEY, colorkey);
+			SDL_SetSurfaceColorKey(src, true, colorkey);
 	src_converted = 1;
 	is32bit = 1;
     }
@@ -941,14 +937,14 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	     * Target surface is 32bit with source RGBA/ABGR ordering 
 	     */
 	    rz_dst =
-		SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 32,
+		ZSDL_CreateSurface(dstwidth, dstheight, 32,
 				     SDL_GetPixelFormatDetails(rz_src->format)->Rmask, SDL_GetPixelFormatDetails(rz_src->format)->Gmask,
 				     SDL_GetPixelFormatDetails(rz_src->format)->Bmask, SDL_GetPixelFormatDetails(rz_src->format)->Amask);
 	} else {
 	    /*
 	     * Target surface is 8bit 
 	     */
-	    rz_dst = SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 8, 0, 0, 0, 0);
+	    rz_dst = ZSDL_CreateSurface(dstwidth, dstheight, 8, 0, 0, 0, 0);
 	}
 
 	if (colorKeyAvailable == 1){
@@ -975,7 +971,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	    /*
 	     * Turn on source-alpha support 
 	     */
-	    SDL_SetAlpha(rz_dst, SDL_SRCALPHA, 255);
+	    ZSDL_SetSurfaceAlpha(rz_dst, 255);
 	} else {
 	    /*
 	     * Copy palette and colorkey info 
@@ -990,7 +986,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	    transformSurfaceY(rz_src, rz_dst, dstwidthhalf, dstheighthalf,
 			      (int) (sanglezoominv), (int) (canglezoominv),
 			      flipx, flipy);
-	    { Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, SDL_SRCCOLORKEY, _rz_src_ck); }
+	    { Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, true, _rz_src_ck); }
 	}
 	/*
 	 * Unlock source surface 
@@ -1020,14 +1016,14 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	     * Target surface is 32bit with source RGBA/ABGR ordering 
 	     */
 	    rz_dst =
-		SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 32,
+		ZSDL_CreateSurface(dstwidth, dstheight, 32,
 				     SDL_GetPixelFormatDetails(rz_src->format)->Rmask, SDL_GetPixelFormatDetails(rz_src->format)->Gmask,
 				     SDL_GetPixelFormatDetails(rz_src->format)->Bmask, SDL_GetPixelFormatDetails(rz_src->format)->Amask);
 	} else {
 	    /*
 	     * Target surface is 8bit 
 	     */
-	    rz_dst = SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 8, 0, 0, 0, 0);
+	    rz_dst = ZSDL_CreateSurface(dstwidth, dstheight, 8, 0, 0, 0, 0);
 	}
 
 	if (colorKeyAvailable == 1){
@@ -1051,7 +1047,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	    /*
 	     * Turn on source-alpha support 
 	     */
-	    SDL_SetAlpha(rz_dst, SDL_SRCALPHA, 255);
+	    ZSDL_SetSurfaceAlpha(rz_dst, 255);
 	} else {
 	    /*
 	     * Copy palette and colorkey info 
@@ -1064,7 +1060,7 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
 	     * Call the 8bit transformation routine to do the zooming 
 	     */
 	    zoomSurfaceY(rz_src, rz_dst, flipx, flipy);
-	    { Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, SDL_SRCCOLORKEY, _rz_src_ck); }
+	    { Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, true, _rz_src_ck); }
 	}
 	/*
 	 * Unlock source surface 
@@ -1153,7 +1149,7 @@ SDL_Surface *zoomSurface(SDL_Surface * src, double zoomx, double zoomy, int smoo
 	 * New source surface is 32bit with a defined RGBA ordering 
 	 */
 	rz_src =
-	    SDL_CreateRGBSurface(SDL_SWSURFACE, src->w, src->h, 32, 
+	    ZSDL_CreateSurface(src->w, src->h, 32, 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
                                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #else
@@ -1182,14 +1178,14 @@ SDL_Surface *zoomSurface(SDL_Surface * src, double zoomx, double zoomy, int smoo
 	 * Target surface is 32bit with source RGBA/ABGR ordering 
 	 */
 	rz_dst =
-	    SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 32,
+	    ZSDL_CreateSurface(dstwidth, dstheight, 32,
 				 SDL_GetPixelFormatDetails(rz_src->format)->Rmask, SDL_GetPixelFormatDetails(rz_src->format)->Gmask,
 				 SDL_GetPixelFormatDetails(rz_src->format)->Bmask, SDL_GetPixelFormatDetails(rz_src->format)->Amask);
     } else {
 	/*
 	 * Target surface is 8bit 
 	 */
-	rz_dst = SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 8, 0, 0, 0, 0);
+	rz_dst = ZSDL_CreateSurface(dstwidth, dstheight, 8, 0, 0, 0, 0);
     }
 
     /*
@@ -1207,7 +1203,7 @@ SDL_Surface *zoomSurface(SDL_Surface * src, double zoomx, double zoomy, int smoo
 	/*
 	 * Turn on source-alpha support 
 	 */
-	SDL_SetAlpha(rz_dst, SDL_SRCALPHA, 255);
+	ZSDL_SetSurfaceAlpha(rz_dst, 255);
     } else {
 	/*
 	 * Copy palette and colorkey info 
@@ -1220,7 +1216,7 @@ SDL_Surface *zoomSurface(SDL_Surface * src, double zoomx, double zoomy, int smoo
 	 * Call the 8bit transformation routine to do the zooming 
 	 */
 	zoomSurfaceY(rz_src, rz_dst, flipx, flipy);
-	{ Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, SDL_SRCCOLORKEY, _rz_src_ck); }
+	{ Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, true, _rz_src_ck); }
     }
     /*
      * Unlock source surface 
@@ -1269,7 +1265,7 @@ SDL_Surface *shrinkSurface(SDL_Surface * src, int factorx, int factory)
 	 * New source surface is 32bit with a defined RGBA ordering 
 	 */
 	rz_src =
-	    SDL_CreateRGBSurface(SDL_SWSURFACE, src->w, src->h, 32, 
+	    ZSDL_CreateSurface(src->w, src->h, 32, 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
                                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #else
@@ -1296,14 +1292,14 @@ SDL_Surface *shrinkSurface(SDL_Surface * src, int factorx, int factory)
 	 * Target surface is 32bit with source RGBA/ABGR ordering 
 	 */
 	rz_dst =
-	    SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 32,
+	    ZSDL_CreateSurface(dstwidth, dstheight, 32,
 				 SDL_GetPixelFormatDetails(rz_src->format)->Rmask, SDL_GetPixelFormatDetails(rz_src->format)->Gmask,
 				 SDL_GetPixelFormatDetails(rz_src->format)->Bmask, SDL_GetPixelFormatDetails(rz_src->format)->Amask);
     } else {
 	/*
 	 * Target surface is 8bit 
 	 */
-	rz_dst = SDL_CreateRGBSurface(SDL_SWSURFACE, dstwidth, dstheight, 8, 0, 0, 0, 0);
+	rz_dst = ZSDL_CreateSurface(dstwidth, dstheight, 8, 0, 0, 0, 0);
     }
 
     /*
@@ -1321,7 +1317,7 @@ SDL_Surface *shrinkSurface(SDL_Surface * src, int factorx, int factory)
 	/*
 	 * Turn on source-alpha support 
 	 */
-	SDL_SetAlpha(rz_dst, SDL_SRCALPHA, 255);
+	ZSDL_SetSurfaceAlpha(rz_dst, 255);
     } else {
 	/*
 	 * Copy palette and colorkey info 
@@ -1334,7 +1330,7 @@ SDL_Surface *shrinkSurface(SDL_Surface * src, int factorx, int factory)
 	 * Call the 8bit transformation routine to do the shrinking 
 	 */
 	shrinkSurfaceY(rz_src, rz_dst, factorx, factory);
-	{ Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, SDL_SRCCOLORKEY, _rz_src_ck); }
+	{ Uint32 _rz_src_ck = 0; SDL_GetSurfaceColorKey(rz_src, &_rz_src_ck); SDL_SetSurfaceColorKey(rz_dst, true, _rz_src_ck); }
     }
     /*
      * Unlock source surface 

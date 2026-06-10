@@ -11,7 +11,8 @@
 #define _SDL_rotozoom_h
 
 #include <math.h>
-#include "sdl12_compat.h"
+#include <SDL3/SDL.h>
+#include "zsdl_helpers.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
