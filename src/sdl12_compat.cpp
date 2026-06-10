@@ -121,6 +121,17 @@ int SDL_Flip(SDL_Surface * /*screen*/)
 // The game passes logical (render) coordinates; map them to window coordinates
 // for the scaled framebuffer so warps land where the cursor visually is.
 // (Without this, middle-button drag-scroll mis-warps and the deltas skew.)
+
+// Rewrite a polled event's mouse/touch coordinates from window space into the
+// game's logical (render) space. Under SDL_SetRenderLogicalPresentation the two
+// differ whenever the window isn't exactly the logical size (e.g. letterboxed
+// fullscreen), which otherwise makes the drawn cursor diverge from the OS
+// pointer and misplaces clicks. A no-op when they already match (windowed 1:1).
+void ZSDL_ConvertEventCoords(SDL_Event *ev)
+{
+    if (g_renderer && ev) SDL_ConvertEventToRenderCoordinates(g_renderer, ev);
+}
+
 void SDL_WarpMouse(int x, int y)
 {
     if (!g_compat_window) return;

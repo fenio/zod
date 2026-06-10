@@ -135,6 +135,11 @@ static inline void SDL_GL_SwapBuffers(void)
 // them to window coordinates for the scaled framebuffer before warping.
 void SDL_WarpMouse(int x, int y);
 
+// Maps a polled event's mouse coordinates from window space to logical (render)
+// space — call right after SDL_PollEvent so input lines up with the scaled
+// framebuffer (essential in letterboxed fullscreen).
+void ZSDL_ConvertEventCoords(SDL_Event *ev);
+
 // SDL_DisplayFormatAlpha was removed; closest equivalent is ConvertSurfaceFormat.
 // SDL_ConvertSurfaceFormat can fail (returns NULL) when the source has an
 // unusual mask layout; in that case fall back to ConvertSurface using a

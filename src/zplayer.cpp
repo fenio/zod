@@ -2307,8 +2307,8 @@ void ZPlayer::ProcessSDL()
 	key_event the_key;
 	int shift_x, shift_y;
 	
-	while(SDL_PollEvent(&event))
-		switch( event.type ) 
+	while(SDL_PollEvent(&event) && (ZSDL_ConvertEventCoords(&event), true))
+		switch( event.type )
 	{
 		case SDL_EVENT_QUIT:
 			ExitProgram();
