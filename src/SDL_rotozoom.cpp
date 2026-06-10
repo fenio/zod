@@ -852,7 +852,11 @@ SDL_Surface *rotozoomSurfaceXY(SDL_Surface * src, double angle, double zoomx, do
     if (src == NULL)
 	return (NULL);
 
-    if( SDL_GetSurfaceColorKey(src, &colorkey) == 0 )
+    // SDL3: SDL_GetSurfaceColorKey returns bool (true == a color key is set).
+    // SDL2 returned int 0 on success, so the original "== 0" test is inverted
+    // under SDL3 and would treat alpha-channel sprites (no color key) as keyed,
+    // filling their rotated bounding box with opaque black. Use the truthy form.
+    if( SDL_GetSurfaceColorKey(src, &colorkey) )
     {
         SDL_GetRGB(colorkey, SDL_GetPixelFormatDetails(src->format), SDL_GetSurfacePalette(src), &r, &g, &b);
         colorKeyAvailable = 1;
