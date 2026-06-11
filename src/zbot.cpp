@@ -10,6 +10,16 @@ ZBot::ZBot() : ZClient()
 	next_ai_time = 0;
 	last_order_time = 0;
 
+	//ZOD_BOT_FUZZ=1: besides playing normally, order random own units to
+	//random map coordinates (passable or not, reachable or not) - a
+	//pathfinding fuzzer, meant to run with ZOD_PATHLOG so the VIOLAT /
+	//STUCK / UNREACHABLE detectors catch whatever it shakes loose.
+	{
+		const char *e = getenv("ZOD_BOT_FUZZ");
+		fuzz_orders = e && e[0] && e[0] != '0';
+		next_fuzz_time = 0;
+	}
+
 	//bots are registered
 	is_registered = true;
 	
@@ -51,6 +61,9 @@ void ZBot::Run()
 
 		//do bot AI
 		ProcessAI();
+
+		//pathfinding fuzzer (no-op unless ZOD_BOT_FUZZ is set)
+		if(fuzz_orders) ProcessFuzzOrders();
 		
 		uni_pause(10);
 	}
@@ -1429,6 +1442,65 @@ void ZBot::ChooseBuildOrders()
 		}
 
 	}
+}
+
+//ZOD_BOT_FUZZ: every 1-4 seconds order one random own unit to a random map
+//coordinate - sometimes a queued chain of them. Deliberately includes
+//impassable and unreachable destinations; the server-side pathfinding has to
+//cope with whatever a player could click.
+void ZBot::ProcessFuzzOrders()
+{
+	double &the_time = ztime.ztime;
+	vector<ZObject*> own_units;
+
+	if(the_time < next_fuzz_time) return;
+	next_fuzz_time = the_time + 1.0 + ((rand() % 300) * 0.01);
+
+	if(!zmap.Loaded()) return;
+
+	for(vector<ZObject*>::iterator o=object_list.begin(); o!=object_list.end(); o++)
+	{
+		unsigned char ot, oid;
+		(*o)->GetObjectID(ot, oid);
+
+		if(!(ot == VEHICLE_OBJECT || ot == ROBOT_OBJECT)) continue;
+		if((*o)->GetOwner() != our_team) continue;
+		if(!(*o)->CanMove()) continue;
+		if((*o)->IsMinion()) continue;
+		if((*o)->IsDestroyed()) continue;
+
+		own_units.push_back(*o);
+	}
+
+	if(!own_units.size()) return;
+
+	ZObject *obj = own_units[rand() % own_units.size()];
+
+	int map_w = zmap.GetMapBasics().width * 16;
+	int map_h = zmap.GetMapBasics().height * 16;
+
+	if(map_w <= 0 || map_h <= 0) return;
+
+	//mostly a single destination, sometimes a queued chain
+	int amount = 1;
+	if(!(rand() % 4)) amount += 1 + (rand() % 2);
+
+	obj->GetWayPointDevList().clear();
+
+	for(int i=0;i<amount;i++)
+	{
+		waypoint wp;
+
+		wp.mode = MOVE_WP;
+		wp.ref_id = obj->GetRefID();
+		wp.x = rand() % map_w;
+		wp.y = rand() % map_h;
+		wp.player_given = true;
+
+		obj->GetWayPointDevList().push_back(wp);
+	}
+
+	SendBotDevWaypointList(obj);
 }
 
 void ZBot::SendBotDevWaypointList(ZObject *obj)

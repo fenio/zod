@@ -46,6 +46,7 @@ class ZBot : public ZClient
 		void ChooseBuildOrders();
 
 		void SendBotDevWaypointList(ZObject *obj);
+		void ProcessFuzzOrders();
 		
 		EventHandler<ZBot> ehandler;
 		
@@ -102,6 +103,9 @@ class ZBot : public ZClient
 
 		vector<PreferredUnit> preferred_build_list;
 		double next_ai_time;
+		//ZOD_BOT_FUZZ pathfinding fuzzer state
+		bool fuzz_orders;
+		double next_fuzz_time;
 		double last_order_time;
 };
 

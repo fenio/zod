@@ -623,6 +623,7 @@ class ZObject
 		bool pathlog_stall_reported;         // one STUCK line per stall
 		double pathlog_last_block_time;      // rate-limits "attacking through" lines
 		double pathlog_next_violation_time;  // throttles the impassable-overlap check
+		double slide_start_time;             // when the current wall-slide began (0 = not sliding)
 		int center_x, center_y;
 		float xover, yover;
 		server_flag sflags;

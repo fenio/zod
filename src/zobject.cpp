@@ -48,6 +48,7 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	pathlog_stall_reported = false;
 	pathlog_last_block_time = 0;
 	pathlog_next_violation_time = 0;
+	slide_start_time = 0;
 	width = 0;
 	height = 0;
 	width_pix = 0;
@@ -3475,6 +3476,9 @@ void ZObject::SetTarget(int x, int y)
 	cur_wp_info.x = x;
 	cur_wp_info.y = y;
 
+	//new leg, new corner geometry - restart the slide give-up clock
+	slide_start_time = 0;
+
 	//from
 	cur_wp_info.sx = center_x;
 	cur_wp_info.sy = center_y;
@@ -3653,8 +3657,12 @@ bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y,
 	inx = (int)floor(nx);
 	iny = (int)floor(ny);
 
-	//minions never stoppable (for now)
-	if(IsMinion()) stoppable = false;
+	//Minions used to be exempt from terrain collision ("never stoppable
+	//(for now)" upstream) - squad followers visibly phased through cliffs
+	//and rocks whenever their cloned waypoints beelined. Minions run their
+	//own pathfinding on the cloned waypoints, so with routes now always
+	//terrain-aware they can respect collision like everyone else; a blocked
+	//minion stops at the wall instead of ghosting through it.
 
 	//is the new x and y kosher?
 	//if(stoppable && tmap.WithinImpassable((inx + (width_pix>>1)) - 7, (iny + (height_pix>>1)) - 7, 6, 6, object_type == ROBOT_OBJECT))
@@ -3669,6 +3677,18 @@ bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y,
 		//rocks weren't there, because each rock blocks only one tile
 		if(tmap.GetPathFinder().HasDestroyableBarrier(stop_x >> 4, stop_y >> 4))
 			return false;
+
+		//bound how long one slide may grind: a near-perpendicular slide
+		//advances pixels per second, and against a dead wall (e.g. a beeline
+		//at an unreachable target) it would otherwise crawl forever
+		if(slide_start_time && ztime->ztime - slide_start_time > 1.5)
+		{
+			if(ZPATH_LOG_ON)
+				ZPathLog("BLOCK  %s: slide at t(%d,%d) made no opening for 1.5s - giving up",
+					ZPathLog_UnitDesc(this).c_str(), stop_x >> 4, stop_y >> 4);
+
+			return false;
+		}
 
 		//A* routes are tile-resolution but this check is pixel-resolution, so
 		//the straight line to the next path leg can corner-clip an impassable
@@ -3700,11 +3720,15 @@ bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y,
 		else
 			return false;
 
+		if(!slide_start_time) slide_start_time = ztime->ztime;
+
 		if(ZPATH_LOG_VERBOSE)
 			ZPathLog("slide  %s: corner-clip at t(%d,%d), sliding along %s toward (%d,%d)",
 				ZPathLog_UnitDesc(this).c_str(), stop_x / 16, stop_y / 16,
 				slid_x ? "x" : "y", cur_wp_info.x, cur_wp_info.y);
 	}
+	else
+		slide_start_time = 0; //full step clear - the corner is behind us
 
 	//robots don't attack while moving
 	if(object_type == ROBOT_OBJECT) Disengage();

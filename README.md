@@ -138,7 +138,9 @@ route, units blocked by impassable terrain, arrivals, and a `STUCK` line when a
 unit makes no progress on a move order for 5 seconds. `ZOD_PATHLOG=2` adds
 leg-by-leg progress; `ZOD_PATHLOG_FILE` overrides the output file (`-` =
 stdout). Observation only — it reads movement state but never changes it, and
-costs nothing when off.
+costs nothing when off. For unattended stress-testing, `ZOD_BOT_FUZZ=1` makes
+bots additionally order random units to random map coordinates (reachable or
+not) — combined with the log it's a pathfinding fuzz harness.
 
 ## License
 
