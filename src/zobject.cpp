@@ -1,4 +1,5 @@
 #include "zobject.h"
+#include "zpath_debug.h"
 #include "common.h"
 #include "zfont_engine.h"
 
@@ -40,6 +41,12 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	render_prev_y = 0;
 	render_smooth_time = the_time;
 	render_inited = false;
+	//pathfinding debug log trackers
+	pathlog_last_x = 0;
+	pathlog_last_y = 0;
+	pathlog_progress_time = the_time;
+	pathlog_stall_reported = false;
+	pathlog_last_block_time = 0;
 	width = 0;
 	height = 0;
 	width_pix = 0;
@@ -1552,6 +1559,10 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 		//StopMove();
 	}
 
+	//pathfinding debug: flag units stalled on a move order
+	//(after the switch: KillWP may have erased the waypoint just processed)
+	if(ZPATH_LOG_ON) ProcessPathLogStallCheck(the_time);
+
 	//see if they want to attack someone nearby
 	CheckPassiveEngage(the_time, ols);
 
@@ -2720,6 +2731,11 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 	//also setvelocity
 	if(is_new)
 	{
+		if(ZPATH_LOG_ON)
+			ZPathLog("MOVE   %s: new %s order to (%d,%d)t(%d,%d)",
+				ZPathLog_UnitDesc(this).c_str(), ZPathLog_WPModeName(wp->mode),
+				wp->x, wp->y, wp->x / 16, wp->y / 16);
+
 		//force move waypoints are expected to always go
 		//straight to their targets
 		if(stoppable)
@@ -2781,9 +2797,20 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 		SetVelocity();
 
 		cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+
+		if(ZPATH_LOG_VERBOSE)
+			ZPathLog("leg    %s: next leg (%d,%d)t(%d,%d), %d left",
+				ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x, cur_wp_info.y,
+				cur_wp_info.x / 16, cur_wp_info.y / 16, (int)cur_wp_info.pf_point_list.size());
 	}
 	else
+	{
+		if(ZPATH_LOG_ON)
+			ZPathLog("DONE   %s: %s order complete",
+				ZPathLog_UnitDesc(this).c_str(), ZPathLog_WPModeName(wp->mode));
+
 		KillWP(wp);
+	}
 }
 
 void ZObject::ProcessEnterFortWP(vector<waypoint>::iterator &wp, double time_dif, bool is_new, ZOLists &ols, ZMap &tmap)
@@ -3488,7 +3515,25 @@ bool ZObject::ProcessMoveOrKillWP(double time_dif, ZMap &tmap, vector<waypoint>:
 	if(!ProcessMove(time_dif, tmap, stop_x, stop_y, stoppable))
 	{
 		//attack our way through?
-		if(DoAttackImpassableAtCoords(ols, stop_x, stop_y)) return false;
+		if(DoAttackImpassableAtCoords(ols, stop_x, stop_y))
+		{
+			//this branch repeats every tick while the barrier is shot at,
+			//so rate-limit the evidence to one line every few seconds
+			if(ZPATH_LOG_ON && ztime->ztime - pathlog_last_block_time > 3.0)
+			{
+				pathlog_last_block_time = ztime->ztime;
+				ZPathLog("BLOCK  %s: barrier at (%d,%d)t(%d,%d) heading to (%d,%d) - attacking through it",
+					ZPathLog_UnitDesc(this).c_str(), stop_x, stop_y, stop_x / 16, stop_y / 16,
+					cur_wp_info.x, cur_wp_info.y);
+			}
+			return false;
+		}
+
+		if(ZPATH_LOG_ON)
+			ZPathLog("BLOCK  %s: impassable at (%d,%d)t(%d,%d) heading to (%d,%d)t(%d,%d) - %s order ABORTED",
+				ZPathLog_UnitDesc(this).c_str(), stop_x, stop_y, stop_x / 16, stop_y / 16,
+				cur_wp_info.x, cur_wp_info.y, cur_wp_info.x / 16, cur_wp_info.y / 16,
+				ZPathLog_WPModeName(wp->mode));
 
 		//otherwise kill the move and leave
 		KillWP(wp);
@@ -3496,6 +3541,51 @@ bool ZObject::ProcessMoveOrKillWP(double time_dif, ZMap &tmap, vector<waypoint>:
 	}
 
 	return true;
+}
+
+//pathfinding debug log watchdog: flag units that sit on a move order without
+//making progress. Observation only - it never touches movement state.
+void ZObject::ProcessPathLogStallCheck(double the_time)
+{
+	const double stall_seconds = 5.0;
+
+	if(!waypoint_list.size())
+	{
+		pathlog_stall_reported = false;
+		pathlog_progress_time = the_time;
+		return;
+	}
+
+	//only plain move orders; units on attack / repair / etc orders
+	//stand still legitimately
+	int mode = waypoint_list.begin()->mode;
+	if(mode != MOVE_WP && mode != FORCE_MOVE_WP)
+	{
+		pathlog_stall_reported = false;
+		pathlog_progress_time = the_time;
+		return;
+	}
+
+	//moved since last check? (>1px so sub-pixel jitter doesn't count)
+	if(abs(center_x - pathlog_last_x) > 1 || abs(center_y - pathlog_last_y) > 1)
+	{
+		pathlog_last_x = center_x;
+		pathlog_last_y = center_y;
+		pathlog_progress_time = the_time;
+		pathlog_stall_reported = false;
+		return;
+	}
+
+	if(!pathlog_stall_reported && the_time - pathlog_progress_time > stall_seconds)
+	{
+		pathlog_stall_reported = true;
+		ZPathLog("STUCK  %s: no progress for %.1fs on a %s order to (%d,%d)t(%d,%d)%s, %d legs left",
+			ZPathLog_UnitDesc(this).c_str(), the_time - pathlog_progress_time,
+			ZPathLog_WPModeName(mode),
+			cur_wp_info.x, cur_wp_info.y, cur_wp_info.x / 16, cur_wp_info.y / 16,
+			cur_wp_info.path_finding_id ? " (still waiting on the A* thread!)" : "",
+			(int)cur_wp_info.pf_point_list.size());
+	}
 }
 
 bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y, bool stoppable)
@@ -4868,6 +4958,32 @@ void ZObject::PostPathFindingResult(ZPath_Finding_Response* response)
 		cur_wp_info.got_pf_response = true;
 		cur_wp_info.pf_point_list = response->pf_point_list;
 		cur_wp_info.path_finding_id = 0;
+
+		if(ZPATH_LOG_ON)
+		{
+			if(cur_wp_info.pf_point_list.size())
+			{
+				//render the route as a tile list (capped so one line stays readable)
+				const int max_pts = 24;
+				string route;
+				char pt[32];
+				int i = 0;
+
+				for(vector<ZPath_Finding_AStar::pf_point>::iterator p=cur_wp_info.pf_point_list.begin(); p!=cur_wp_info.pf_point_list.end() && i<max_pts; ++p, ++i)
+				{
+					snprintf(pt, sizeof(pt), " t(%d,%d)", p->x / 16, p->y / 16);
+					route += pt;
+				}
+				if((int)cur_wp_info.pf_point_list.size() > max_pts) route += " ...";
+
+				ZPathLog("ROUTE  %s: id:%d, %d legs:%s",
+					ZPathLog_UnitDesc(this).c_str(), response->thread_id,
+					(int)cur_wp_info.pf_point_list.size(), route.c_str());
+			}
+			else
+				ZPathLog("ROUTE  %s: id:%d EMPTY - no path was found, unit will not move",
+					ZPathLog_UnitDesc(this).c_str(), response->thread_id);
+		}
 
 		if(cur_wp_info.pf_point_list.size())
 		{

@@ -45,6 +45,7 @@ public:
 	int w, h;
 	bool is_robot;
 	bool kill_thread;
+	Uint64 request_ticks; //SDL_GetTicks() when the request was made (pathlog timing)
 	map_pathfinding_info_tile **tile_info;
 	vector<ZPath_Finding_AStar::pf_point> pf_point_list;
 };

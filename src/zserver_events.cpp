@@ -1,4 +1,5 @@
 #include "zserver.h"
+#include "zpath_debug.h"
 
 using namespace COMMON;
 
@@ -402,6 +403,30 @@ void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int p
 
 	//clone
 	our_object->CloneMinionWayPoints();
+
+	if(ZPATH_LOG_ON)
+	{
+		vector<waypoint> &wpl = our_object->GetWayPointList();
+
+		if(!wpl.size())
+			ZPathLog("ORDER  p%d -> %s: stop (waypoints cleared)",
+				player, ZPathLog_UnitDesc(our_object).c_str());
+		else
+		{
+			string wps;
+			char one[64];
+
+			for(vector<waypoint>::iterator wp=wpl.begin(); wp!=wpl.end(); ++wp)
+			{
+				snprintf(one, sizeof(one), " %s(%d,%d)t(%d,%d)",
+					ZPathLog_WPModeName(wp->mode), wp->x, wp->y, wp->x / 16, wp->y / 16);
+				wps += one;
+			}
+
+			ZPathLog("ORDER  p%d -> %s: %d wp:%s",
+				player, ZPathLog_UnitDesc(our_object).c_str(), (int)wpl.size(), wps.c_str());
+		}
+	}
 
 	//now relay
 	p->RelayObjectWayPoints(our_object);
