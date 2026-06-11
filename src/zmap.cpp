@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <cmath>      // lround, for render-smoothing draw offset
 
 #include "zmap.h"
 #include "common.h"

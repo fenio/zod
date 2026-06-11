@@ -122,8 +122,14 @@ a blue bot, all 34 levels in order). Useful flags:
 
 **Controls:** left-click selects, right-click moves/attacks; capture a zone by
 walking a unit onto its flag; crew a neutral (grey) vehicle by sending a grunt
-onto it; two-finger scroll (or arrow keys) pans the map. The game starts
-**paused** — click the centre "Click to Start / Resume" banner to begin.
+onto it; two-finger scroll (or arrow keys) pans the map. Press **`Y`** to toggle
+render smoothing (see below). The game starts **paused** — click the centre
+"Click to Start / Resume" banner to begin.
+
+**Render smoothing:** a purely visual layer (on by default) eases unit movement
+through its position-correction "snaps" and gives stationary vehicles a smooth
+idle engine bob. It never affects gameplay. Toggle live with **`Y`**, or start
+with it off via `ZOD_SMOOTH=0`.
 
 ## License
 
