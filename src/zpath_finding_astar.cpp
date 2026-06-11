@@ -257,9 +257,7 @@ namespace ZPath_Finding_AStar
 
 	void Do_Astar(ZPath_Finding_Response *response)
 	{
-		const int ticks_until_pause = 90;
 		int total_ticks;
-		int pause_ticks;
 		double start_time, end_time;
 		//vector<pf_point> open_list;
 		//vector<pf_point> closed_list;
@@ -308,7 +306,6 @@ namespace ZPath_Finding_AStar
 
 		//start_time = current_time();
 		total_ticks = 0;
-		pause_ticks = 0;
 		while(open_list.size)
 		{
 			cp = lowest_f_cost(open_list);
@@ -353,12 +350,6 @@ namespace ZPath_Finding_AStar
 			}
 
 			total_ticks++;
-			pause_ticks++;
-			if(pause_ticks >= ticks_until_pause)
-			{
-				pause_ticks = 0;
-				SDL_Delay(10 + (ZPath_Finding_Response::existing_responses * 4));
-			}
 
 			if(response->kill_thread)
 			{
