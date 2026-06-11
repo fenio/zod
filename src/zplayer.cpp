@@ -480,6 +480,9 @@ void ZPlayer::InitSDL()
 // framebuffer); the zoom range is clamped to keep that subtle.
 void ZPlayer::ApplyZoom(double new_zoom)
 {
+	//snap to a fixed 10% grid so 100% is always a step and is exactly reachable
+	//on the way back (multiplicative steps drift off-grid once clamped)
+	new_zoom = lround(new_zoom * 10.0) / 10.0;
 	if(new_zoom < 0.7) new_zoom = 0.7;   // zoomed out  (more map, smaller)
 	if(new_zoom > 1.4) new_zoom = 1.4;   // zoomed in   (less map, bigger)
 
@@ -2391,8 +2394,8 @@ void ZPlayer::ProcessSDL()
 			else if (CtrlDown())
 			{
 				// Ctrl + wheel (or Ctrl + two-finger scroll) zooms the view.
-				if (event.wheel.y > 0)      ApplyZoom(view_zoom * 1.1);
-				else if (event.wheel.y < 0) ApplyZoom(view_zoom / 1.1);
+				if (event.wheel.y > 0)      ApplyZoom(view_zoom + 0.1);
+				else if (event.wheel.y < 0) ApplyZoom(view_zoom - 0.1);
 			}
 			else
 			{
@@ -3766,11 +3769,11 @@ void ZPlayer::ProcessUnicode(int key)
 		}
 		else if(key == '=' || key == '+')   //zoom in (keyboard; trackpad-friendly)
 		{
-			ApplyZoom(view_zoom * 1.1);
+			ApplyZoom(view_zoom + 0.1);
 		}
 		else if(key == '-' || key == '_')   //zoom out
 		{
-			ApplyZoom(view_zoom / 1.1);
+			ApplyZoom(view_zoom - 0.1);
 		}
 		else if(key == 'm' || key == 'M')
 		{
