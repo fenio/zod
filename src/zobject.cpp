@@ -47,6 +47,7 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	pathlog_progress_time = the_time;
 	pathlog_stall_reported = false;
 	pathlog_last_block_time = 0;
+	pathlog_next_violation_time = 0;
 	width = 0;
 	height = 0;
 	width_pix = 0;
@@ -1575,9 +1576,10 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 		//StopMove();
 	}
 
-	//pathfinding debug: flag units stalled on a move order
-	//(after the switch: KillWP may have erased the waypoint just processed)
-	if(ZPATH_LOG_ON) ProcessPathLogStallCheck(the_time);
+	//pathfinding debug: flag units stalled on a move order or overlapping
+	//impassable terrain (after the switch: KillWP may have erased the
+	//waypoint just processed)
+	if(ZPATH_LOG_ON) ProcessPathLogStallCheck(the_time, tmap);
 
 	//see if they want to attack someone nearby
 	CheckPassiveEngage(the_time, ols);
@@ -3569,10 +3571,25 @@ bool ZObject::ProcessMoveOrKillWP(double time_dif, ZMap &tmap, vector<waypoint>:
 }
 
 //pathfinding debug log watchdog: flag units that sit on a move order without
-//making progress. Observation only - it never touches movement state.
-void ZObject::ProcessPathLogStallCheck(double the_time)
+//making progress, and units whose collision box overlaps an impassable tile
+//(which should be impossible). Observation only - never touches movement.
+void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 {
 	const double stall_seconds = 5.0;
+
+	//impassable-overlap violation check: ground truth for "units walk
+	//through/over things" reports. Mobile units only - buildings and rocks
+	//legitimately sit on their own impassable footprint tiles.
+	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time)
+	{
+		int vx, vy;
+
+		pathlog_next_violation_time = the_time + 2.0;
+
+		if(tmap.WithinImpassable(loc.x + 1, loc.y + 1, width_pix - 2, height_pix - 2, vx, vy, object_type == ROBOT_OBJECT))
+			ZPathLog("VIOLAT %s: collision box overlaps impassable tile t(%d,%d)!",
+				ZPathLog_UnitDesc(this).c_str(), vx >> 4, vy >> 4);
+	}
 
 	if(!waypoint_list.size())
 	{
@@ -3642,6 +3659,13 @@ bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y,
 	{
 		if(ReachedTarget())
 			return true;
+
+		//never slide around a DESTROYABLE barrier (rocks): the original
+		//behavior is to walk up to it and blow it up (or stop) - sliding
+		//made grenade squads weave through whole rock fields as if the
+		//rocks weren't there, because each rock blocks only one tile
+		if(tmap.GetPathFinder().HasDestroyableBarrier(stop_x >> 4, stop_y >> 4))
+			return false;
 
 		//A* routes are tile-resolution but this check is pixel-resolution, so
 		//the straight line to the next path leg can corner-clip an impassable

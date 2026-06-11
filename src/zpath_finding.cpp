@@ -622,6 +622,22 @@ void ZPath_Finding_Engine::SetImpassable(int x, int y, bool impassable, bool des
 	path_robot_norocks_tile[x][y].passable = !impassable || destroyable;
 	path_vehicle_norocks_tile[x][y].passable = !impassable || destroyable;
 
+	//A destroyable barrier stays passable on the norocks maps (explosive
+	//carriers may blast through), but it must not be FREE - else A* routes
+	//grenade squads straight through whole rock fields instead of around
+	//them. Make it expensive (x8, exactly reversible on unset) so blasting
+	//through only wins when the detour is huge - matching the original Z.
+	if(destroyable)
+	{
+		int m = impassable ? 8 : 1;
+		int d = impassable ? 1 : 8;
+
+		path_robot_norocks_tile[x][y].side_weight = path_robot_norocks_tile[x][y].side_weight * m / d;
+		path_robot_norocks_tile[x][y].diag_weight = path_robot_norocks_tile[x][y].diag_weight * m / d;
+		path_vehicle_norocks_tile[x][y].side_weight = path_vehicle_norocks_tile[x][y].side_weight * m / d;
+		path_vehicle_norocks_tile[x][y].diag_weight = path_vehicle_norocks_tile[x][y].diag_weight * m / d;
+	}
+
 	//slow place for it
 	//would be best placed after the point in which this is called
 	//as this function is normally called in blocks
@@ -823,13 +839,23 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 	SDL_Thread *the_thread = NULL;
 	map_pathfinding_info_tile **tile_check;
 
-	//direct possible?
-	if(Direct_Path_Possible(sx, sy, ex, ey, is_robot, has_explosives))
+	//direct possible? Only short hops take this shortcut: it checks
+	//passability but is blind to terrain COST, so long beelines would
+	//happily wade water and ignore roads. Longer moves always run A*,
+	//whose tile weights shape the route like the original Z.
 	{
-		if(ZPATH_LOG_ON)
-			ZPathLog("PATH   #%d: direct line clear (%d,%d)t(%d,%d) -> (%d,%d)t(%d,%d), no A* needed",
-				obj_ref_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16);
-		return 0;
+		const int direct_max_dist = 48; //3 tiles
+		int adx = ex - sx;
+		int ady = ey - sy;
+
+		if((adx * adx) + (ady * ady) <= (direct_max_dist * direct_max_dist)
+			&& Direct_Path_Possible(sx, sy, ex, ey, is_robot, has_explosives))
+		{
+			if(ZPATH_LOG_ON)
+				ZPathLog("PATH   #%d: short hop, direct line clear (%d,%d)t(%d,%d) -> (%d,%d)t(%d,%d), no A* needed",
+					obj_ref_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16);
+			return 0;
+		}
 	}
 
 	//not in same region?
