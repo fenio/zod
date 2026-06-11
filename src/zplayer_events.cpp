@@ -12,6 +12,7 @@ void ZPlayer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, SET_ZONE_INFO, set_zone_info_event);
 	ehandler.AddFunction(TCP_EVENT, NEWS_EVENT, display_news_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_WAYPOINTS, set_object_waypoints_event);
+	ehandler.AddFunction(TCP_EVENT, SEND_UNIT_ROUTE, set_object_route_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_RALLYPOINTS, set_object_rallypoints_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_LOC, set_object_loc_event);
 	ehandler.AddFunction(TCP_EVENT, SET_OBJECT_TEAM, set_object_team_event);
@@ -737,8 +738,48 @@ void ZPlayer::set_object_waypoints_event(ZPlayer *p, char *data, int size, int d
 	//did any objects get their waypoint list updated?
 	if(!our_object) return;
 
+	//the old route belonged to the old waypoints; the server relays a fresh
+	//one (SEND_UNIT_ROUTE) once it is computed
+	our_object->GetClientRoute().clear();
+
 	//tell this object to render its waypoint list for some time
 	our_object->ShowWaypoints();
+}
+
+void ZPlayer::set_object_route_event(ZPlayer *p, char *data, int size, int dummy)
+{
+	int ref_id;
+	int point_amount;
+	ZObject *our_object;
+
+	//does it hold the header info?
+	if(size < 8) return;
+
+	ref_id = ((int*)data)[0];
+	point_amount = ((int*)data)[1];
+
+	//should we toss this packet for bad data?
+	if(point_amount < 0) return;
+	if(size != 8 + (point_amount * 8)) return;
+
+	our_object = GetObjectFromID(ref_id, p->object_list);
+
+	//not found?
+	if(!our_object) return;
+
+	//store the route for the waypoint-line renderer
+	{
+		vector<ZPath_Finding_AStar::pf_point> &route = our_object->GetClientRoute();
+		int *point_data = (int*)(data + 8);
+
+		route.clear();
+		for(int i=0;i<point_amount;i++)
+		{
+			int x = *point_data++;
+			int y = *point_data++;
+			route.push_back(ZPath_Finding_AStar::pf_point(x, y));
+		}
+	}
 }
 
 void ZPlayer::set_object_rallypoints_event(ZPlayer *p, char *data, int size, int dummy)

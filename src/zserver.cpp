@@ -1263,6 +1263,9 @@ void ZServer::ProcessObjects()
 			(*obj)->CloneMinionWayPoints();
 		}
 
+		if((*obj)->GetSFlags().updated_route)
+			RelayObjectRoute(*obj);
+
 		if((*obj)->GetSFlags().updated_attack_object)
 		{
 			RelayObjectAttackObject(*obj);
@@ -2468,6 +2471,42 @@ void ZServer::RelayObjectWayPoints(ZObject *obj)
 	RelayTeamMessage(obj->GetOwner(), SEND_WAYPOINTS, data, size);
 
 	//createdwaypoint data must be freed
+	free(data);
+}
+
+void ZServer::RelayObjectRoute(ZObject *obj)
+{
+	char *data;
+	int size;
+	vector<ZPath_Finding_AStar::pf_point> route;
+
+	//sanity
+	if(!obj) return;
+
+	//the A* route the unit is actually walking; the owning player's client
+	//threads the waypoint path line through it (original-Z style). An empty
+	//route is relayed too - it tells the client to fall back to a straight line.
+	obj->GetRemainingRoute(route);
+
+	size = 8 + ((int)route.size() * 8);
+	data = (char*)malloc(size);
+
+	//header: ref id, then the number of route points
+	((int*)data)[0] = obj->GetRefID();
+	((int*)data)[1] = (int)route.size();
+
+	{
+		int *point_data = (int*)(data + 8);
+
+		for(vector<ZPath_Finding_AStar::pf_point>::iterator i=route.begin(); i!=route.end(); ++i)
+		{
+			*point_data++ = i->x;
+			*point_data++ = i->y;
+		}
+	}
+
+	RelayTeamMessage(obj->GetOwner(), SEND_UNIT_ROUTE, data, size);
+
 	free(data);
 }
 

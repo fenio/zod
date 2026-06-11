@@ -58,6 +58,7 @@ class ZBot : public ZClient
 		static void set_zone_info_event(ZBot *p, char *data, int size, int dummy);
 		static void display_news_event(ZBot *p, char *data, int size, int dummy);
 		static void set_object_waypoints_event(ZBot *p, char *data, int size, int dummy);
+		static void ignore_unit_route_event(ZBot *p, char *data, int size, int dummy) {} //render-only info
 		static void set_object_rallypoints_event(ZBot *p, char *data, int size, int dummy);
 		static void set_object_loc_event(ZBot *p, char *data, int size, int dummy);
 		static void set_object_team_event(ZBot *p, char *data, int size, int dummy);

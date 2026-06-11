@@ -36,6 +36,7 @@ class ZServer : public ZCore
 		void SendNews(int player, const char* message, char r=0, char g=0, char b=0);
 		void BroadCastNews(const char* message, char r=0, char g=0, char b=0);
 		void RelayObjectWayPoints(ZObject *obj);
+		void RelayObjectRoute(ZObject *obj);
 		void RelayObjectRallyPoints(ZObject *obj, int player = -1);
 		void RelayTeamMessage(team_type the_team, int pack_id, const char *data, int size);
 		//void SetupFlagList();

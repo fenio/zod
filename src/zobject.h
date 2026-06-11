@@ -229,6 +229,7 @@ public:
 	bool updated_location;
 	bool updated_velocity;
 	bool updated_waypoints;
+	bool updated_route; //the A* route changed; relay it for path-line rendering
 	bool updated_attack_object;
 	bool updated_attack_object_health;
 	bool updated_attack_object_driver_health;
@@ -266,6 +267,7 @@ public:
 		updated_location = false;
 		updated_velocity = false;
 		updated_waypoints = false;
+		updated_route = false;
 		updated_attack_object = false;
 		updated_attack_object_health = false;
 		updated_attack_object_driver_health = false;
@@ -420,6 +422,12 @@ class ZObject
 		vector<waypoint> &GetWayPointList();
 		vector<waypoint> &GetWayPointDevList();
 		vector<waypoint> &GetRallyPointList() { return rallypoint_list; }
+		// The A* route the unit is actually walking, as the original-Z-style
+		// path line shows it. Server side: current leg target + remaining
+		// pf points (empty when there is no route). Client side: the copy
+		// received via SEND_UNIT_ROUTE, used by DoRenderWaypoints.
+		void GetRemainingRoute(vector<ZPath_Finding_AStar::pf_point> &out);
+		vector<ZPath_Finding_AStar::pf_point> &GetClientRoute() { return client_route; }
 		void RenderHover(ZMap &zmap, SDL_Surface *dest, team_type viewers_team);
 		void RenderHealth(ZMap &zmap, SDL_Surface *dest);
 		void RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*> &avoid_list);
@@ -638,6 +646,8 @@ class ZObject
 		vector<waypoint> rallypoint_list;
 		ZCursor waypoint_cursor;
 		waypoint_information cur_wp_info;
+		//client-side copy of the server's route (SEND_UNIT_ROUTE), for rendering
+		vector<ZPath_Finding_AStar::pf_point> client_route;
 		int group_num;
 		string hover_name;
 		ZSDL_Surface hover_name_img;
