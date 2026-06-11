@@ -1273,6 +1273,21 @@ void ZObject::DoRenderWaypoints(ZMap &the_map, SDL_Surface *dest, vector<ZObject
 			break;
 		}
 
+		//first leg: thread the line through the actual A* route the server
+		//relayed (SEND_UNIT_ROUTE), so the path bends around terrain like in
+		//the original Z instead of beelining to the destination
+		if(!is_rally_points && i == render_waypoint_list->begin())
+			for(vector<ZPath_Finding_AStar::pf_point>::iterator r=client_route.begin(); r!=client_route.end(); ++r)
+			{
+				int rx = r->x - mshift_x;
+				int ry = r->y - mshift_y;
+
+				RenderWaypointLine(tx, ty, rx, ry, view_h, view_w);
+
+				tx = rx;
+				ty = ry;
+			}
+
 		//render
 		RenderWaypointLine(tx, ty, nx, ny, view_h, view_w);
 
@@ -1498,6 +1513,7 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 			xover = yover = 0;
 
 			cur_wp_info.clear_and_kill(tmap);
+			sflags.updated_route = true;
 
 			//because all waypoints use cur_wp_info.x+y for movement
 			//we set it to our current location to set ourselves to
@@ -2440,6 +2456,7 @@ void ZObject::ProcessAttackWP(vector<waypoint>::iterator &wp, double time_dif, b
 				//reset the waypoint
 				StopMove();
 				cur_wp_info.clear();
+				sflags.updated_route = true;
 
 				return;
 			}
@@ -2464,6 +2481,7 @@ void ZObject::ProcessAttackWP(vector<waypoint>::iterator &wp, double time_dif, b
 				SetVelocity();
 
 				cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+				sflags.updated_route = true;
 			}
 			else
 			{
@@ -2472,6 +2490,7 @@ void ZObject::ProcessAttackWP(vector<waypoint>::iterator &wp, double time_dif, b
 				//reset the waypoint
 				StopMove();
 				cur_wp_info.clear();
+				sflags.updated_route = true;
 
 				/*
 				//find new route to target
@@ -2602,6 +2621,7 @@ void ZObject::ProcessPickupWP(vector<waypoint>::iterator &wp, double time_dif, b
 		SetVelocity();
 
 		cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+		sflags.updated_route = true;
 	}
 	else
 		KillWP(wp);
@@ -2687,6 +2707,7 @@ void ZObject::ProcessEnterWP(vector<waypoint>::iterator &wp, double time_dif, bo
 		SetVelocity();
 
 		cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+		sflags.updated_route = true;
 	}
 	else
 		KillWP(wp);
@@ -2797,6 +2818,7 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 		SetVelocity();
 
 		cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+		sflags.updated_route = true;
 
 		if(ZPATH_LOG_VERBOSE)
 			ZPathLog("leg    %s: next leg (%d,%d)t(%d,%d), %d left",
@@ -2919,6 +2941,7 @@ void ZObject::ProcessEnterFortWP(vector<waypoint>::iterator &wp, double time_dif
 			SetVelocity();
 
 			cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+			sflags.updated_route = true;
 		}
 		else
 		{
@@ -3090,6 +3113,7 @@ void ZObject::ProcessCraneRepairWP(vector<waypoint>::iterator &wp, double time_d
 			SetVelocity();
 
 			cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+			sflags.updated_route = true;
 		}
 		else
 		{
@@ -3279,6 +3303,7 @@ void ZObject::ProcessUnitRepairWP(vector<waypoint>::iterator &wp, double time_di
 			SetVelocity();
 
 			cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+			sflags.updated_route = true;
 		}
 		else
 		{
@@ -4996,6 +5021,7 @@ void ZObject::PostPathFindingResult(ZPath_Finding_Response* response)
 		cur_wp_info.got_pf_response = true;
 		cur_wp_info.pf_point_list = response->pf_point_list;
 		cur_wp_info.path_finding_id = 0;
+		sflags.updated_route = true;
 
 		if(ZPATH_LOG_ON)
 		{
@@ -5031,8 +5057,21 @@ void ZObject::PostPathFindingResult(ZPath_Finding_Response* response)
 			SetVelocity();
 
 			cur_wp_info.pf_point_list.erase(cur_wp_info.pf_point_list.begin());
+			sflags.updated_route = true;
 		}
 	}
+}
+
+void ZObject::GetRemainingRoute(vector<ZPath_Finding_AStar::pf_point> &out)
+{
+	out.clear();
+
+	if(!waypoint_list.size()) return;
+	if(!cur_wp_info.got_pf_response) return;
+
+	//the leg currently being walked, then the legs still queued
+	out.push_back(ZPath_Finding_AStar::pf_point(cur_wp_info.x, cur_wp_info.y));
+	out.insert(out.end(), cur_wp_info.pf_point_list.begin(), cur_wp_info.pf_point_list.end());
 }
 
 bool sort_objects_func (ZObject *a, ZObject *b)

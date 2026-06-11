@@ -18,6 +18,8 @@ void ZBot::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, SET_ZONE_INFO, set_zone_info_event);
 	ehandler.AddFunction(TCP_EVENT, NEWS_EVENT, display_news_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_WAYPOINTS, set_object_waypoints_event);
+	//bots don't draw path lines; swallow the relay so the event handler doesn't complain
+	ehandler.AddFunction(TCP_EVENT, SEND_UNIT_ROUTE, ignore_unit_route_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_RALLYPOINTS, set_object_rallypoints_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_LOC, set_object_loc_event);
 	ehandler.AddFunction(TCP_EVENT, SET_OBJECT_TEAM, set_object_team_event);

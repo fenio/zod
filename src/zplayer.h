@@ -289,6 +289,7 @@ class ZPlayer : public ZClient
 		static void set_zone_info_event(ZPlayer *p, char *data, int size, int dummy);
 		static void display_news_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_object_waypoints_event(ZPlayer *p, char *data, int size, int dummy);
+		static void set_object_route_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_object_rallypoints_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_object_loc_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_object_team_event(ZPlayer *p, char *data, int size, int dummy);
