@@ -3885,10 +3885,14 @@ void ZObject::GetRenderOffset(double &ox, double &oy)
 	// Idle "engine running" bob: a small smooth vertical sway for a STATIONARY
 	// vehicle (render-only). Gives a continuous idle motion to simulate an active
 	// engine, smoother than the original discrete 2-frame body toggle. Applied
-	// only while stopped (moving vehicles get their motion from the move itself).
+	// only while stopped (moving vehicles get their motion from the move itself)
+	// and only while crewed: an empty vehicle has no driver and no running
+	// engine, so it must sit dead still (owner == NULL_TEAM is how the engine
+	// marks an enterable, driverless vehicle - see CanBeEntered). Wrecks don't
+	// idle either.
 	unsigned char ot, oid;
 	GetObjectID(ot, oid);
-	if(ot == VEHICLE_OBJECT && isz(loc.dx) && isz(loc.dy))
+	if(ot == VEHICLE_OBJECT && owner != NULL_TEAM && !IsDestroyed() && isz(loc.dx) && isz(loc.dy))
 	{
 		const double bob_amp = 1.5;   // logical px
 		const double bob_hz  = 2.0;   // idle frequency
