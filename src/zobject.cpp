@@ -3617,8 +3617,41 @@ bool ZObject::ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y,
 	{
 		if(ReachedTarget())
 			return true;
+
+		//A* routes are tile-resolution but this check is pixel-resolution, so
+		//the straight line to the next path leg can corner-clip an impassable
+		//tile the route never crossed - aborting here livelocks bots that
+		//instantly re-order and get the same route back. Before giving up,
+		//try the step one axis at a time (only with real velocity on that
+		//axis, and never past the leg's coordinate) so the unit slides along
+		//the obstacle edge until the corner is cleared.
+		int slide_x, slide_y;
+		bool slid_x = false;
+
+		if(!isz(dx)
+			&& (dx > 0 ? center_x < cur_wp_info.x : center_x > cur_wp_info.x)
+			&& !tmap.WithinImpassable(inx+1, y+1, width_pix-2, height_pix-2, slide_x, slide_y, object_type == ROBOT_OBJECT))
+		{
+			//x is clear: keep y (and its sub-pixel remainder) where it was
+			iny = y;
+			ny = y + yover;
+			slid_x = true;
+		}
+		else if(!isz(dy)
+			&& (dy > 0 ? center_y < cur_wp_info.y : center_y > cur_wp_info.y)
+			&& !tmap.WithinImpassable(x+1, iny+1, width_pix-2, height_pix-2, slide_x, slide_y, object_type == ROBOT_OBJECT))
+		{
+			//y is clear: keep x (and its sub-pixel remainder) where it was
+			inx = x;
+			nx = x + xover;
+		}
 		else
 			return false;
+
+		if(ZPATH_LOG_VERBOSE)
+			ZPathLog("slide  %s: corner-clip at t(%d,%d), sliding along %s toward (%d,%d)",
+				ZPathLog_UnitDesc(this).c_str(), stop_x / 16, stop_y / 16,
+				slid_x ? "x" : "y", cur_wp_info.x, cur_wp_info.y);
 	}
 
 	//robots don't attack while moving
