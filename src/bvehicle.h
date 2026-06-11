@@ -23,6 +23,9 @@ class BVehicle : public ZBuilding
 		bool GetCraneEntrance(int &x, int &y, int &x2, int &y2);
 		bool GetCraneCenter(int &x, int &y);
 	private:
+		//one flip clock drives all the animated pieces (see Process)
+		static constexpr double anim_interval = 0.25;
+
 		static ZSDL_Surface base[MAX_PLANET_TYPES][MAX_TEAM_TYPES];
 		static ZSDL_Surface base_destroyed[MAX_PLANET_TYPES][MAX_TEAM_TYPES];
 		static ZSDL_Surface base_color[MAX_TEAM_TYPES];

@@ -1414,6 +1414,29 @@ void ZMap::RenderZSurface(ZSDL_Surface *surface, int x, int y, bool render_hit, 
 	                       (int)lround(y - shift_y + render_offset_y), render_hit, about_center);
 }
 
+// master render-smoothing toggle, defined in zobject.cpp (zobject.h includes
+// this header, so declare instead of including)
+extern bool zod_render_smoothing;
+
+void ZMap::RenderZSurfaceCrossfade(ZSDL_Surface *cur, int cur_x, int cur_y, ZSDL_Surface *next, int next_x, int next_y, double frac)
+{
+	RenderZSurface(cur, cur_x, cur_y);
+
+	if(!zod_render_smoothing) return;
+	if(!next || next == cur) return;
+
+	if(frac < 0) frac = 0;
+	if(frac > 1) frac = 1;
+
+	int a = (int)(frac * 255);
+	if(a <= 0) return;
+	if(a > 255) a = 255;
+
+	next->SetAlpha((char)a);
+	RenderZSurface(next, next_x, next_y);
+	next->SetAlpha((char)255);
+}
+
 void ZMap::RenderZSurfaceHorzRepeat(ZSDL_Surface *surface, int x, int y, int w_total, bool render_hit)
 {
 	SDL_Rect from_rect, to_rect;

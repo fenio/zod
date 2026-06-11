@@ -127,9 +127,11 @@ render smoothing (see below). The game starts **paused** — click the centre
 "Click to Start / Resume" banner to begin.
 
 **Render smoothing:** a purely visual layer (on by default) eases unit movement
-through its position-correction "snaps" and gives stationary vehicles a smooth
-idle engine bob. It never affects gameplay. Toggle live with **`Y`**, or start
-with it off via `ZOD_SMOOTH=0`.
+through its position-correction "snaps", gives stationary crewed vehicles a
+smooth idle engine bob, and crossfades the low-fps building animations (radar
+dish, factory smoke and machinery) so they glide instead of flipping 4 frames a
+second. It never affects gameplay. Toggle live with **`Y`**, or start with it
+off via `ZOD_SMOOTH=0`.
 
 **Pathfinding debug log:** to collect evidence when a unit gets stuck or takes
 a weird route, run with `ZOD_PATHLOG=1` — the engine writes `zod_path.log`

@@ -115,7 +115,7 @@ void BRadar::Init()
 int BRadar::Process()
 {
 	double &the_time = ztime->ztime;
-	const double min_interval_time = 0.25;
+	const double min_interval_time = anim_interval;
 	
 	ProcessBuildingsEffects(the_time);
 
@@ -203,6 +203,9 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 	SDL_Rect from_rect, to_rect;
 	int lx, ly;
 	
+	//how far into the current frame flip we are (for the smoothing crossfade)
+	double frac = AnimFrac(anim_interval);
+
 	if(!IsDestroyed())
 	{
 		if(owner != NULL_TEAM)
@@ -210,7 +213,8 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + front_light_x;
 			ly = y + front_light_y;
 
-			the_map.RenderZSurface(&front_light[front_light_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&front_light[front_light_i], lx, ly,
+				&front_light[(front_light_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(front_light[front_light_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -222,7 +226,8 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + side_light_x;
 			ly = y + side_light_y;
 			
-			the_map.RenderZSurface(&side_light[side_light_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&side_light[side_light_i], lx, ly,
+				&side_light[(side_light_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(side_light[side_light_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -234,7 +239,8 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + box_spinner_x;
 			ly = y + box_spinner_y;
 			
-			the_map.RenderZSurface(&box_spinner[box_spinner_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&box_spinner[box_spinner_i], lx, ly,
+				&box_spinner[(box_spinner_i+1) % 12], lx, ly, frac);
 			//if(the_map.GetBlitInfo(box_spinner[box_spinner_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -246,7 +252,9 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + dish_x;
 			ly = y + dish_y[dish_i];
 			
-			the_map.RenderZSurface(&dish[dish_i], lx, ly);
+			//the dish also moves per frame; the crossfade smooths that too
+			the_map.RenderZSurfaceCrossfade(&dish[dish_i], lx, ly,
+				&dish[(dish_i+1) % 8], lx, y + dish_y[(dish_i+1) % 8], frac);
 			//if(the_map.GetBlitInfo(dish[dish_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -260,14 +268,8 @@ void BRadar::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + front_light_x;
 			ly = y + front_light_y;
 
-			the_map.RenderZSurface(&front_light[front_light_i], lx, ly);
-			//if(the_map.GetBlitInfo(front_light[front_light_i], lx, ly, from_rect, to_rect))
-			//{
-			//	to_rect.x += shift_x;
-			//	to_rect.y += shift_y;
-
-			//	SDL_BlitSurface( front_light[front_light_i], &from_rect, dest, &to_rect);
-			//}
+			the_map.RenderZSurfaceCrossfade(&front_light[front_light_i], lx, ly,
+				&front_light[(front_light_i+1) % 2], lx, ly, frac);
 		}
 	}
 	else

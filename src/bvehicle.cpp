@@ -136,7 +136,7 @@ void BVehicle::Init()
 int BVehicle::Process()
 {
 	double &the_time = ztime->ztime;
-	const double min_interval_time = 0.25;
+	const double min_interval_time = anim_interval;
 
 	ProcessBuildingsEffects(the_time);
 	
@@ -252,10 +252,15 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 				//SDL_BlitSurface( base[palette][owner], &from_rect, dest, &to_rect);
 			}
 		
+			//frame-flip progress, for the smoothing crossfade
+			double frac = AnimFrac(anim_interval);
+
 			lx = x + exhaust_x;
 			ly = y + exhaust_y + (exhaust_i * -2);
 
-			the_map.RenderZSurface(&exhaust[exhaust_i], lx, ly);
+			//the exhaust smoke also rises 2px per frame; crossfade smooths both
+			the_map.RenderZSurfaceCrossfade(&exhaust[exhaust_i], lx, ly,
+				&exhaust[(exhaust_i+1) % 13], lx, y + exhaust_y + (((exhaust_i+1) % 13) * -2), frac);
 			//if(the_map.GetBlitInfo(exhaust[exhaust_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -267,7 +272,8 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 			lx = x + tank_x;
 			ly = y + tank_y;
 			
-			the_map.RenderZSurface(&tank[tank_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&tank[tank_i], lx, ly,
+				&tank[(tank_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(tank[tank_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -279,7 +285,8 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 			lx = x + vent_x;
 			ly = y + vent_y;
 			
-			the_map.RenderZSurface(&vent[vent_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&vent[vent_i], lx, ly,
+				&vent[(vent_i+1) % 4], lx, ly, frac);
 			//if(the_map.GetBlitInfo(vent[vent_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -291,7 +298,8 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 			lx = x + bulb_x;
 			ly = y + bulb_y;
 			
-			the_map.RenderZSurface(&bulb[bulb_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&bulb[bulb_i], lx, ly,
+				&bulb[(bulb_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(bulb[bulb_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -318,7 +326,8 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 			lx = x + spin_x;
 			ly = y + spin_y;
 			
-			the_map.RenderZSurface(&spin[spin_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&spin[spin_i], lx, ly,
+				&spin[(spin_i+1) % 8], lx, ly, frac);
 			//if(the_map.GetBlitInfo(spin[spin_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -342,10 +351,13 @@ void BVehicle::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int
 		}
 		else
 		{
+			double frac = AnimFrac(anim_interval);
+
 			lx = x + tank_x;
 			ly = y + tank_y;
 
-			the_map.RenderZSurface(&tank[tank_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&tank[tank_i], lx, ly,
+				&tank[(tank_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(tank[tank_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;

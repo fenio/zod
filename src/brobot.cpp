@@ -135,7 +135,7 @@ void BRobot::Init()
 int BRobot::Process()
 {
 	double &the_time = ztime->ztime;
-	const double min_interval_time = 0.25;
+	const double min_interval_time = anim_interval;
 
 	ProcessBuildingsEffects(the_time);
 	
@@ -249,10 +249,15 @@ void BRobot::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 				//SDL_BlitSurface( base[palette][owner], &from_rect, dest, &to_rect);
 			}
 
+			//frame-flip progress, for the smoothing crossfade
+			double frac = AnimFrac(anim_interval);
+
 			lx = x + exhaust_x;
 			ly = y + exhaust_y + (exhaust_i * -2);
 
-			the_map.RenderZSurface(&exhaust[exhaust_i], lx, ly);
+			//the exhaust smoke also rises 2px per frame; crossfade smooths both
+			the_map.RenderZSurfaceCrossfade(&exhaust[exhaust_i], lx, ly,
+				&exhaust[(exhaust_i+1) % 13], lx, y + exhaust_y + (((exhaust_i+1) % 13) * -2), frac);
 			//if(the_map.GetBlitInfo(exhaust[exhaust_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -264,7 +269,8 @@ void BRobot::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + green_box_x;
 			ly = y + green_box_y;
 
-			the_map.RenderZSurface(&green_box[green_box_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&green_box[green_box_i], lx, ly,
+				&green_box[(green_box_i+1) % 6], lx, ly, frac);
 			//if(the_map.GetBlitInfo(green_box[green_box_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -305,7 +311,8 @@ void BRobot::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + robot_x;
 			ly = y + robot_y;
 
-			the_map.RenderZSurface(&robot[robot_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&robot[robot_i], lx, ly,
+				&robot[(robot_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(robot[robot_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -317,7 +324,8 @@ void BRobot::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 			lx = x + spin_x;
 			ly = y + spin_y;
 
-			the_map.RenderZSurface(&spin[spin_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&spin[spin_i], lx, ly,
+				&spin[(spin_i+1) % 8], lx, ly, frac);
 			//if(the_map.GetBlitInfo(spin[spin_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;
@@ -341,10 +349,13 @@ void BRobot::DoAfterEffects(ZMap &the_map, SDL_Surface *dest, int shift_x, int s
 		}
 		else
 		{
+			double frac = AnimFrac(anim_interval);
+
 			lx = x + robot_x;
 			ly = y + robot_y;
 
-			the_map.RenderZSurface(&robot[robot_i], lx, ly);
+			the_map.RenderZSurfaceCrossfade(&robot[robot_i], lx, ly,
+				&robot[(robot_i+1) % 2], lx, ly, frac);
 			//if(the_map.GetBlitInfo(robot[robot_i], lx, ly, from_rect, to_rect))
 			//{
 			//	to_rect.x += shift_x;

@@ -74,6 +74,11 @@ class ZBuilding : public ZObject
 	protected:
 		void ResetShowTime(int new_time);
 
+		// How far we are through the current animation frame-flip interval
+		// (0..1) — last_process_time is when Process() last advanced the
+		// frames. Drives the render-smoothing crossfade between frames.
+		double AnimFrac(double interval) { return interval > 0 ? (ztime->ztime - last_process_time) / interval : 0; }
+
 		planet_type palette;
 		int level;
 		bool do_base_rerender;

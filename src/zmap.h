@@ -230,6 +230,12 @@ class ZMap
 		void RenderZSurface(ZSDL_Surface *surface, int x, int y, bool render_hit = false, bool about_center = false);
 		// render-only draw offset for movement smoothing (set per object during render)
 		void SetRenderOffset(double ox, double oy) { render_offset_x = ox; render_offset_y = oy; }
+		// Render-smoothing crossfade for low-fps frame-flip animations (radar
+		// dish, factory exhaust, ...): draws cur, then next on top faded in by
+		// frac (0..1 = progress through the current animation interval). Takes
+		// separate positions because several of these animations also move per
+		// frame. Render-only; draws just cur when smoothing is off.
+		void RenderZSurfaceCrossfade(ZSDL_Surface *cur, int cur_x, int cur_y, ZSDL_Surface *next, int next_x, int next_y, double frac);
 		void RenderZSurfaceHorzRepeat(ZSDL_Surface *surface, int x, int y, int w_total, bool render_hit = false);
 		void RenderZSurfaceVertRepeat(ZSDL_Surface *surface, int x, int y, int h_total, bool render_hit = false);
 		
