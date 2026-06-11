@@ -3579,8 +3579,11 @@ void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 
 	//impassable-overlap violation check: ground truth for "units walk
 	//through/over things" reports. Mobile units only - buildings and rocks
-	//legitimately sit on their own impassable footprint tiles.
-	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time)
+	//legitimately sit on their own impassable footprint tiles - and not
+	//during force moves, which deliberately skip collision (that's how
+	//new units exit through their factory's own footprint).
+	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time
+		&& !(waypoint_list.size() && waypoint_list.begin()->mode == FORCE_MOVE_WP))
 	{
 		int vx, vy;
 
