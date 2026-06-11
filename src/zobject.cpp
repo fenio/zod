@@ -3881,6 +3881,20 @@ void ZObject::GetRenderOffset(double &ox, double &oy)
 	if(!zod_render_smoothing) { ox = 0; oy = 0; return; }
 	ox = render_off_x;
 	oy = render_off_y;
+
+	// Idle "engine running" bob: a small smooth vertical sway for a STATIONARY
+	// vehicle (render-only). Gives a continuous idle motion to simulate an active
+	// engine, smoother than the original discrete 2-frame body toggle. Applied
+	// only while stopped (moving vehicles get their motion from the move itself).
+	unsigned char ot, oid;
+	GetObjectID(ot, oid);
+	if(ot == VEHICLE_OBJECT && isz(loc.dx) && isz(loc.dy))
+	{
+		const double bob_amp = 1.5;   // logical px
+		const double bob_hz  = 2.0;   // idle frequency
+		double phase = ref_id * 0.6;  // desync nearby vehicles
+		oy += bob_amp * sin(ztime->ztime * (2.0 * PI * bob_hz) + phase);
+	}
 }
 
 void ZObject::RecalcDirection()
