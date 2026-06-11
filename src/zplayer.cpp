@@ -155,6 +155,9 @@ ZPlayer::ZPlayer() : ZClient()
 	graphics_loaded = false;
 	prev_w = init_w = 800;
 	prev_h = init_h = 600;
+	base_w = 800;
+	base_h = 600;
+	view_zoom = 1.0;
 	mouse_x = 0;
 	mouse_y = 0;
 	splash_fade = 255;
@@ -370,6 +373,11 @@ void ZPlayer::InitSDL()
 	//init SDL
 	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 
+	//remember the startup resolution as the zoom==1.0 baseline
+	base_w = init_w;
+	base_h = init_h;
+	view_zoom = 1.0;
+
 	//some stuff that just has to be right after init
 	game_icon = IMG_Load("assets/icon.png");
 	//ffuts
@@ -461,6 +469,49 @@ void ZPlayer::InitSDL()
 	//	ZSDL_PlayMusic(splash_music, -1);
 	//	ZAudio_SetMusicVolume(128);
 	//}
+}
+
+// View zoom: the map + HUD are composited into one fixed-resolution framebuffer
+// that the GPU upscales to fill the window, so zooming = rebuilding that
+// framebuffer at base_w/zoom (a smaller logical resolution shows fewer map
+// pixels stretched larger = zoomed in). Reuses the resolution-change re-layout
+// (same steps as resize_event), captures the new framebuffer surface, and holds
+// the current view centre. The HUD scales somewhat with zoom (it shares the
+// framebuffer); the zoom range is clamped to keep that subtle.
+void ZPlayer::ApplyZoom(double new_zoom)
+{
+	if(new_zoom < 0.7) new_zoom = 0.7;   // zoomed out  (more map, smaller)
+	if(new_zoom > 1.4) new_zoom = 1.4;   // zoomed in   (less map, bigger)
+
+	if(fabs(new_zoom - view_zoom) >= 0.0001)
+	{
+		//remember the map point currently at the centre of the view
+		int cx, cy;
+		zmap.GetViewCenter(cx, cy);
+
+		view_zoom = new_zoom;
+		init_w = (int)lround(base_w / view_zoom);
+		init_h = (int)lround(base_h / view_zoom);
+
+		//rebuild the logical framebuffer at the new resolution (capture new surface!)
+		screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
+		ZSDL_Surface::SetMainSoftwareSurface(screen);
+		ZSDL_Surface::SetScreenDimensions(init_w, init_h);
+		zhud.ReRenderAll();
+		zmap.SetViewingDimensions(init_w - HUD_WIDTH, init_h - HUD_HEIGHT);
+
+		//keep the same map point centred as the view size changed
+		zmap.CenterView(cx, cy);
+
+		prev_w = init_w;
+		prev_h = init_h;
+	}
+
+	//always report the current level (even at the clamp) so it's easy to find
+	//your way back to 100% — there's no dedicated reset key
+	char msg[64];
+	sprintf(msg, "zoom: %d%%", (int)lround(view_zoom * 100));
+	AddNewsEntry(msg);
 }
 
 int ZPlayer::Load_Graphics(void *p)
@@ -2337,6 +2388,12 @@ void ZPlayer::ProcessSDL()
 				else if (event.wheel.y < 0)
 					ehandler.ProcessEvent(SDL_EVENT, WHEELDOWN_EVENT, NULL, 0, 0);
 			}
+			else if (CtrlDown())
+			{
+				// Ctrl + wheel (or Ctrl + two-finger scroll) zooms the view.
+				if (event.wheel.y > 0)      ApplyZoom(view_zoom * 1.1);
+				else if (event.wheel.y < 0) ApplyZoom(view_zoom / 1.1);
+			}
 			else
 			{
 				const float pan = 30.0f;  // map pixels per scroll unit
@@ -3706,6 +3763,14 @@ void ZPlayer::ProcessUnicode(int key)
 			//toggle the render-only movement smoothing (visual only)
 			zod_render_smoothing = !zod_render_smoothing;
 			AddNewsEntry(zod_render_smoothing ? "render smoothing: ON" : "render smoothing: OFF");
+		}
+		else if(key == '=' || key == '+')   //zoom in (keyboard; trackpad-friendly)
+		{
+			ApplyZoom(view_zoom * 1.1);
+		}
+		else if(key == '-' || key == '_')   //zoom out
+		{
+			ApplyZoom(view_zoom / 1.1);
 		}
 		else if(key == 'm' || key == 'M')
 		{

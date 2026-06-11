@@ -351,7 +351,13 @@ class ZPlayer : public ZClient
 		
 		int init_w, init_h;
 		int prev_w, prev_h;
-		
+
+		// View zoom: rebuilds the logical framebuffer at base_w/zoom so the same
+		// window shows more/less of the map (Ctrl+wheel or +/- keys).
+		int base_w, base_h;     // startup -r resolution (zoom == 1.0)
+		double view_zoom;       // >1 = zoomed in, <1 = zoomed out
+		void ApplyZoom(double new_zoom);
+
 		SDL_Surface *screen;
 		TTF_Font *ttf_font;
 		TTF_Font *ttf_font_7;

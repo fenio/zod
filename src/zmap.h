@@ -208,6 +208,10 @@ class ZMap
 		//viewport / shift stuff
 		void SetViewingDimensions(int w, int h);
 		void SetViewShift(int x, int y);
+		// map point currently at the centre of the view, and re-centre on one
+		// (used by zoom to hold the focus point as the view size changes)
+		void GetViewCenter(int &mx, int &my) { mx = shift_x + (view_w >> 1); my = shift_y + (view_h >> 1); }
+		void CenterView(int mx, int my) { SetViewShift(mx - (view_w >> 1), my - (view_h >> 1)); }
 		bool ShiftViewRight();
 		bool ShiftViewUp();
 		bool ShiftViewDown();
