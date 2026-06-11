@@ -509,6 +509,7 @@ class ZObject
 		bool DoAttackImpassableAtCoords(ZOLists &ols, int x, int y);
 		bool DodgeMissile(int tx, int ty, double time_till_explode);
 		bool ProcessMoveOrKillWP(double time_dif, ZMap &tmap, vector<waypoint>::iterator &wp, ZOLists &ols, bool stoppable = true);
+		void ProcessPathLogStallCheck(double the_time);
 		bool ProcessMove(double time_dif, ZMap &tmap, bool stoppable = true) { int sx, sy; return ProcessMove(time_dif, tmap, sx, sy, stoppable); }
 		bool ProcessMove(double time_dif, ZMap &tmap, int &stop_x, int &stop_y, bool stoppable = true);
 		bool ReachedTarget();
@@ -607,6 +608,12 @@ class ZObject
 		double render_prev_x, render_prev_y; // last frame's loc, for snap detection
 		double render_smooth_time;
 		bool render_inited;
+		// Pathfinding debug log (ZOD_PATHLOG) trackers — observation only,
+		// never fed back into movement:
+		int pathlog_last_x, pathlog_last_y;  // last position that counted as progress
+		double pathlog_progress_time;        // when that progress happened
+		bool pathlog_stall_reported;         // one STUCK line per stall
+		double pathlog_last_block_time;      // rate-limits "attacking through" lines
 		int center_x, center_y;
 		float xover, yover;
 		server_flag sflags;

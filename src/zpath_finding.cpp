@@ -1,4 +1,5 @@
 #include "zpath_finding.h"
+#include "zpath_debug.h"
 #include "constants.h"
 #include "common.h"
 
@@ -294,6 +295,7 @@ ZPath_Finding_Response::ZPath_Finding_Response()
 	start_x = start_y = 0;
 	end_x = end_y = 0;
 	kill_thread = false;
+	request_ticks = 0;
 
 	existing_responses++;
 }
@@ -798,6 +800,14 @@ int Find_Path_Thread(void *response_)
 	//process
 	ZPath_Finding_AStar::Do_Astar(response);
 
+	if(ZPATH_LOG_ON)
+		ZPathLog("PATH   id:%d done in %dms: %d points%s%s",
+			response->thread_id,
+			(int)(SDL_GetTicks() - response->request_ticks),
+			(int)response->pf_point_list.size(),
+			response->pf_point_list.size() ? "" : " (NO PATH FOUND)",
+			response->kill_thread ? " (discarded - request was cancelled)" : "");
+
 	//push for server to collect
 	if(response->kill_thread)
 		delete response;
@@ -814,12 +824,24 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 	map_pathfinding_info_tile **tile_check;
 
 	//direct possible?
-	if(Direct_Path_Possible(sx, sy, ex, ey, is_robot, has_explosives)) return 0;
+	if(Direct_Path_Possible(sx, sy, ex, ey, is_robot, has_explosives))
+	{
+		if(ZPATH_LOG_ON)
+			ZPathLog("PATH   #%d: direct line clear (%d,%d)t(%d,%d) -> (%d,%d)t(%d,%d), no A* needed",
+				obj_ref_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16);
+		return 0;
+	}
 
 	//not in same region?
 	if(!InSameRegion(sx, sy, ex, ey, is_robot))
 	{
 		printf("!InSameRegion\n");
+		//note: the caller can not tell this 0 from "direct path ok" - the unit
+		//will beeline at the target and stop at the first wall it hits
+		if(ZPATH_LOG_ON)
+			ZPathLog("PATH   #%d: UNREACHABLE - (%d,%d)t(%d,%d) and (%d,%d)t(%d,%d) are in different regions for a %s; unit will beeline and likely stall",
+				obj_ref_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16,
+				is_robot ? "robot" : "vehicle");
 		return 0;
 	}
 
@@ -842,6 +864,7 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 	response->end_y = ey;
 	response->is_robot = is_robot;
 	response->kill_thread = false;
+	response->request_ticks = SDL_GetTicks();
 
 	//store in the tile info
 	{
@@ -896,6 +919,11 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 
 	//add thread to thread list
 	thread_list.push_back(ZPath_Finding_Thread_Entry(next_thread_id, the_thread, response));
+
+	if(ZPATH_LOG_ON)
+		ZPathLog("PATH   #%d: A* id:%d (%d,%d)t(%d,%d) -> (%d,%d)t(%d,%d) [%s%s]",
+			obj_ref_id, next_thread_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16,
+			is_robot ? "robot" : "vehicle", has_explosives ? ", avoids rocks" : "");
 
 	return next_thread_id;
 }

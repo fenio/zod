@@ -131,6 +131,15 @@ through its position-correction "snaps" and gives stationary vehicles a smooth
 idle engine bob. It never affects gameplay. Toggle live with **`Y`**, or start
 with it off via `ZOD_SMOOTH=0`.
 
+**Pathfinding debug log:** to collect evidence when a unit gets stuck or takes
+a weird route, run with `ZOD_PATHLOG=1` — the engine writes `zod_path.log`
+recording every move order, A\* request/result (with search time), the chosen
+route, units blocked by impassable terrain, arrivals, and a `STUCK` line when a
+unit makes no progress on a move order for 5 seconds. `ZOD_PATHLOG=2` adds
+leg-by-leg progress; `ZOD_PATHLOG_FILE` overrides the output file (`-` =
+stdout). Observation only — it reads movement state but never changes it, and
+costs nothing when off.
+
 ## License
 
 GPLv3 — see [`LICENSE`](LICENSE). The Zod Engine is © its original authors

@@ -29,6 +29,7 @@ TCHAR *optarg;
 #endif
 
 #include "main.h"
+#include "zpath_debug.h"
 #include "common.h"
 #include "constants.h"
 #include "zsdl.h"
@@ -119,8 +120,12 @@ int main(int argc, char **argv)
 	chdir_to_data_dir();
 
 	SDL_Thread *server_thread;
-	
+
 	printf("Welcome to the Zod Engine\n");
+
+	//optional pathfinding debug log (ZOD_PATHLOG); init before
+	//the server / pathfinding threads exist
+	ZPathLog_Init();
 
 	if(argc<=1) starting_conditions.setdefaults();
 	
