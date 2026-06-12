@@ -671,6 +671,9 @@ void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 		p->zhud.GetMiniMap().Setup_Boundaries();
 		p->InitAnimals();
 
+		//zoom in if this map is narrower/shorter than the view (no black edge)
+		p->AutoZoomToFillMap();
+
 		if(p->graphics_loaded)
 			ZMusicEngine::PlayPlanetMusic(p->zmap.GetMapBasics().terrain_type);
 	}

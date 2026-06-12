@@ -367,6 +367,8 @@ class ZPlayer : public ZClient
 		// window shows more/less of the map (Ctrl+wheel or +/- keys).
 		int base_w, base_h;     // startup -r resolution (zoom == 1.0)
 		double view_zoom;       // >1 = zoomed in, <1 = zoomed out
+		double view_min_zoom;   // per-map floor: the zoom that fills the map (no black past its edge)
+		void AutoZoomToFillMap();
 		void ApplyZoom(double new_zoom);
 
 		SDL_Surface *screen;
