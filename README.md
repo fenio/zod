@@ -127,10 +127,10 @@ borderless fullscreen. Press **`Y`** to toggle render smoothing (see below).
 The game starts **paused** — click the centre "Click to Start / Resume" banner
 to begin.
 
-**Classic mouse (original-Z style):** on Windows, a plain left-click with units
-selected issues the order, like the 1996 game — clicks on your own units and
-drags still select. Default on for Windows, off elsewhere; force it either way
-with `ZOD_CLASSIC_MOUSE=1` / `=0`. Right-click orders always work.
+**Classic mouse (original-Z style, default):** a plain left-click with units
+selected issues the order and ends the interaction, like the 1996 game —
+clicks on your own units and drags still select, right-click cancels the
+selection. Prefer RTS-style right-click orders? `ZOD_CLASSIC_MOUSE=0`.
 
 **Render smoothing:** a purely visual layer (on by default) eases unit movement
 through its position-correction "snaps" and gives stationary vehicles a smooth
