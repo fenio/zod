@@ -44,6 +44,8 @@ jobs:
         # bounded parallelism: unlimited -j OOM-kills the runner (several huge
         # source files compiled at -O2 simultaneously)
         run: cmake --build build --parallel 4
+      - name: Run functional tests
+        run: ctest --test-dir build --output-on-failure
 
   macos:
     name: macOS
@@ -58,6 +60,8 @@ jobs:
         # bounded parallelism: unlimited -j OOM-kills the runner (several huge
         # source files compiled at -O2 simultaneously)
         run: cmake --build build --parallel 4
+      - name: Run functional tests
+        run: ctest --test-dir build --output-on-failure
 
   windows:
     name: Windows (MSYS2 MinGW)
