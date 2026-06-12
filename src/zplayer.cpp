@@ -391,15 +391,11 @@ void ZPlayer::InitSDL()
 	// Render-only movement smoothing defaults on; ZOD_SMOOTH=0 disables it.
 	{ const char *e = getenv("ZOD_SMOOTH"); if(e && e[0] == '0') zod_render_smoothing = false; }
 
-	// Classic (original-Z) mouse: plain left click orders selected units.
-	// The 1996 game did everything with the left button, and Windows players
-	// expect that - default on there, off elsewhere; ZOD_CLASSIC_MOUSE=0/1
-	// overrides either way. Right-click orders keep working in both modes.
-#ifdef _WIN32
+	// Classic (original-Z) mouse, default ON everywhere: the 1996 game did
+	// everything with the left button - click orders and ends the
+	// interaction, right click cancels the selection. ZOD_CLASSIC_MOUSE=0
+	// restores RTS-style right-click orders.
 	classic_mouse = true;
-#else
-	classic_mouse = false;
-#endif
 	{ const char *e = getenv("ZOD_CLASSIC_MOUSE"); if(e && e[0]) classic_mouse = (e[0] != '0'); }
 
 #ifdef DISABLE_OPENGL
