@@ -152,6 +152,7 @@ class ZPlayer : public ZClient
 	public:
 		ZPlayer();
 		
+		void SetAutoAspect(bool b) { auto_aspect = b; }
 		void SetDimensions(int w, int h);
 		void SetSoundsOff(bool setoff);
 		void SetMusicOff(bool setoff);
@@ -355,6 +356,12 @@ class ZPlayer : public ZClient
 		int init_w, init_h;
 		int prev_w, prev_h;
 
+		// Adapt the logical width to the renderer's real output aspect (only
+		// when the resolution wasn't forced with -r); startup=true skips the
+		// HUD/map rebuild steps that need loaded graphics.
+		void AdaptViewAspect(bool startup = false);
+		void RebuildView(int new_w, int new_h);
+		bool auto_aspect;
 		// View zoom: rebuilds the logical framebuffer at base_w/zoom so the same
 		// window shows more/less of the map (Ctrl+wheel or +/- keys).
 		int base_w, base_h;     // startup -r resolution (zoom == 1.0)

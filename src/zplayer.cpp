@@ -155,6 +155,7 @@ ZPlayer::ZPlayer() : ZClient()
 	graphics_loaded = false;
 	prev_w = init_w = 800;
 	prev_h = init_h = 600;
+	auto_aspect = true;
 	base_w = 800;
 	base_h = 600;
 	view_zoom = 1.0;
@@ -426,6 +427,9 @@ void ZPlayer::InitSDL()
 		ZSDL_Surface::SetMainSoftwareSurface(screen);
 	}
 
+	//the window exists now: align the view to its real output aspect
+	AdaptViewAspect(true);
+
 	if(!disable_zcursor) SDL_HideCursor();
 
 	//some initial mouse stuff
@@ -489,6 +493,65 @@ void ZPlayer::InitSDL()
 // (same steps as resize_event), captures the new framebuffer surface, and holds
 // the current view centre. The HUD scales somewhat with zoom (it shares the
 // framebuffer); the zoom range is clamped to keep that subtle.
+void ZPlayer::RebuildView(int new_w, int new_h)
+{
+	//remember the map point currently at the centre of the view
+	int cx, cy;
+	zmap.GetViewCenter(cx, cy);
+
+	init_w = new_w;
+	init_h = new_h;
+
+	//rebuild the logical framebuffer at the new resolution (capture new surface!)
+	screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
+	ZSDL_Surface::SetMainSoftwareSurface(screen);
+	ZSDL_Surface::SetScreenDimensions(init_w, init_h);
+	zhud.ReRenderAll();
+	zmap.SetViewingDimensions(init_w - HUD_WIDTH, init_h - HUD_HEIGHT);
+
+	//keep the same map point centred as the view size changed
+	zmap.CenterView(cx, cy);
+
+	prev_w = init_w;
+	prev_h = init_h;
+}
+
+//The desktop mode is only an estimate of the real fullscreen drawable
+//(scaled modes and notched displays differ), so after any mode change match
+//the logical width to the renderer's actual output aspect - this is what
+//removes the last letterbox stripes exactly.
+void ZPlayer::AdaptViewAspect(bool startup)
+{
+	int ow, oh;
+
+	if(!auto_aspect) return;
+	if(!ZVideo_GetOutputSize(ow, oh)) return;
+	if(oh <= 0) return;
+
+	int new_base_w = ((int)lround((double)base_h * ow / oh)) & ~1;
+
+	if(new_base_w < (base_h * 4) / 3) new_base_w = (base_h * 4) / 3;
+	if(new_base_w > (base_h * 8) / 3) new_base_w = (base_h * 8) / 3;
+
+	if(new_base_w == base_w) return;
+
+	base_w = new_base_w;
+
+	if(startup)
+	{
+		//graphics aren't loaded yet: just rebuild the framebuffer; the HUD
+		//and map pick the new dimensions up when they initialize
+		init_w = (int)lround(base_w / view_zoom);
+		prev_w = init_w;
+		screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
+		ZSDL_Surface::SetMainSoftwareSurface(screen);
+		ZSDL_Surface::SetScreenDimensions(init_w, init_h);
+		printf("view adapted to output: %dx%d\n", init_w, init_h);
+	}
+	else
+		RebuildView((int)lround(base_w / view_zoom), (int)lround(base_h / view_zoom));
+}
+
 void ZPlayer::ApplyZoom(double new_zoom)
 {
 	//snap to a fixed 10% grid so 100% is always a step and is exactly reachable
@@ -499,26 +562,8 @@ void ZPlayer::ApplyZoom(double new_zoom)
 
 	if(fabs(new_zoom - view_zoom) >= 0.0001)
 	{
-		//remember the map point currently at the centre of the view
-		int cx, cy;
-		zmap.GetViewCenter(cx, cy);
-
 		view_zoom = new_zoom;
-		init_w = (int)lround(base_w / view_zoom);
-		init_h = (int)lround(base_h / view_zoom);
-
-		//rebuild the logical framebuffer at the new resolution (capture new surface!)
-		screen = ZVideo_SetMode(init_w, init_h, !is_windowed);
-		ZSDL_Surface::SetMainSoftwareSurface(screen);
-		ZSDL_Surface::SetScreenDimensions(init_w, init_h);
-		zhud.ReRenderAll();
-		zmap.SetViewingDimensions(init_w - HUD_WIDTH, init_h - HUD_HEIGHT);
-
-		//keep the same map point centred as the view size changed
-		zmap.CenterView(cx, cy);
-
-		prev_w = init_w;
-		prev_h = init_h;
+		RebuildView((int)lround(base_w / view_zoom), (int)lround(base_h / view_zoom));
 	}
 
 	//always report the current level (even at the clamp) so it's easy to find
@@ -3770,6 +3815,10 @@ void ZPlayer::ProcessUnicode(int key)
 	{
 		ZVideo_SetFullscreen(!ZVideo_GetFullscreen());
 		is_windowed = !ZVideo_GetFullscreen();
+
+		//match the logical view to the new output's real aspect (no stripes)
+		AdaptViewAspect();
+
 		AddNewsEntry(is_windowed ? "windowed" : "fullscreen");
 		printf("fullscreen toggle: %s\n", is_windowed ? "windowed" : "fullscreen");
 		fflush(stdout);

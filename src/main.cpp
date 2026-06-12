@@ -269,6 +269,7 @@ void run_player_thread()
 		}
 
 		zplayer.SetDimensions(rw, rh);
+		zplayer.SetAutoAspect(!starting_conditions.resolution_explicit);
 	}
 	
 	zplayer.Setup();
