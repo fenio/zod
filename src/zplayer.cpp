@@ -160,6 +160,7 @@ ZPlayer::ZPlayer() : ZClient()
 	base_w = 800;
 	base_h = 600;
 	view_zoom = 1.0;
+	view_min_zoom = 0.7;
 	mouse_x = 0;
 	mouse_y = 0;
 	splash_fade = 255;
@@ -380,6 +381,7 @@ void ZPlayer::InitSDL()
 	base_w = init_w;
 	base_h = init_h;
 	view_zoom = 1.0;
+	view_min_zoom = 0.7;
 
 	//some stuff that just has to be right after init
 	game_icon = IMG_Load("assets/icon.png");
@@ -541,6 +543,32 @@ void ZPlayer::AdaptViewAspect(bool startup)
 	}
 	else
 		RebuildView((int)lround(base_w / view_zoom), (int)lround(base_h / view_zoom));
+
+	if(zmap.Loaded()) AutoZoomToFillMap();
+}
+
+void ZPlayer::AutoZoomToFillMap()
+{
+	int map_w = zmap.GetMapBasics().width * 16;
+	int map_h = zmap.GetMapBasics().height * 16;
+
+	if(map_w <= 0 || map_h <= 0) return;
+
+	double zw = (double)base_w / (map_w + HUD_WIDTH);
+	double zh = (double)base_h / (map_h + HUD_HEIGHT);
+	double fill = (zw > zh) ? zw : zh;
+
+	fill = ceil(fill * 10.0 - 0.001) / 10.0;
+	if(fill < 1.0) fill = 1.0;
+	if(fill > 3.0) fill = 3.0;
+
+	view_min_zoom = fill;
+
+	if(view_zoom < view_min_zoom - 0.0001)
+	{
+		view_zoom = view_min_zoom;
+		RebuildView((int)lround(base_w / view_zoom), (int)lround(base_h / view_zoom));
+	}
 }
 
 void ZPlayer::ApplyZoom(double new_zoom)
@@ -548,8 +576,10 @@ void ZPlayer::ApplyZoom(double new_zoom)
 	//snap to a fixed 10% grid so 100% is always a step and is exactly reachable
 	//on the way back (multiplicative steps drift off-grid once clamped)
 	new_zoom = lround(new_zoom * 10.0) / 10.0;
-	if(new_zoom < 0.7) new_zoom = 0.7;   // zoomed out  (more map, smaller)
-	if(new_zoom > 1.4) new_zoom = 1.4;   // zoomed in   (less map, bigger)
+	//can't zoom out past the level that fills the map (that's where the black
+	//edge appears); ceiling raised so small maps can fill on wide displays
+	if(new_zoom < view_min_zoom) new_zoom = view_min_zoom;
+	if(new_zoom > 3.0) new_zoom = 3.0;
 
 	if(fabs(new_zoom - view_zoom) >= 0.0001)
 	{
