@@ -27,6 +27,7 @@ list(REMOVE_ITEM ZOD_SRCS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/map_editor.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/map_merger.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/map_gen_main.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/zod_tests.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/tile_info_editor.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/win_tray.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/zgfile.cpp")
@@ -50,6 +51,13 @@ endif()
 message(STATUS "zod version: ${ZOD_VERSION}")
 
 add_executable(zod ${ZOD_SRCS})
+
+# Functional tests (pathfinding etc.) - links only the pathfinding sources +
+# SDL, with stubbed debug-log symbols. Run with ctest or ./build/zod_tests.
+add_executable(zod_tests src/zod_tests.cpp src/zpath_finding.cpp src/zpath_finding_astar.cpp)
+target_link_libraries(zod_tests PRIVATE PkgConfig::SDL2 m)
+enable_testing()
+add_test(NAME zod_tests COMMAND zod_tests)
 
 # Standalone random skirmish map generator — no engine code, no SDL; writes
 # .map files the game loads like any hand-made map.
