@@ -459,14 +459,14 @@ void ZPath_Finding_Engine::SetTileInfo(int x, int y, int tile_type)
 	path_robot_tile[x][y].side_weight = 100 * tile_speed;
 	path_robot_tile[x][y].diag_weight = (1.414 * 100) * tile_speed;
 
-	//Original-Z road fidelity: diagonals do NOT get the road discount. With
-	//it, cutting a road bend diagonally (65) always beat two orthogonal road
-	//steps (92), so units sliced every corner and their movement stopped
-	//being predictable. Without it, on-road movement turns at 90 degrees
-	//like the 1996 game, while off-road diagonals (the "almost straight
-	//line to the road") are unchanged.
+	//Original-Z road fidelity: a road diagonal must cost a hair more than
+	//two orthogonal road steps - so bends turn at 90 degrees like the 1996
+	//game - but it must KEEP most of the road discount, or roads lose to
+	//cross-country diagonals entirely (the v0.3.3 regression: road usage
+	//fell from 78% to 21% of route distance). 2*side+2 gives 90-degree
+	//bends and 78% road usage with zero corner cuts (measured on orig21).
 	if(tile_type == PF_ROAD)
-		path_robot_tile[x][y].diag_weight = 1.414 * 100;
+		path_robot_tile[x][y].diag_weight = 2 * path_robot_tile[x][y].side_weight + 2;
 
 	path_vehicle_tile[x][y].side_weight = path_robot_tile[x][y].side_weight;
 	path_vehicle_tile[x][y].diag_weight = path_robot_tile[x][y].diag_weight;

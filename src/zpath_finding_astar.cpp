@@ -29,9 +29,27 @@ namespace ZPath_Finding_AStar
 
 		if(!tile_ok(cp.x, cp.y, np.x, np.y, response)) return;
 
-		//it in the bad list?
-		//for(vector<pf_point>::iterator i=open_list.begin();i!=open_list.end();i++)
-		if(open_list.point_index[np.x][np.y] != -1) return;
+		//already queued? keep the cheaper path to it. The original returned
+		//without updating (the closed list below DOES update), so near-tie
+		//route choices were decided by discovery order instead of cost -
+		//which is why small cost margins (road bends) never stuck.
+		{
+			int open_i = open_list.point_index[np.x][np.y];
+			if(open_i != -1)
+			{
+				pf_point &ip = open_list.list[open_i];
+
+				if(ip.g > (gf(cp.x, cp.y, np.x, np.y, response) + cp.g))
+				{
+					ip.g = gf(cp.x, cp.y, np.x, np.y, response) + cp.g;
+					ip.h = hf(np.x, np.y, end_x, end_y);
+					ip.f = ip.g + ip.h;
+					ip.px = cp.x;
+					ip.py = cp.y;
+				}
+				return;
+			}
+		}
 		//for(int i=0;i<open_list.size;i++)
 		//{
 		//	pf_point &ip = open_list.list[i];
