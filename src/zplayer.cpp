@@ -3705,6 +3705,15 @@ void ZPlayer::ProcessUnicode(int key)
 		return;
 	}
 
+	//Alt+Enter: toggle borderless fullscreen (frameless - no mode switch)
+	if(key == 13 && AltDown())
+	{
+		ZVideo_SetFullscreen(!ZVideo_GetFullscreen());
+		is_windowed = !ZVideo_GetFullscreen();
+		AddNewsEntry(is_windowed ? "windowed" : "fullscreen");
+		return;
+	}
+
 	if(key == 13)
 	{
 		if(collect_chat_message)
