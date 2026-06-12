@@ -559,7 +559,10 @@ void ZPlayer::AutoZoomToFillMap()
 	double fill = (zw > zh) ? zw : zh;
 
 	fill = ceil(fill * 10.0 - 0.001) / 10.0;
-	if(fill < 1.0) fill = 1.0;
+	//floor is the normal zoom-out limit (0.7): a big map fills well below it,
+	//so it keeps the full zoom-out range; only a map small enough that 0.7
+	//would show black gets a higher floor
+	if(fill < 0.7) fill = 0.7;
 	if(fill > 3.0) fill = 3.0;
 
 	view_min_zoom = fill;
