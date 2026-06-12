@@ -26,6 +26,7 @@ file(GLOB ZOD_SRCS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM ZOD_SRCS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/map_editor.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/map_merger.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/map_gen.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/tile_info_editor.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/win_tray.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/zgfile.cpp")
@@ -35,6 +36,10 @@ list(REMOVE_ITEM ZOD_SRCS
 set(ZOD_DATADIR "${CMAKE_INSTALL_PREFIX}/share/zod")
 
 add_executable(zod ${ZOD_SRCS})
+
+# Standalone random skirmish map generator — no engine code, no SDL; writes
+# .map files the game loads like any hand-made map.
+add_executable(zod_mapgen src/map_gen.cpp)
 
 target_compile_definitions(zod PRIVATE
   DISABLE_OPENGL
