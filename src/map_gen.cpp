@@ -192,6 +192,7 @@ static bool load_tileinfo()
 static std::map<int, std::map<unsigned short, int> > water_tab; // key: center('w' or 'g')<<8 | pattern
 static std::map<int, std::map<unsigned short, int> > water_tab4; // 4-bit N/W/E/S fallback
 static std::map<unsigned short, int> ground_tab;
+static std::map<int, std::map<unsigned short, int> > road_tab; // 4-bit N/W/E/S road-neighbor pattern
 
 static char kind_of_tile(unsigned short t)
 {
@@ -240,7 +241,16 @@ static void learn_from_map(const char *path)
 			if(wp & (1<<6)) wp4 |= 8; //S
 
 			unsigned short tt = t[y * b.width + x];
-			if(c == 'w' || (c == 'g' && wp))
+			if(c == 'r')
+			{
+				int rp = 0;
+				if(y > 0 && K[(y-1) * b.width + x] == 'r') rp |= 1;
+				if(x > 0 && K[y * b.width + x - 1] == 'r') rp |= 2;
+				if(x < b.width - 1 && K[y * b.width + x + 1] == 'r') rp |= 4;
+				if(y < b.height - 1 && K[(y+1) * b.width + x] == 'r') rp |= 8;
+				road_tab[rp][tt]++;
+			}
+			else if(c == 'w' || (c == 'g' && wp))
 			{
 				water_tab[(c << 8) | wp][tt]++;
 				water_tab4[(c << 8) | wp4][tt]++;
@@ -259,8 +269,20 @@ static void learn_tiles()
 		for(int i = 0; i < 40; i++)
 			{ snprintf(path, sizeof(path), prefixes[p], i); learn_from_map(path); }
 
-	printf("tile grammar: %d shoreline patterns, %d ground tiles learned\n",
-		(int)water_tab.size(), (int)ground_tab.size());
+	// plain-fill set: only the head of the ground distribution - the long
+	// tail is feature-edge tiles that look broken in isolation
+	{
+		int max_n = 0;
+		for(std::map<unsigned short, int>::iterator i = ground_tab.begin(); i != ground_tab.end(); ++i)
+			if(i->second > max_n) max_n = i->second;
+		std::map<unsigned short, int> head;
+		for(std::map<unsigned short, int>::iterator i = ground_tab.begin(); i != ground_tab.end(); ++i)
+			if(i->second >= max_n * 35 / 100) head[i->first] = i->second;
+		if(!head.empty()) ground_tab = head;
+	}
+
+	printf("tile grammar: %d shoreline patterns, %d road patterns, %d plain ground tiles\n",
+		(int)water_tab.size(), (int)road_tab.size(), (int)ground_tab.size());
 }
 
 static unsigned short sample_tab(std::map<unsigned short, int> &m)
@@ -372,7 +394,17 @@ static void retile()
 		for(int x = 0; x < W; x++)
 		{
 			int i = idx(x, y);
-			if(kind[i] == 'r') continue; //roads keep their tiles
+
+			if(kind[i] == 'r')
+			{
+				int rp = 0;
+				if(y > 0 && kind[idx(x, y-1)] == 'r') rp |= 1;
+				if(x > 0 && kind[idx(x-1, y)] == 'r') rp |= 2;
+				if(x < W - 1 && kind[idx(x+1, y)] == 'r') rp |= 4;
+				if(y < H - 1 && kind[idx(x, y+1)] == 'r') rp |= 8;
+				if(road_tab.count(rp)) tiles[i] = sample_tab(road_tab[rp]);
+				continue;
+			}
 
 			int wp = 0, wp4 = 0;
 			for(int d = 0; d < 8; d++)
@@ -399,7 +431,20 @@ static void retile()
 			if(reserved[i] || ground_tab.empty())
 				tiles[i] = starter_tiles[rnd(starter_tiles.size())];
 			else
-				tiles[i] = sample_tab(ground_tab);
+			{
+				// cluster variants in coarse 4x4 patches like the originals
+				// instead of per-tile sprinkling: each patch leans on one
+				// variant, most cells still use the dominant mix
+				unsigned int cell = ((y / 4) * 131 + (x / 4)) * 2654435761u + seed;
+				if((int)(cell >> 16 & 0xff) < 96) //~38% of patches are "varied"
+				{
+					std::map<unsigned short, int>::iterator it = ground_tab.begin();
+					std::advance(it, cell % ground_tab.size());
+					tiles[i] = (rnd(100) < 60) ? it->first : sample_tab(ground_tab);
+				}
+				else
+					tiles[i] = sample_tab(ground_tab);
+			}
 		}
 }
 
