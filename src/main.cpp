@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
 	SDL_Thread *server_thread;
 
-	printf("Welcome to the Zod Engine\n");
+	printf("Welcome to the Zod Engine (%s)\n", ZOD_VERSION);
 
 	//optional pathfinding debug log (ZOD_PATHLOG); init before
 	//the server / pathfinding threads exist

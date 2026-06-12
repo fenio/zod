@@ -35,6 +35,20 @@ list(REMOVE_ITEM ZOD_SRCS
 # find them after `make install` (see chdir_to_data_dir() in main.cpp).
 set(ZOD_DATADIR "${CMAKE_INSTALL_PREFIX}/share/zod")
 
+# Release version baked into the binary (startup banner + window title), so
+# bug reports unambiguously say what build they are about. From git tags when
+# available; override with -DZOD_VERSION=... .
+if(NOT ZOD_VERSION)
+  execute_process(COMMAND git describe --tags --always --dirty
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE ZOD_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+endif()
+if(NOT ZOD_VERSION)
+  set(ZOD_VERSION "unknown")
+endif()
+message(STATUS "zod version: ${ZOD_VERSION}")
+
 add_executable(zod ${ZOD_SRCS})
 
 # Standalone random skirmish map generator — no engine code, no SDL; writes
@@ -45,7 +59,8 @@ target_compile_definitions(zod PRIVATE
   DISABLE_OPENGL
   DISABLE_REGCHECK
   DISABLE_MYSQL
-  ZOD_DATADIR="${ZOD_DATADIR}")
+  ZOD_DATADIR="${ZOD_DATADIR}"
+  ZOD_VERSION="${ZOD_VERSION}")
 
 target_compile_options(zod PRIVATE -Wno-deprecated -Wno-write-strings)
 

@@ -383,7 +383,7 @@ void ZPlayer::InitSDL()
 	//ffuts
 
 	if(game_icon) ZVideo_SetIcon(game_icon);
-	ZVideo_SetCaption("Zod Engine");
+	ZVideo_SetCaption("Zod Engine " ZOD_VERSION);
 	atexit(ZSDL_Quit);//SDL_Quit);
 
 	// Render-only movement smoothing defaults on; ZOD_SMOOTH=0 disables it.
