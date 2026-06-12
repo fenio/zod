@@ -1,0 +1,86 @@
+name: windows-smoke
+
+# Build on real Windows and headlessly run the game's dedicated server on a
+# real campaign map, asserting it actually LOADS that map (and its units act)
+# rather than silently falling back to the featureless MakeRandomMap. This is
+# the check that catches Windows-only data bugs - e.g. binary .map files
+# corrupted by autocrlf - which the macOS/Linux CI can't see.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-sdl3
+            mingw-w64-x86_64-sdl3-image
+            mingw-w64-x86_64-sdl3-mixer
+            mingw-w64-x86_64-sdl3-ttf
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 4
+          # assemble a run dir matching the shipped zip layout
+          DIST=run; rm -rf "$DIST"; mkdir -p "$DIST"
+          cp build/zod.exe "$DIST"/
+          ldd build/zod.exe | awk '/\/mingw64\/bin\// {print $3}' | sort -u \
+            | while read -r dll; do cp "$dll" "$DIST"/; done
+          cp -r assets maps "$DIST"/
+          cp map_list.txt "$DIST"/
+
+      - name: Headless map-load smoke test
+        shell: pwsh
+        run: |
+          cd run
+          "start_map_paused=0" | Out-File -Encoding ascii settings.txt
+          $env:ZOD_PATHLOG = "1"
+          $env:ZOD_PATHLOG_FILE = "$PWD\smoke_path.log"
+          # dedicated server (no window), no sound/music, two bots on a real map
+          $p = Start-Process -FilePath .\zod.exe `
+            -ArgumentList '-d','-s','-u','-m','maps/p02_bb_orig01.map','-b','red','-b','blue','-e','settings.txt' `
+            -RedirectStandardOutput out.txt -RedirectStandardError err.txt -PassThru
+          Start-Sleep -Seconds 25
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+
+          Write-Host "----- stdout -----"; if (Test-Path out.txt) { Get-Content out.txt }
+          Write-Host "----- stderr -----"; if (Test-Path err.txt) { Get-Content err.txt }
+
+          $out = ""
+          if (Test-Path out.txt) { $out = Get-Content out.txt -Raw }
+
+          # the engine prints these when a real map fails and it uses the fallback
+          if ($out -match 'could not load map' -or $out -match 'generating random map') {
+            Write-Error "FAIL: campaign map did not load - engine fell back to the random map (binary data corruption?)"
+            exit 1
+          }
+
+          # a real map has forts + starting units; the bots command them, so the
+          # pathlog gets entries. The garbage fallback map has zero objects.
+          $lines = 0
+          if (Test-Path smoke_path.log) { $lines = (Get-Content smoke_path.log).Count }
+          Write-Host "pathlog lines: $lines"
+          if ($lines -lt 5) {
+            Write-Error "FAIL: no unit/pathfinding activity - the loaded map appears empty (garbage fallback?)"
+            exit 1
+          }
+
+          Write-Host "PASS: real campaign map loaded on Windows and its units are active ($lines pathlog lines)"
