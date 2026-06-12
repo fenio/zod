@@ -521,6 +521,7 @@ int ZPlayer::Load_Graphics(void *p)
 {
 	const int max_items = 80;
 	int loaded_items = 0;
+	double load_start_time = current_time();
 
 	ZCompMessageEngine::Init(); ((ZPlayer*)p)->loaded_percent = 100 * ++loaded_items / max_items;
 	ZSoundEngine::Init(&((ZPlayer*)p)->zmap); ((ZPlayer*)p)->loaded_percent = 100 * ++loaded_items / max_items;
@@ -610,7 +611,8 @@ int ZPlayer::Load_Graphics(void *p)
 	ZTeam::SaveAllPalettes();
 #endif	
 
-	printf("graphics loaded\n");
+	printf("graphics loaded in %.2lfs\n", current_time() - load_start_time);
+	fflush(stdout);
 	((ZPlayer*)p)->graphics_loaded = true;
 
 	return 1;

@@ -390,36 +390,31 @@ SDL_Surface *ZTeam::Make(int team, SDL_Surface *base_version)
 
 	if(!nw) return NULL;
 
-	Uint32* pixel_ptr;
-	pixel_ptr = (Uint32*)nw->pixels;
+	//Hoisted out of the pixel loop: the format-details lookup (a hash table
+	//walk) ran twice per pixel and every replaced pixel was written with its
+	//own 1x1 SDL_FillSurfaceRect call. This function runs for every sprite
+	//times every team color, so it dominated game startup.
+	const SDL_PixelFormatDetails *details = SDL_GetPixelFormatDetails(nw->format);
+	SDL_Palette *pal = SDL_GetSurfacePalette(nw);
 
 	for(int j=0;j<nw->h;j++)
-		for(int i=0;i<nw->w;i++)
+	{
+		Uint32 *pixel_ptr = (Uint32*)((Uint8*)nw->pixels + j * nw->pitch);
+
+		for(int i=0;i<nw->w;i++, pixel_ptr++)
 		{
 			Uint8 r, g, b, a;
-			Uint32 pixel;
 			SDL_Color c;
 
-			//pixel = *(Uint32*)((Uint8*)nw->pixels + j * nw->pitch + i * SDL_GetPixelFormatDetails(nw->format)->bytes_per_pixel);
-			pixel = *pixel_ptr;
-			pixel_ptr++;
-			SDL_GetRGBA(pixel, SDL_GetPixelFormatDetails(nw->format), SDL_GetSurfacePalette(nw), &r, &g, &b, &a);
+			SDL_GetRGBA(*pixel_ptr, details, pal, &r, &g, &b, &a);
 
 			//bypass invisible
 			if(!a) continue;
 
 			if(team_palette[team].GetReplacement(r,g,b,c))
-			{
-				SDL_Rect point_rect;
-
-				point_rect.x = i;
-				point_rect.y = j;
-				point_rect.w = 1;
-				point_rect.h = 1;
-
-				SDL_FillSurfaceRect(nw, &point_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(nw->format), SDL_GetSurfacePalette(nw), c.r, c.g, c.b));
-			}
+				*pixel_ptr = SDL_MapRGB(details, pal, c.r, c.g, c.b);
 		}
+	}
 
 	return nw;
 }
