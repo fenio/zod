@@ -23,6 +23,9 @@ void ZVideo_SetCaption(const char *title);
 // Borderless desktop fullscreen on/off at runtime (Alt+Enter).
 void ZVideo_SetFullscreen(bool fullscreen);
 bool ZVideo_GetFullscreen();
+
+// Desktop resolution (for adapting the logical view to the display aspect).
+bool ZVideo_GetDesktopSize(int &w, int &h);
 void ZVideo_SetIcon(SDL_Surface *icon);
 void ZVideo_SetGrab(bool grab);
 bool ZVideo_GetGrab();

@@ -117,7 +117,7 @@ a blue bot, all 34 levels in order). Useful flags:
 | `-m FILE.map` | play a single map |
 | `-t TEAM` / `-b TEAM` | your team / add a bot on a team (`red`, `blue`) |
 | `-w` | windowed | 
-| `-r WxH` | logical resolution (e.g. `800x600`; smaller = bigger sprites) |
+| `-r WxH` | logical resolution (e.g. `800x600`; smaller = bigger sprites). Without `-r` the width auto-adapts to your display's aspect ratio — widescreen monitors get a wider map viewport and bar-free fullscreen |
 | `-s` / `-u` | no sound / no music |
 
 **Controls:** left-click selects, right-click moves/attacks; capture a zone by

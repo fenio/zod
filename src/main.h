@@ -14,6 +14,7 @@ class input_options
 		bool read_map_list;
 		bool read_is_windowed;
 		bool read_resolution;
+		bool resolution_explicit;
 		bool read_is_dedicated;
 		bool read_display_help;
 		bool read_display_version;
@@ -51,6 +52,7 @@ class input_options
 			read_map_list = false;
 			read_is_windowed = false;
 			read_resolution = false;
+			resolution_explicit = false;
 			read_is_dedicated = false;
 			read_display_help = false;
 			read_display_version = false;
