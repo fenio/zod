@@ -18,8 +18,13 @@
 #include <string.h>
 #include <vector>
 #include <string>
+#include <map>
+
+#include "map_gen_core.h"
 
 using namespace std;
+
+namespace MapGen {
 
 // ---- on-disk structures (must match zmap.h exactly; natural alignment) ----
 
@@ -74,7 +79,7 @@ enum { ROCK_OBJECT, BRIDGE_OBJECT, BUILDING_OBJECT, CANNON_OBJECT, VEHICLE_OBJEC
 enum { FORT_FRONT, FORT_BACK, RADAR, REPAIR, ROBOT_FACTORY, VEHICLE_FACTORY };
 enum { FLAG_ITEM, ROCK_ITEM, GRENADES_ITEM, ROCKETS_ITEM, HUT_ITEM };
 enum { GATLING_C };
-enum { JEEP_V };
+enum { JEEP_V, LIGHT_V, MEDIUM_V };
 enum { GRUNT_R };
 
 static const char *terrain_names[5] = { "desert", "volcanic", "arctic", "jungle", "city" };
@@ -84,6 +89,7 @@ static const char *terrain_names[5] = { "desert", "volcanic", "arctic", "jungle"
 static int W = 80, H = 100;
 static int enemies = 1;
 static int terrain = 0;
+static int tech = 0;   //building level 0-5: how advanced production is
 static unsigned int seed = 0;
 static string out_path = "maps/random.map";
 static string assets_dir = "assets";
@@ -111,7 +117,7 @@ static void set_ground(int x, int y)
 		: ground_tiles[rnd(ground_tiles.size())];
 }
 
-static void add_object(int x, int y, int owner, int ot, int oid)
+static void add_object(int x, int y, int owner, int ot, int oid, int blevel = 0)
 {
 	map_object o;
 	memset(&o, 0, sizeof(o));
@@ -119,7 +125,7 @@ static void add_object(int x, int y, int owner, int ot, int oid)
 	o.owner = (char)owner;
 	o.object_type = (unsigned char)ot;
 	o.object_id = (unsigned char)oid;
-	o.blevel = 0;
+	o.blevel = (char)blevel;
 	o.extra_links = 0;
 	o.health_percent = 100;
 	objects.push_back(o);
@@ -187,7 +193,6 @@ static bool load_tileinfo()
 // bit set = water) and how often each plain-ground tile occurs. Sampling
 // from those tables reproduces their shorelines and calm ground mix.
 
-#include <map>
 
 static std::map<int, std::map<unsigned short, int> > water_tab; // key: center('w' or 'g')<<8 | pattern
 static std::map<int, std::map<unsigned short, int> > water_tab4; // 4-bit N/W/E/S fallback
@@ -547,12 +552,16 @@ static void place_team(int t)
 
 	// the fort's engine footprint is 10x9 tiles from its top-left corner
 	reserve_rect(fx, fy, 10, 9, true);
-	add_object(fx, fy, t + 1, BUILDING_OBJECT, top_half ? FORT_FRONT : FORT_BACK);
+	add_object(fx, fy, t + 1, BUILDING_OBJECT, top_half ? FORT_FRONT : FORT_BACK, tech);
 
 	// starting squad outside the footprint, on the fort's open side
 	int uy = top_half ? fy + 10 : fy - 2;
 	for(int i = 0; i < 3; i++) add_object(fx + 3 + i, uy, t + 1, ROBOT_OBJECT, GRUNT_R);
 	add_object(fx + 8, uy, t + 1, CANNON_OBJECT, GATLING_C);
+
+	//at higher tech, also start with a vehicle so it is not all grunts
+	if(tech >= 4)      add_object(fx, uy, t + 1, VEHICLE_OBJECT, MEDIUM_V);
+	else if(tech >= 2) add_object(fx, uy, t + 1, VEHICLE_OBJECT, LIGHT_V);
 }
 
 static void place_zone_contents()
@@ -589,7 +598,7 @@ static void place_zone_contents()
 				int by = z.y + 2 + rnd(z.h > bh + 4 ? z.h - bh - 4 : 1);
 				if(!area_free(bx, by, bw, bh)) continue;
 				reserve_rect(bx, by, bw, bh, true);
-				add_object(bx, by, 0, BUILDING_OBJECT, oid);
+				add_object(bx, by, 0, BUILDING_OBJECT, oid, tech);
 				break;
 			}
 		}
@@ -666,20 +675,24 @@ static bool write_map()
 	return true;
 }
 
-int main(int argc, char **argv)
+bool Generate(const std::string &out_path_, int enemies_, int w_, int h_,
+	int terrain_, int tech_, unsigned int seed_, const std::string &assets_dir_)
 {
-	seed = 1234567;
+	//reset all module state (this can be called repeatedly in-engine)
+	out_path = out_path_;
+	enemies = enemies_;
+	W = w_;
+	H = h_;
+	terrain = terrain_;
+	tech = tech_;
+	seed = seed_;
+	assets_dir = assets_dir_;
 
-	for(int i = 1; i < argc - 0; i++)
-	{
-		if(!strcmp(argv[i], "-e") && i + 1 < argc) enemies = atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-w") && i + 1 < argc) W = atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-h") && i + 1 < argc) H = atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-t") && i + 1 < argc) terrain = atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-s") && i + 1 < argc) seed = (unsigned)atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-o") && i + 1 < argc) out_path = argv[++i];
-		else { printf("usage: %s -e <enemies 1-3> [-w tiles] [-h tiles] [-t terrain 0-4] [-s seed] [-o out.map]\n", argv[0]); return 1; }
-	}
+	ground_tiles.clear(); starter_tiles.clear(); water_tiles.clear(); road_tiles.clear();
+	water_tab.clear(); water_tab4.clear(); ground_tab.clear(); road_tab.clear();
+	tiles.clear(); kind.clear(); reserved.clear(); solid.clear();
+	zones.clear(); objects.clear(); fort_zone.clear();
+	rock_at.clear(); obj_dead.clear();
 
 	if(enemies < 1) enemies = 1;
 	if(enemies > 3) enemies = 3;
@@ -688,10 +701,12 @@ int main(int argc, char **argv)
 	if(W > 250) W = 250;
 	if(H > 250) H = 250;
 	if(terrain < 0 || terrain > 4) terrain = 0;
+	if(tech < 0) tech = 0;
+	if(tech > 5) tech = 5;
 
 	srand(seed);
 
-	if(!load_tileinfo()) return 1;
+	if(!load_tileinfo()) return false;
 	learn_tiles();
 
 	tiles.resize(W * H);
@@ -716,5 +731,7 @@ int main(int argc, char **argv)
 
 	retile();
 
-	return write_map() ? 0 : 1;
+	return write_map();
 }
+
+} //namespace MapGen

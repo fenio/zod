@@ -25,6 +25,7 @@
 #include "gmm_manage_bots.h"
 #include "gmm_player_list.h"
 #include "gmm_select_map.h"
+#include "gmm_generate_map.h"
 #include "gmm_options.h"
 #include "gmm_warning.h"
 

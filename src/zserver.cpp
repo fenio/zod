@@ -1,4 +1,7 @@
 #include "zserver.h"
+#include "map_gen_core.h"
+
+#include <time.h>
 
 using namespace COMMON;
 
@@ -302,6 +305,47 @@ void ZServer::ProcessEndGame()
 
 	//tell clients game over
 	server_socket.SendMessageAll(END_GAME, NULL, 0);
+}
+
+//Generate a random skirmish map and start a game on it with the chosen
+//number of bot enemies. Generation runs server-side so multiplayer clients
+//get the map through the normal reset/relay path; the file is just a scratch
+//handoff the server reads once.
+void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech)
+{
+	if(enemies < 1) enemies = 1;
+	if(enemies > 3) enemies = 3;
+
+	//writable scratch path (data dir may be read-only when installed)
+	string out_path;
+	{
+		const char *tmp = getenv("TMPDIR");
+		if(!tmp || !tmp[0]) tmp = getenv("TEMP");
+		if(!tmp || !tmp[0]) tmp = getenv("TMP");
+#ifdef _WIN32
+		out_path = (tmp && tmp[0]) ? string(tmp) + "\\zod_generated.map" : "zod_generated.map";
+#else
+		out_path = (tmp && tmp[0]) ? string(tmp) + "/zod_generated.map" : "/tmp/zod_generated.map";
+#endif
+	}
+
+	unsigned int seed = (unsigned int)time(0) ^ (rand() << 1);
+
+	if(!MapGen::Generate(out_path, enemies, width, height, terrain, tech, seed))
+	{
+		printf("ZServer::GenerateAndStartMap: generation failed\n");
+		BroadCastNews("map generation failed");
+		return;
+	}
+
+	//load it and reset the game onto it (relays to all clients)
+	DoResetGame(out_path);
+
+	//start a bot on each enemy team (human is red / team 1)
+	for(int t = RED_TEAM + 1; t <= RED_TEAM + enemies && t < MAX_TEAM_TYPES; t++)
+		if(!bot_thread[t]) StartBot(t);
+
+	BroadCastNews("new random map generated");
 }
 
 void ZServer::DoResetGame(string map_name)
