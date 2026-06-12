@@ -130,7 +130,9 @@ to begin.
 **Classic mouse (original-Z style, default):** a plain left-click with units
 selected issues the order and ends the interaction, like the 1996 game —
 clicks on your own units and drags still select, right-click cancels the
-selection. Prefer RTS-style right-click orders? `ZOD_CLASSIC_MOUSE=0`.
+selection. Toggle it (and render smoothing) in the in-game **Options** menu —
+the choice persists in `~/.zod_prefs`; `ZOD_CLASSIC_MOUSE=0` / `ZOD_SMOOTH=0`
+still override per launch.
 
 **Render smoothing:** a purely visual layer (on by default) eases unit movement
 through its position-correction "snaps" and gives stationary vehicles a smooth

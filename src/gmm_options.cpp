@@ -1,4 +1,8 @@
 #include "gmm_options.h"
+#include "zprefs.h"
+
+//defined in zobject.cpp
+extern bool zod_render_smoothing;
 
 GMMOptions::GMMOptions() : ZGuiMainMenuBase()
 {
@@ -40,6 +44,21 @@ void GMMOptions::SetupLayout1()
 	AddWidget(&speed_radio);
 	next_y += MMRADIO_HEIGHT + 7;
 
+	//player preference toggles (persisted to ~/.zod_prefs)
+	mouse_button.SetType(MMGENERIC_BUTTON);
+	mouse_button.SetText("Mouse: Classic");
+	mouse_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	mouse_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&mouse_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
+	smooth_button.SetType(MMGENERIC_BUTTON);
+	smooth_button.SetText("Smoothing: On");
+	smooth_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	smooth_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&smooth_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
 	pause_button.SetType(MMGENERIC_BUTTON);
 	pause_button.SetText("Pause Game");
 	pause_button.SetCoords(GMM_SIDE_MARGIN, next_y);
@@ -72,6 +91,11 @@ void GMMOptions::Process()
 	SetVolumeStatus();
 
 	SetTimeStatuses();
+
+	mouse_button.SetText(zod_classic_mouse ? "Mouse: Classic" : "Mouse: Modern");
+	mouse_button.SetGreen(zod_classic_mouse);
+	smooth_button.SetText(zod_render_smoothing ? "Smoothing: On" : "Smoothing: Off");
+	smooth_button.SetGreen(zod_render_smoothing);
 
 	ProcessWidgets();
 }
@@ -139,6 +163,16 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		else if(w_ref_id == pause_button.GetRefID())
 		{
 			gmm_flags.pause_game = true;
+		}
+		else if(w_ref_id == mouse_button.GetRefID())
+		{
+			zod_classic_mouse = !zod_classic_mouse;
+			ZPrefs_Save();
+		}
+		else if(w_ref_id == smooth_button.GetRefID())
+		{
+			zod_render_smoothing = !zod_render_smoothing;
+			ZPrefs_Save();
 		}
 		break;
 	case GMM_CLICK_EVENT:

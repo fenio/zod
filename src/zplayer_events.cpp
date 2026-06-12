@@ -1,4 +1,5 @@
 #include "zplayer.h"
+#include "zprefs.h"
 #include <math.h>
 
 using namespace COMMON;
@@ -233,7 +234,7 @@ void ZPlayer::lclick_event(ZPlayer *p, char *data, int size, int dummy)
 			//normal click. In classic mouse mode the selection must survive
 			//until release - a plain click on ground IS the order - so the
 			//clear is deferred (CollectSelectables clears again anyway).
-			if(!p->classic_mouse) p->select_info.Clear();
+			if(!zod_classic_mouse) p->select_info.Clear();
 			p->DetermineCursor();
 			p->GiveHudSelected();
 		}
@@ -352,7 +353,7 @@ void ZPlayer::lunclick_event(ZPlayer *p, char *data, int size, int dummy)
 	if(!p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
 	{
 		//classic mouse: a plain click with units selected is an order
-		if(p->classic_mouse && p->ClassicLeftClickOrder())
+		if(zod_classic_mouse && p->ClassicLeftClickOrder())
 		{
 			p->lbutton.down = false;
 		}
@@ -397,7 +398,7 @@ void ZPlayer::runclick_event(ZPlayer *p, char *data, int size, int dummy)
 	//classic (original-Z) mouse: the right button cancels the selection
 	//instead of giving orders - orders are the left button's job. The
 	//eject special case stays (right click on your own vehicle).
-	if(p->classic_mouse)
+	if(zod_classic_mouse)
 	{
 		if(p->select_info.selected_list.size() == 1)
 		{

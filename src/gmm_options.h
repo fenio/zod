@@ -17,6 +17,8 @@ public:
 
 	void Process();
 private:
+	GMMWButton mouse_button;
+	GMMWButton smooth_button;
 	GMMWButton reshuffle_button;
 	GMMWButton reset_button;
 	GMMWButton pause_button;
