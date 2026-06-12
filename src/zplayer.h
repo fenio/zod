@@ -338,6 +338,8 @@ class ZPlayer : public ZClient
 		
 		//sdl events
 		static void resize_event(ZPlayer *p, char *data, int size, int dummy);
+		bool classic_mouse;
+		bool ClassicLeftClickOrder();
 		static void lclick_event(ZPlayer *p, char *data, int size, int dummy);
 		static void lunclick_event(ZPlayer *p, char *data, int size, int dummy);
 		static void rclick_event(ZPlayer *p, char *data, int size, int dummy);

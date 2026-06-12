@@ -349,11 +349,19 @@ void ZPlayer::lunclick_event(ZPlayer *p, char *data, int size, int dummy)
 	//collect selectables
 	if(!p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
 	{
-		p->CollectSelectables();
-		p->lbutton.down = false;
-		p->DetermineCursor();
-		p->ClearDevWayPointsOfSelected();
-		p->GiveHudSelected();
+		//classic mouse: a plain click with units selected is an order
+		if(p->classic_mouse && p->ClassicLeftClickOrder())
+		{
+			p->lbutton.down = false;
+		}
+		else
+		{
+			p->CollectSelectables();
+			p->lbutton.down = false;
+			p->DetermineCursor();
+			p->ClearDevWayPointsOfSelected();
+			p->GiveHudSelected();
+		}
 	}
 	else
 		p->lbutton.down = false;

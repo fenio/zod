@@ -389,6 +389,17 @@ void ZPlayer::InitSDL()
 	// Render-only movement smoothing defaults on; ZOD_SMOOTH=0 disables it.
 	{ const char *e = getenv("ZOD_SMOOTH"); if(e && e[0] == '0') zod_render_smoothing = false; }
 
+	// Classic (original-Z) mouse: plain left click orders selected units.
+	// The 1996 game did everything with the left button, and Windows players
+	// expect that - default on there, off elsewhere; ZOD_CLASSIC_MOUSE=0/1
+	// overrides either way. Right-click orders keep working in both modes.
+#ifdef _WIN32
+	classic_mouse = true;
+#else
+	classic_mouse = false;
+#endif
+	{ const char *e = getenv("ZOD_CLASSIC_MOUSE"); if(e && e[0]) classic_mouse = (e[0] != '0'); }
+
 #ifdef DISABLE_OPENGL
 	use_opengl = false;
 #endif
@@ -2633,6 +2644,40 @@ void ZPlayer::SelectAllOfType(int type)
 
 	DetermineCursor();
 	GiveHudSelected();
+}
+
+//Classic (original-Z) mouse: a plain left click on open ground or an enemy
+//while units are selected issues the order, like the 1996 game did. Returns
+//true when the click was consumed as an order; clicks on own selectable
+//units and box drags fall through to the normal selection path.
+bool ZPlayer::ClassicLeftClickOrder()
+{
+	int shift_x, shift_y;
+	int mouse_x_map, mouse_y_map;
+
+	if(!lbutton.down) return false;
+	if(!select_info.selected_list.size()) return false;
+
+	zmap.GetViewShift(shift_x, shift_y);
+	mouse_x_map = mouse_x + shift_x;
+	mouse_y_map = mouse_y + shift_y;
+
+	//a drag is a box select
+	if(abs(lbutton.map_x - mouse_x_map) > 1 || abs(lbutton.map_y - mouse_y_map) > 1) return false;
+
+	//clicking one of our own selectable units means (re)selection
+	for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
+	{
+		if((*i)->GetOwner() != our_team) continue;
+		if(!(*i)->Selectable()) continue;
+		if((*i)->UnderCursor(mouse_x_map, mouse_y_map)) return false;
+	}
+
+	//it is an order, exactly like a right click
+	AddDevWayPointToSelected();
+	if(!ShiftDown()) SendDevWayPointsOfSelected();
+
+	return true;
 }
 
 void ZPlayer::CollectSelectables()

@@ -122,9 +122,15 @@ a blue bot, all 34 levels in order). Useful flags:
 
 **Controls:** left-click selects, right-click moves/attacks; capture a zone by
 walking a unit onto its flag; crew a neutral (grey) vehicle by sending a grunt
-onto it; two-finger scroll (or arrow keys) pans the map. Press **`Y`** to toggle
-render smoothing (see below). The game starts **paused** — click the centre
-"Click to Start / Resume" banner to begin.
+onto it; two-finger scroll (or arrow keys) pans the map. **Alt+Enter** toggles
+borderless fullscreen. Press **`Y`** to toggle render smoothing (see below).
+The game starts **paused** — click the centre "Click to Start / Resume" banner
+to begin.
+
+**Classic mouse (original-Z style):** on Windows, a plain left-click with units
+selected issues the order, like the 1996 game — clicks on your own units and
+drags still select. Default on for Windows, off elsewhere; force it either way
+with `ZOD_CLASSIC_MOUSE=1` / `=0`. Right-click orders always work.
 
 **Render smoothing:** a purely visual layer (on by default) eases unit movement
 through its position-correction "snaps" and gives stationary vehicles a smooth
