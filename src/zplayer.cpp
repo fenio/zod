@@ -3260,6 +3260,7 @@ void ZPlayer::ProcessChangeObjectAmount()
 	//reset hud etc
 	CheckUnitLimitReached();
 	zhud.SetUnitAmount(team_units_available[our_team]);
+	zhud.SetTeamUnitAmounts(team_units_available);
 }
 
 void ZPlayer::ClearAsciiStates()
