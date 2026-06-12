@@ -589,7 +589,9 @@ bool ZServer::ReadSelectableMapListFromFolder(string foldername)
 {
 	vector<string> mlist;
 
-	//read list
+	//read list (default "maps" - where the .map files actually live; the
+	//old default of "." scanned the working dir and always came up empty,
+	//so the Select Map dialog was blank unless a map list file was set)
 	mlist = directory_filelist(foldername);
 
 	//find only .maps
@@ -598,8 +600,16 @@ bool ZServer::ReadSelectableMapListFromFolder(string foldername)
 	//sort list
 	sort(mlist.begin(), mlist.end(), sort_string_func);
 
-	//debug
-	//for(int i=0;i<mlist.size(); i++) printf("ReadSelectableMapListFromFolder::map found:%s\n", mlist[i].c_str());
+	//directory_filelist returns bare names; entries must be loadable paths
+	//(they go straight to zmap.Read), so prefix the folder back on
+	if(foldername.size())
+	{
+		string prefix = foldername;
+		if(prefix[prefix.size()-1] != '/') prefix += '/';
+
+		for(vector<string>::iterator i=mlist.begin(); i!=mlist.end(); ++i)
+			*i = prefix + *i;
+	}
 
 	if(mlist.size())
 	{
