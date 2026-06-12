@@ -394,6 +394,39 @@ void ZPlayer::runclick_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->rbutton.down = false;
 
+	//classic (original-Z) mouse: the right button cancels the selection
+	//instead of giving orders - orders are the left button's job. The
+	//eject special case stays (right click on your own vehicle).
+	if(p->classic_mouse)
+	{
+		if(p->select_info.selected_list.size() == 1)
+		{
+			vector<ZObject*>::iterator i = p->select_info.selected_list.begin();
+			int shift_x, shift_y;
+
+			int mouse_x_map, mouse_y_map;
+
+			p->zmap.GetViewShift(shift_x, shift_y);
+			mouse_x_map = p->mouse_x + shift_x;
+			mouse_y_map = p->mouse_y + shift_y;
+
+			if((*i)->CanEjectDrivers() && (*i)->UnderCursor(mouse_x_map, mouse_y_map))
+			{
+				eject_vehicle_packet the_packet;
+
+				the_packet.ref_id = (*i)->GetRefID();
+
+				p->client_socket.SendMessage(EJECT_VEHICLE, (char*)&the_packet, sizeof(eject_vehicle_packet));
+			}
+		}
+
+		p->ClearDevWayPointsOfSelected();
+		p->select_info.Clear();
+		p->DetermineCursor();
+		p->GiveHudSelected();
+		return;
+	}
+
 	p->AddDevWayPointToSelected();
 	if(!p->ShiftDown()) 
 	{
