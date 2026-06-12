@@ -204,8 +204,11 @@ void GWPFullUnitSelector::DoRenderList(ZMap &the_map, SDL_Surface *dest, int lx,
 		//the_map.RenderZSurface(&object_back_img, lx, ly);
 
 		//the obj
+		int ax, ay;
+
 		draw_obj->GetDimensionsPixel(ow, oh);
-		draw_obj->SetCords(lx + (27-5) - (ow>>1), ly + (40-21) - (oh>>1));
+		draw_obj->GetGuiCenterAdjust(ax, ay);
+		draw_obj->SetCords(lx + (27-5) - (ow>>1) + ax, ly + (40-21) - (oh>>1) + ay);
 		draw_obj->DoRender(the_map, dest);
 
 		if(draw_obj->GetHoverNameImg().GetBaseSurface())

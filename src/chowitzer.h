@@ -9,6 +9,7 @@ class CHowitzer : public ZCannon
 		CHowitzer(ZTime *ztime_, ZSettings *zsettings_ = NULL, bool just_placed = false);
 		
 		static void Init();
+		void GetGuiCenterAdjust(int &ax, int &ay) { ax = 1; ay = 6; } //sprite paints above the footprint
 		
 // 		SDL_Surface *GetRender();
 		void DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x = 0, int shift_y = 0);
