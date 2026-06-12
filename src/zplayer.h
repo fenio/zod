@@ -153,6 +153,7 @@ class ZPlayer : public ZClient
 		ZPlayer();
 		
 		void SetAutoAspect(bool b) { auto_aspect = b; }
+		bool splash_dismissed;
 		void SetDimensions(int w, int h);
 		void SetSoundsOff(bool setoff);
 		void SetMusicOff(bool setoff);
