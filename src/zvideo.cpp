@@ -22,6 +22,21 @@ static void destroy_scaler()
     if (g_frame_surface) { SDL_DestroySurface(g_frame_surface); g_frame_surface = NULL; }
 }
 
+void ZVideo_SetFullscreen(bool fullscreen)
+{
+    if (!g_window) return;
+    // No exclusive mode is ever set, so SDL3 gives borderless desktop
+    // fullscreen - no frame, no mode switch.
+    SDL_SetWindowFullscreen(g_window, fullscreen);
+    SDL_SyncWindow(g_window);
+}
+
+bool ZVideo_GetFullscreen()
+{
+    if (!g_window) return false;
+    return (SDL_GetWindowFlags(g_window) & SDL_WINDOW_FULLSCREEN) != 0;
+}
+
 SDL_Surface *ZVideo_SetMode(int w, int h, bool fullscreen)
 {
     if (w <= 0) w = 800;
