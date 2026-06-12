@@ -26,6 +26,9 @@ bool ZVideo_GetFullscreen();
 
 // Desktop resolution (for adapting the logical view to the display aspect).
 bool ZVideo_GetDesktopSize(int &w, int &h);
+// The renderer's REAL output size in pixels (desktop modes are estimates -
+// scaled modes and notched displays differ from the fullscreen drawable).
+bool ZVideo_GetOutputSize(int &w, int &h);
 void ZVideo_SetIcon(SDL_Surface *icon);
 void ZVideo_SetGrab(bool grab);
 bool ZVideo_GetGrab();

@@ -34,6 +34,12 @@ bool ZVideo_GetDesktopSize(int &w, int &h)
     return true;
 }
 
+bool ZVideo_GetOutputSize(int &w, int &h)
+{
+    if (!g_renderer) return false;
+    return SDL_GetRenderOutputSize(g_renderer, &w, &h);
+}
+
 void ZVideo_SetFullscreen(bool fullscreen)
 {
     if (!g_window) return;
