@@ -2673,9 +2673,20 @@ bool ZPlayer::ClassicLeftClickOrder()
 		if((*i)->UnderCursor(mouse_x_map, mouse_y_map)) return false;
 	}
 
-	//it is an order, exactly like a right click
+	//it is an order
 	AddDevWayPointToSelected();
-	if(!ShiftDown()) SendDevWayPointsOfSelected();
+
+	if(!ShiftDown())
+	{
+		SendDevWayPointsOfSelected();
+
+		//the 1996 game is modal: the order ends the interaction, the
+		//selection drops and the cursor returns to the arrow - otherwise
+		//a later click near another unit redirects the old selection
+		select_info.Clear();
+		DetermineCursor();
+		GiveHudSelected();
+	}
 
 	return true;
 }
