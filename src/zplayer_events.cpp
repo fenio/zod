@@ -230,8 +230,10 @@ void ZPlayer::lclick_event(ZPlayer *p, char *data, int size, int dummy)
 		else
 		{
 			p->lbutton.started_over_gui = false;
-			//normal click
-			p->select_info.Clear();
+			//normal click. In classic mouse mode the selection must survive
+			//until release - a plain click on ground IS the order - so the
+			//clear is deferred (CollectSelectables clears again anyway).
+			if(!p->classic_mouse) p->select_info.Clear();
 			p->DetermineCursor();
 			p->GiveHudSelected();
 		}

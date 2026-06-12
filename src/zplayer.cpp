@@ -3239,7 +3239,9 @@ bool ZPlayer::CtrlDown()
 
 bool ZPlayer::AltDown()
 {
-	return lalt_down || ralt_down;
+	//the lalt_down/ralt_down members were never maintained (the key switch
+	//below still uses SDL1 keycodes), so ask SDL for the live state instead
+	return (SDL_GetModState() & SDL_KMOD_ALT) != 0;
 }
 
 bool ZPlayer::IsOverHUD(int x, int y, int w, int h)
@@ -3758,6 +3760,8 @@ void ZPlayer::ProcessUnicode(int key)
 		ZVideo_SetFullscreen(!ZVideo_GetFullscreen());
 		is_windowed = !ZVideo_GetFullscreen();
 		AddNewsEntry(is_windowed ? "windowed" : "fullscreen");
+		printf("fullscreen toggle: %s\n", is_windowed ? "windowed" : "fullscreen");
+		fflush(stdout);
 		return;
 	}
 
