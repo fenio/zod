@@ -111,6 +111,8 @@ class ZHud
 		void ResetGame();
 		void SetMaxUnits(int max_units_);
 		void SetUnitAmount(int unit_amount_);
+		//all teams' unit counts, for the original-Z multi-team bar
+		void SetTeamUnitAmounts(int *amounts);
 		void SetTeam(int team_);
 		void ShowChatMessage(bool show_chat_);
 		void SetChatMessage(string message);
@@ -148,6 +150,8 @@ class ZHud
 		int chat_start_x, chat_end_x;
 
 		int max_units;
+		int team_unit_amounts[MAX_TEAM_TYPES];
+		int ActiveTeamBoxes();
 		int unit_amount;
 		ZSDL_Surface unit_amount_text;
 		

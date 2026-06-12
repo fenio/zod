@@ -174,6 +174,7 @@ void ZHud::ResetGame()
 	a_ref_id = -1;
 	SetSelectedObject(NULL);
 	unit_amount = -1;
+	for(int i = 0; i < MAX_TEAM_TYPES; i++) team_unit_amounts[i] = 0;
 	//ZSDL_DestroySurface(unit_amount_text);
 	unit_amount_text.Unload();
 }
@@ -639,9 +640,6 @@ void ZHud::DoRender(SDL_Surface *dest, int screen_w, int screen_h)
 			to_rect.y = off_y + 448;
 			main_hud_bottom_left.BlitSurface(NULL, &to_rect);
 
-			//best placed here, it goes over the left peice
-			RenderUnitAmountBar(dest, off_x, off_y);
-
 			//center
 			if(main_hud_bottom_left.GetBaseSurface() && main_hud_bottom_center.GetBaseSurface() && main_hud_bottom_right.GetBaseSurface())
 			{
@@ -650,8 +648,14 @@ void ZHud::DoRender(SDL_Surface *dest, int screen_w, int screen_h)
 				start_x = main_hud_bottom_left.GetBaseSurface()->w;
 				end_x = (548 + off_x) - main_hud_bottom_right.GetBaseSurface()->w;
 
-				//set the chat start and stop here too
+				//set the chat start and stop here too; the chat text begins
+				//after the team unit boxes (one per living team)
 				chat_start_x = start_x;
+				{
+					//past the rightmost team slot (cloned art is 70 wide)
+					int boxes_end = 128 + (ActiveTeamBoxes() * 70) + 4;
+					if(boxes_end > chat_start_x) chat_start_x = boxes_end;
+				}
 				chat_end_x = end_x;
 
 				while(start_x < end_x)
@@ -680,6 +684,7 @@ void ZHud::DoRender(SDL_Surface *dest, int screen_w, int screen_h)
 				to_rect.y = off_y + 448;
 				main_hud_bottom_right.BlitSurface(NULL, &to_rect);
 			}
+
 
 			//replace button locations
 			button[R_BUTTON].SetShift(-off_x);
@@ -711,6 +716,11 @@ void ZHud::DoRender(SDL_Surface *dest, int screen_w, int screen_h)
 		rerender_main = false;
 		rerender_button = -1;
 	}
+
+	//team unit boxes, every frame (counts move constantly and the boxes
+	//clear their own background; drawn after the bar art so the extra
+	//teams' boxes paint over the chat strip)
+	RenderUnitAmountBar(dest, off_x, off_y);
 
 	if(rerender_icon)
 	{
@@ -896,52 +906,74 @@ void ZHud::RenderUnitAmountBar(SDL_Surface *dest, int off_x, int off_y)
 
 	if(!rerender_unit_amount) return;
 
-	if(!unit_amount_bar[team].GetBaseSurface()) return;
+	//one box per team like the original Z: ours first (always), then every
+	//team that still has units - so you can read the armies at a glance.
+	//Extra teams get a clone of the art's own recessed slot (the bevel
+	//frame included) so they look native instead of floating rectangles.
+	int slot = 0;
+	int bx = 132;
 
-	//clear the space
+	for(int pass = 0; pass < MAX_TEAM_TYPES; pass++)
 	{
-		//to_rect.x = off_x + 132;
-		to_rect.x = 132;
+		int t = team;
+
+		if(pass > 0)
+		{
+			//the other teams in order, skipping ours
+			t = pass - 1;
+			if(t >= team) t++;
+			if(t >= MAX_TEAM_TYPES) break;
+			if(t == NULL_TEAM || team_unit_amounts[t] <= 0) continue;
+		}
+
+		if(!unit_amount_bar[t].GetBaseSurface()) continue;
+
+		int amount = (t == team) ? unit_amount : team_unit_amounts[t];
+
+		bx = 132 + (slot * 70);
+
+		if(slot > 0 && main_hud_bottom_left.GetBaseSurface())
+		{
+			//clone the slot artwork (128..197 x 8..31 in the art) into place
+			from_rect.x = 128;
+			from_rect.y = 8;
+			from_rect.w = 70;
+			from_rect.h = 24;
+			to_rect.x = 128 + (slot * 70);
+			to_rect.y = off_y + 448 + 8;
+			main_hud_bottom_left.BlitSurface(&from_rect, &to_rect);
+		}
+
+		//clear the box interior (the bar shrinks as units die)
+		to_rect.x = bx;
 		to_rect.y = off_y + 460;
 		to_rect.w = 62;
 		to_rect.h = 16;
-		//SDL_FillSurfaceRect(dest, &to_rect, SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 0,0,0));
 		ZSDL_FillSurfaceRect(&to_rect, 0, 0, 0);
-	}
 
-	percent_to_max = 1.0 * unit_amount / max_units;
-	if(percent_to_max < 0) percent_to_max = 0;
-	if(percent_to_max > 1) percent_to_max = 1;
+		percent_to_max = 1.0 * amount / max_units;
+		if(percent_to_max < 0) percent_to_max = 0;
+		if(percent_to_max > 1) percent_to_max = 1;
 
-	//to_rect.x = off_x + 132;
-	to_rect.x = 132;
-	to_rect.y = off_y + 460;
+		to_rect.x = bx;
+		to_rect.y = off_y + 460;
 
-	from_rect.x = 0;
-	from_rect.y = 0;
-	from_rect.w = unit_amount_bar[team].GetBaseSurface()->w * percent_to_max;
-	from_rect.h = unit_amount_bar[team].GetBaseSurface()->h;
+		from_rect.x = 0;
+		from_rect.y = 0;
+		from_rect.w = unit_amount_bar[t].GetBaseSurface()->w * percent_to_max;
+		from_rect.h = unit_amount_bar[t].GetBaseSurface()->h;
 
-	unit_amount_bar[team].BlitSurface(&from_rect, &to_rect);
-	//SDL_BlitSurface(unit_amount_bar[team], &from_rect, dest, &to_rect);
+		unit_amount_bar[t].BlitSurface(&from_rect, &to_rect);
 
-	//render text
-	{
-		sprintf(message, "%d", unit_amount);
-
-		//ZSDL_DestroySurface(unit_amount_text);
-		//unit_amount_text.Unload();
-
-		//unit_amount_text = ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(message);
+		//render text
+		sprintf(message, "%d", amount);
 		unit_amount_text.LoadBaseImage(ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(message));
 
-		//to_rect.x = off_x + 132 + 3;
-		to_rect.x = 132 + 3;
+		to_rect.x = bx + 3;
 		to_rect.y = off_y + 460 + 5;
-
-		//if(unit_amount_text) SDL_BlitSurface(unit_amount_text, NULL, dest, &to_rect);
 		unit_amount_text.BlitSurface(NULL, &to_rect);
-		//unit_amount_text.RenderSurface(to_rect.x, to_rect.y);
+
+		slot++;
 	}
 }
 
@@ -1178,6 +1210,35 @@ ZObject *ZHud::GetSelectedObject()
 void ZHud::SetMaxUnits(int max_units_)
 {
 	max_units = max_units_;
+}
+
+void ZHud::SetTeamUnitAmounts(int *amounts)
+{
+	bool changed = false;
+
+	for(int i = 0; i < MAX_TEAM_TYPES; i++)
+		if(team_unit_amounts[i] != amounts[i])
+		{
+			//a team appearing or dying changes how many boxes there are,
+			//which moves the chat strip - repaint the whole bottom bar then
+			if(!team_unit_amounts[i] != !amounts[i]) rerender_main = true;
+
+			team_unit_amounts[i] = amounts[i];
+			changed = true;
+		}
+
+	if(changed) rerender_unit_amount = true;
+}
+
+//how many team boxes the bottom bar shows: ours always, others while alive
+int ZHud::ActiveTeamBoxes()
+{
+	int n = 1;
+
+	for(int i = 0; i < MAX_TEAM_TYPES; i++)
+		if(i != team && i != NULL_TEAM && team_unit_amounts[i] > 0) n++;
+
+	return n;
 }
 
 void ZHud::SetUnitAmount(int unit_amount_)
