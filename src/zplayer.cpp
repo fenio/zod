@@ -162,6 +162,7 @@ ZPlayer::ZPlayer() : ZClient()
 	mouse_x = 0;
 	mouse_y = 0;
 	splash_fade = 255;
+	splash_dismissed = false;
 	player_name = "Player";
 	our_mode = PLAYER_MODE;
 	hover_object = NULL;
@@ -2425,6 +2426,17 @@ void ZPlayer::ProcessSDL()
 	int shift_x, shift_y;
 	
 	while(SDL_PollEvent(&event) && (ZVideo_ConvertEventCoords(&event), true))
+	{
+		//the splash stays up until the player dismisses it (loading got too
+		//fast to ever see it otherwise); the dismissing click/key is
+		//swallowed so it doesn't leak into the game underneath
+		if(!splash_dismissed && splash_fade >= 5
+			&& (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_KEY_DOWN))
+		{
+			if(graphics_loaded) splash_dismissed = true;
+			continue;
+		}
+
 		switch( event.type )
 	{
 		case SDL_EVENT_QUIT:
@@ -2543,11 +2555,12 @@ void ZPlayer::ProcessSDL()
 			}
 			break;
 	}
+	}
 }
 
 void ZPlayer::DoSplash()
 {
-	const float fade_per_second = 5;
+	const float fade_per_second = 510; //full fade in ~0.5s once dismissed
 	static double last_time;
 	static bool did_init = false;
 
@@ -2558,16 +2571,21 @@ void ZPlayer::DoSplash()
 	{
 		SDL_Rect to_rect;
 		
-		//decrease fade?
-		if(graphics_loaded)// && zmap.Loaded())
+		//fade only once the player dismissed the splash (a click or key);
+		//loading is fast enough now that auto-fading made it a subliminal
+		//flash. Also advance the fade per FRAME - the old code measured
+		//from the first frame ever, so the speed compounded.
+		if(graphics_loaded && splash_dismissed)
 		{
 			if(!did_init)
 			{
 				last_time = current_time();
 				did_init = true;
 			}
-			
-			splash_fade -= (float)(current_time() - last_time) * fade_per_second;
+
+			double now = current_time();
+			splash_fade -= (float)(now - last_time) * fade_per_second;
+			last_time = now;
 			if(splash_fade < 0) splash_fade = 0;
 			
 			switch(sound_setting)
@@ -2596,27 +2614,23 @@ void ZPlayer::DoSplash()
 		//if(splash_screen)
 		//SDL_BlitSurface(splash_screen, NULL, screen, &to_rect);
 
-		//what the fuck loading
+		//(the LOADING percent text is gone: loading takes a fraction of a
+		//second now, so the counter was a meaningless flash)
+
+		//credit line: the engine this port stands on
 		{
-			ZSDL_Surface loading_text;
-			char loading_c[500];
+			ZSDL_Surface credit_text;
+			SDL_Rect c_rect;
 
-			if(loaded_percent > 100) loaded_percent = 100;
-			sprintf(loading_c,"LOADING %d%c", loaded_percent, '%');
-
-			loading_text.LoadBaseImage(ZFontEngine::GetFont(LOADING_WHITE_FONT).Render(loading_c));
-			loading_text.MakeAlphable();
-			loading_text.SetAlpha(splash_fade / 1.5);
-			if(loading_text.GetBaseSurface())
+			credit_text.LoadBaseImage(ZFontEngine::GetFont(LOADING_WHITE_FONT).Render("ZOD ENGINE BY MICHAEL BOK / NIGHSOFT"));
+			credit_text.MakeAlphable();
+			credit_text.SetAlpha(splash_fade / 1.5);
+			if(credit_text.GetBaseSurface())
 			{
-				/*to_rect.x += splash_screen.GetBaseSurface()->w;
-				to_rect.y += splash_screen.GetBaseSurface()->h;*/
-				to_rect.x += 430;
-				to_rect.y += 300;
-
-				//to_rect.x -= 200;
-				//to_rect.y -= loading_text.GetBaseSurface()->h;
-				loading_text.BlitSurface(NULL, &to_rect);
+				c_rect.x = (init_w >> 1) - (credit_text.GetBaseSurface()->w >> 1);
+				c_rect.y = ((init_h - splash_screen.GetBaseSurface()->h) >> 1)
+					+ splash_screen.GetBaseSurface()->h - 26;
+				credit_text.BlitSurface(NULL, &c_rect);
 			}
 		}
 
