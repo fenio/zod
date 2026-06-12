@@ -31,6 +31,7 @@ TCHAR *optarg;
 #include "main.h"
 #include "zpath_debug.h"
 #include "zvideo.h"
+#include "zprefs.h"
 #include "common.h"
 #include "constants.h"
 #include "zsdl.h"
@@ -127,6 +128,9 @@ int main(int argc, char **argv)
 	//optional pathfinding debug log (ZOD_PATHLOG); init before
 	//the server / pathfinding threads exist
 	ZPathLog_Init();
+
+	//player preferences (mouse mode, smoothing) + env overrides
+	ZPrefs_Load();
 
 	if(argc<=1) starting_conditions.setdefaults();
 	

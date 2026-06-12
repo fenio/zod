@@ -1,4 +1,5 @@
 #include "zplayer.h"
+#include "zprefs.h"
 #include <math.h>
 
 using namespace COMMON;
@@ -388,15 +389,8 @@ void ZPlayer::InitSDL()
 	ZVideo_SetCaption("Zod Engine " ZOD_VERSION);
 	atexit(ZSDL_Quit);//SDL_Quit);
 
-	// Render-only movement smoothing defaults on; ZOD_SMOOTH=0 disables it.
-	{ const char *e = getenv("ZOD_SMOOTH"); if(e && e[0] == '0') zod_render_smoothing = false; }
-
-	// Classic (original-Z) mouse, default ON everywhere: the 1996 game did
-	// everything with the left button - click orders and ends the
-	// interaction, right click cancels the selection. ZOD_CLASSIC_MOUSE=0
-	// restores RTS-style right-click orders.
-	classic_mouse = true;
-	{ const char *e = getenv("ZOD_CLASSIC_MOUSE"); if(e && e[0]) classic_mouse = (e[0] != '0'); }
+	// Mouse mode and render smoothing come from ~/.zod_prefs (editable in
+	// the in-game Options menu); env vars override per launch - see zprefs.
 
 #ifdef DISABLE_OPENGL
 	use_opengl = false;
@@ -3895,6 +3889,7 @@ void ZPlayer::ProcessUnicode(int key)
 		{
 			//toggle the render-only movement smoothing (visual only)
 			zod_render_smoothing = !zod_render_smoothing;
+			ZPrefs_Save();
 			AddNewsEntry(zod_render_smoothing ? "render smoothing: ON" : "render smoothing: OFF");
 		}
 		else if(key == '=' || key == '+')   //zoom in (keyboard; trackpad-friendly)
