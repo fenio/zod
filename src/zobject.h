@@ -310,6 +310,10 @@ class ZObject
 		virtual void SetOwner(team_type owner_);
 		inline team_type GetOwner() { return owner; }
 		inline void GetDimensions(int &w, int &h) { w = width; h = height; }
+		// Nudge for centering this unit's VISUAL inside GUI boxes: cannons
+		// paint their sprite above their map footprint, so centering by the
+		// footprint alone leaves them top-heavy (half the paint offset).
+		virtual void GetGuiCenterAdjust(int &ax, int &ay) { ax = 0; ay = 0; }
 		inline void GetDimensionsPixel(int &w_pix, int &h_pix) { w_pix = width_pix; h_pix = height_pix; }
 		virtual int Process();
 		int ProcessObject();

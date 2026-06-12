@@ -244,8 +244,11 @@ void GWPUnitSelector::DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x, in
 	{
 		int ow, oh;
 
+		int ax, ay;
+
 		draw_obj->GetDimensionsPixel(ow, oh);
-		draw_obj->SetCords(tx + (27-3) - (ow>>1), ty + (40-19) - (oh>>1));
+		draw_obj->GetGuiCenterAdjust(ax, ay);
+		draw_obj->SetCords(tx + (27-3) - (ow>>1) + ax, ty + (40-19) - (oh>>1) + ay);
 		draw_obj->DoRender(the_map, dest);
 
 		if(draw_obj->GetHoverNameImg().GetBaseSurface())

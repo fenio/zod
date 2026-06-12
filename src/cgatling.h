@@ -9,6 +9,7 @@ class CGatling : public ZCannon
 		CGatling(ZTime *ztime_, ZSettings *zsettings_ = NULL, bool just_placed = false);
 		
 		static void Init();
+		void GetGuiCenterAdjust(int &ax, int &ay) { ax = 0; ay = 4; } //sprite paints above the footprint
 		
 // 		SDL_Surface *GetRender();
 		void DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x = 0, int shift_y = 0);
