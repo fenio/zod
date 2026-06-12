@@ -180,6 +180,99 @@ static bool load_tileinfo()
 	return true;
 }
 
+// ---- tile grammar learned from the shipped hand-made maps ----
+//
+// For every map of the same terrain, record which tile index the original
+// mappers used for each water-neighborhood pattern (8 surrounding cells,
+// bit set = water) and how often each plain-ground tile occurs. Sampling
+// from those tables reproduces their shorelines and calm ground mix.
+
+#include <map>
+
+static std::map<int, std::map<unsigned short, int> > water_tab; // key: center('w' or 'g')<<8 | pattern
+static std::map<int, std::map<unsigned short, int> > water_tab4; // 4-bit N/W/E/S fallback
+static std::map<unsigned short, int> ground_tab;
+
+static char kind_of_tile(unsigned short t)
+{
+	if(t >= MAX_PLANET_TILES) return 'x';
+	if(tinfo[t].is_water) return 'w';
+	if(!tinfo[t].is_passable) return 'x';
+	if(tinfo[t].is_road) return 'r';
+	return 'g';
+}
+
+static void learn_from_map(const char *path)
+{
+	FILE *fp = fopen(path, "rb");
+	if(!fp) return;
+
+	map_basics b;
+	if(fread(&b, sizeof(b), 1, fp) != 1 || b.terrain_type != terrain
+		|| b.width < 4 || b.height < 4 || b.width > 1000 || b.height > 1000)
+		{ fclose(fp); return; }
+
+	fseek(fp, sizeof(map_zone) * b.zone_count + sizeof(map_object) * b.object_count, SEEK_CUR);
+
+	int n = b.width * b.height;
+	vector<unsigned short> t(n);
+	if((int)fread(&t[0], sizeof(unsigned short), n, fp) != n) { fclose(fp); return; }
+	fclose(fp);
+
+	vector<char> K(n);
+	for(int i = 0; i < n; i++) K[i] = kind_of_tile(t[i]);
+
+	const int dx8[8] = {-1,0,1,-1,1,-1,0,1}, dy8[8] = {-1,-1,-1,0,0,1,1,1};
+	for(int y = 0; y < b.height; y++)
+		for(int x = 0; x < b.width; x++)
+		{
+			char c = K[y * b.width + x];
+			int wp = 0, wp4 = 0;
+			for(int d = 0; d < 8; d++)
+			{
+				int nx = x + dx8[d], ny = y + dy8[d];
+				char nk = (nx < 0 || ny < 0 || nx >= b.width || ny >= b.height) ? 'g' : K[ny * b.width + nx];
+				if(nk == 'w') wp |= (1 << d);
+			}
+			if(wp & (1<<1)) wp4 |= 1; //N
+			if(wp & (1<<3)) wp4 |= 2; //W
+			if(wp & (1<<4)) wp4 |= 4; //E
+			if(wp & (1<<6)) wp4 |= 8; //S
+
+			unsigned short tt = t[y * b.width + x];
+			if(c == 'w' || (c == 'g' && wp))
+			{
+				water_tab[(c << 8) | wp][tt]++;
+				water_tab4[(c << 8) | wp4][tt]++;
+			}
+			else if(c == 'g')
+				ground_tab[tt]++;
+		}
+}
+
+static void learn_tiles()
+{
+	// the campaign maps live next to the generator's output by default
+	char path[512];
+	const char *prefixes[3] = { "maps/p02_bb_orig%02d.map", "maps/p03_bb_p03m%02d.map", "maps/p04_bb_p04m%02d.map" };
+	for(int p = 0; p < 3; p++)
+		for(int i = 0; i < 40; i++)
+			{ snprintf(path, sizeof(path), prefixes[p], i); learn_from_map(path); }
+
+	printf("tile grammar: %d shoreline patterns, %d ground tiles learned\n",
+		(int)water_tab.size(), (int)ground_tab.size());
+}
+
+static unsigned short sample_tab(std::map<unsigned short, int> &m)
+{
+	long total = 0;
+	for(std::map<unsigned short, int>::iterator i = m.begin(); i != m.end(); ++i) total += i->second;
+	long r = (long)(rand() % (int)(total > 0 ? total : 1));
+	for(std::map<unsigned short, int>::iterator i = m.begin(); i != m.end(); ++i)
+		{ r -= i->second; if(r < 0) return i->first; }
+	return m.begin()->first;
+}
+
 static void make_zones()
 {
 	int cols = W / 22; if(cols < 2) cols = 2;
@@ -228,25 +321,86 @@ static void make_water()
 {
 	if(water_tiles.empty()) return;
 
-	int blobs = (W * H) / 1100;
+	// blob seeds: thick random walks (3x3 stamps) make coherent lakes
+	int blobs = (W * H) / 1600;
 	for(int b = 0; b < blobs; b++)
 	{
-		int x = 3 + rnd(W - 6), y = 3 + rnd(H - 6);
-		int steps = 30 + rnd(60);
+		int x = 4 + rnd(W - 8), y = 4 + rnd(H - 8);
+		int steps = 15 + rnd(35);
 
 		for(int s = 0; s < steps; s++)
 		{
-			int i = idx(x, y);
-			if(kind[i] == 'g' && !reserved[i])
-			{
-				kind[i] = 'w';
-				tiles[i] = water_tiles[rnd(water_tiles.size())];
-			}
+			for(int j = -1; j <= 1; j++)
+				for(int i = -1; i <= 1; i++)
+				{
+					int ii = idx(x + i, y + j);
+					if(kind[ii] == 'g' && !reserved[ii]) kind[ii] = 'w';
+				}
 			x += rnd(3) - 1; y += rnd(3) - 1;
-			if(x < 3) x = 3; if(y < 3) y = 3;
-			if(x > W - 4) x = W - 4; if(y > H - 4) y = H - 4;
+			if(x < 4) x = 4; if(y < 4) y = 4;
+			if(x > W - 5) x = W - 5; if(y > H - 5) y = H - 5;
 		}
 	}
+
+	// two majority-rule smoothing passes: kills ragged single-tile noise
+	for(int pass = 0; pass < 2; pass++)
+	{
+		vector<char> nk = kind;
+		for(int y = 1; y < H - 1; y++)
+			for(int x = 1; x < W - 1; x++)
+			{
+				if(reserved[idx(x,y)] || kind[idx(x,y)] == 'r') continue;
+				int n = 0;
+				for(int j = -1; j <= 1; j++)
+					for(int i = -1; i <= 1; i++)
+						if(kind[idx(x+i, y+j)] == 'w') n++;
+				if(kind[idx(x,y)] == 'w') nk[idx(x,y)] = (n >= 4) ? 'w' : 'g';
+				else nk[idx(x,y)] = (n >= 6) ? 'w' : kind[idx(x,y)];
+			}
+		kind = nk;
+	}
+}
+
+// final tile assignment from the learned grammar: shorelines get the tiles
+// the original mappers used for the same water neighborhood, plain ground
+// gets their frequency mix, structures sit on clean starter tiles
+static void retile()
+{
+	const int dx8[8] = {-1,0,1,-1,1,-1,0,1}, dy8[8] = {-1,-1,-1,0,0,1,1,1};
+
+	for(int y = 0; y < H; y++)
+		for(int x = 0; x < W; x++)
+		{
+			int i = idx(x, y);
+			if(kind[i] == 'r') continue; //roads keep their tiles
+
+			int wp = 0, wp4 = 0;
+			for(int d = 0; d < 8; d++)
+			{
+				int nx = x + dx8[d], ny = y + dy8[d];
+				char nk = (nx < 0 || ny < 0 || nx >= W || ny >= H) ? 'g' : kind[idx(nx, ny)];
+				if(nk == 'w') wp |= (1 << d);
+			}
+			if(wp & (1<<1)) wp4 |= 1;
+			if(wp & (1<<3)) wp4 |= 2;
+			if(wp & (1<<4)) wp4 |= 4;
+			if(wp & (1<<6)) wp4 |= 8;
+
+			char c = kind[i];
+			if(c == 'w' || (c == 'g' && wp))
+			{
+				int k8 = (c << 8) | wp, k4 = (c << 8) | wp4;
+				if(water_tab.count(k8)) { tiles[i] = sample_tab(water_tab[k8]); continue; }
+				if(water_tab4.count(k4)) { tiles[i] = sample_tab(water_tab4[k4]); continue; }
+				if(c == 'w') { tiles[i] = water_tiles.empty() ? tiles[i] : water_tiles[rnd(water_tiles.size())]; continue; }
+				//unmatched shore: plain ground below
+			}
+
+			if(reserved[i] || ground_tab.empty())
+				tiles[i] = starter_tiles[rnd(starter_tiles.size())];
+			else
+				tiles[i] = sample_tab(ground_tab);
+		}
 }
 
 // vehicles are 2x2 and can't cross water/rocks/buildings: flood-fill with a
@@ -371,16 +525,29 @@ static void place_zone_contents()
 		reserve_rect(cx, cy, 1, 1);
 		add_object(cx, cy, 0, MAP_ITEM_OBJECT, FLAG_ITEM);
 
-		// a robot factory in every zone, vehicle factory / radar / repair mixed
-		// in (engine footprints: factories 4x5, radar 4x3, repair 5x4)
-		int bx = cx - 2, by = cy + 2;
-		if(area_free(bx, by, 4, 5)) { reserve_rect(bx, by, 4, 5, true); add_object(bx, by, 0, BUILDING_OBJECT, ROBOT_FACTORY); }
+		// varied zone contents like the originals: some zones dense, some
+		// just a flag worth holding (engine footprints: factories 4x5,
+		// radar 4x3, repair 5x4)
+		int n_buildings = rnd(4); //0-3
+		for(int bnum = 0; bnum < n_buildings; bnum++)
+		{
+			int roll = rnd(100);
+			int bw = (roll < 70) ? 4 : 5, bh = (roll < 40) ? 5 : ((roll < 70) ? 3 : 4);
+			int oid = (roll < 25) ? ROBOT_FACTORY : (roll < 40) ? VEHICLE_FACTORY : (roll < 70) ? RADAR : REPAIR;
+			if(oid == ROBOT_FACTORY || oid == VEHICLE_FACTORY) { bw = 4; bh = 5; }
+			else if(oid == RADAR) { bw = 4; bh = 3; }
+			else { bw = 5; bh = 4; }
 
-		int roll = rnd(100);
-		bx = cx - 2; by = cy - 8;
-		if(roll < 45)      { if(area_free(bx, by, 4, 5)) { reserve_rect(bx, by, 4, 5, true); add_object(bx, by, 0, BUILDING_OBJECT, VEHICLE_FACTORY); } }
-		else if(roll < 70) { if(area_free(bx, by, 4, 3)) { reserve_rect(bx, by, 4, 3, true); add_object(bx, by, 0, BUILDING_OBJECT, RADAR); } }
-		else if(roll < 85) { if(area_free(bx, by, 5, 4)) { reserve_rect(bx, by, 5, 4, true); add_object(bx, by, 0, BUILDING_OBJECT, REPAIR); } }
+			for(int attempt = 0; attempt < 8; attempt++)
+			{
+				int bx = z.x + 2 + rnd(z.w > bw + 4 ? z.w - bw - 4 : 1);
+				int by = z.y + 2 + rnd(z.h > bh + 4 ? z.h - bh - 4 : 1);
+				if(!area_free(bx, by, bw, bh)) continue;
+				reserve_rect(bx, by, bw, bh, true);
+				add_object(bx, by, 0, BUILDING_OBJECT, oid);
+				break;
+			}
+		}
 	}
 }
 
@@ -480,6 +647,7 @@ int main(int argc, char **argv)
 	srand(seed);
 
 	if(!load_tileinfo()) return 1;
+	learn_tiles();
 
 	tiles.resize(W * H);
 	kind.assign(W * H, 'g');
@@ -500,6 +668,8 @@ int main(int argc, char **argv)
 
 	obj_dead.assign(objects.size(), false);
 	ensure_connectivity();
+
+	retile();
 
 	return write_map() ? 0 : 1;
 }
