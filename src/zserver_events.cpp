@@ -44,6 +44,7 @@ void ZServer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, START_BOT_EVENT, start_bot_event);
 	ehandler.AddFunction(TCP_EVENT, STOP_BOT_EVENT, stop_bot_event);
 	ehandler.AddFunction(TCP_EVENT, SELECT_MAP, select_map_event);
+	ehandler.AddFunction(TCP_EVENT, GENERATE_MAP, generate_map_event);
 	ehandler.AddFunction(TCP_EVENT, RESET_MAP, reset_map_event);
 	ehandler.AddFunction(TCP_EVENT, REQUEST_VERSION, request_version_event);
 	
@@ -1164,6 +1165,15 @@ void ZServer::select_map_event(ZServer *p, char *data, int size, int player)
 	if(size != sizeof(int_packet)) return;
 
 	p->StartVote(CHANGE_MAP_VOTE, pi->map_num, player);
+}
+
+void ZServer::generate_map_event(ZServer *p, char *data, int size, int player)
+{
+	generate_map_packet *pi = (generate_map_packet*)data;
+
+	if(size != sizeof(generate_map_packet)) return;
+
+	p->GenerateAndStartMap(pi->enemies, pi->width, pi->height, pi->terrain, pi->tech);
 }
 
 void ZServer::reset_map_event(ZServer *p, char *data, int size, int player)

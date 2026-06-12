@@ -192,6 +192,15 @@ union int_packet
 	int map_num;
 };
 
+struct generate_map_packet
+{
+	int enemies;
+	int width;
+	int height;
+	int terrain;
+	int tech;
+};
+
 union float_packet
 {
 	float value;
@@ -261,7 +270,7 @@ enum tcp_event
 	TEAM_ENDED, POLL_BUY_REGKEY, BUY_REGKEY, RETURN_REGKEY, GET_GAME_SPEED, SET_GAME_SPEED,
 	UPDATE_GAME_SPEED, ADD_BUILDING_QUEUE, SET_BUILDING_QUEUE_LIST, CANCEL_BUILDING_QUEUE,
 	RESHUFFLE_TEAMS, START_BOT_EVENT, STOP_BOT_EVENT, SELECT_MAP, RESET_MAP, REQUEST_VERSION,
-	GIVE_VERSION, SEND_UNIT_ROUTE,
+	GIVE_VERSION, SEND_UNIT_ROUTE, GENERATE_MAP,
 	MAX_TCP_EVENTS
 };
 

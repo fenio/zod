@@ -3446,6 +3446,17 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 				client_socket.SendMessage(SELECT_MAP, (char*)&the_data, sizeof(int_packet));
 			}
 
+			if(the_flags.generate_map)
+			{
+				generate_map_packet the_data;
+				the_data.enemies = the_flags.gen_enemies;
+				the_data.width = the_flags.gen_width;
+				the_data.height = the_flags.gen_height;
+				the_data.terrain = the_flags.gen_terrain;
+				the_data.tech = the_flags.gen_tech;
+				client_socket.SendMessage(GENERATE_MAP, (char*)&the_data, sizeof(generate_map_packet));
+			}
+
 			return true;
 		}
 
@@ -4052,6 +4063,7 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 	case GMM_MANAGE_BOTS: new_menu = new GMMManageBots(); break;
 	case GMM_PLAYER_LIST: new_menu = new GMMPlayerList(); break;
 	case GMM_SELECT_MAP: new_menu = new GMMSelectMap(); break;
+	case GMM_GENERATE_MAP: new_menu = new GMMGenerateMap(); break;
 	case GMM_OPTIONS: new_menu = new GMMOptions(); break;
 	case GMM_WARNING: new_menu = new GMMWarning(warning_flags); break;
 	default: printf("ZPlayer::LoadMainMenu: bad menu_type:%d\n", menu_type); break;

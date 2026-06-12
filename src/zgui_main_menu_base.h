@@ -24,7 +24,7 @@
 enum menu_type
 {
 	GMM_MAIN_MAIN, GMM_CHANGE_TEAMS, GMM_MANAGE_BOTS, 
-	GMM_PLAYER_LIST, GMM_SELECT_MAP, GMM_OPTIONS, GMM_WARNING,
+	GMM_PLAYER_LIST, GMM_SELECT_MAP, GMM_OPTIONS, GMM_WARNING, GMM_GENERATE_MAP,
 	MAX_MENU_TYPES
 };
 
@@ -84,6 +84,12 @@ public:
 		set_volume_value = -1;
 		pause_game = false;
 		set_game_speed = false;
+		generate_map = false;
+		gen_enemies = 1;
+		gen_width = 80;
+		gen_height = 100;
+		gen_terrain = 0;
+		gen_tech = 0;
 		set_game_speed_value = 1.0;
 
 		warning_flags.clear();
@@ -106,6 +112,8 @@ public:
 	int set_volume_value;
 	bool pause_game;
 	bool set_game_speed;
+	bool generate_map;
+	int gen_enemies, gen_width, gen_height, gen_terrain, gen_tech;
 	float set_game_speed_value;
 
 	gmm_warning_flag warning_flags;

@@ -59,6 +59,7 @@ class ZServer : public ZCore
 		void CheckEndGame();
 		void CheckResetGame();
 		void DoResetGame(string map_name = "");
+		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech);
 		bool EndGameRequirementsMet();
 		void LoadNextMap(string map_name = "");
 		void ResetGame();
@@ -255,6 +256,7 @@ class ZServer : public ZCore
 		static void start_bot_event(ZServer *p, char *data, int size, int player);
 		static void stop_bot_event(ZServer *p, char *data, int size, int player);
 		static void select_map_event(ZServer *p, char *data, int size, int player);
+		static void generate_map_event(ZServer *p, char *data, int size, int player);
 		static void reset_map_event(ZServer *p, char *data, int size, int player);
 		static void request_version_event(ZServer *p, char *data, int size, int player);
 };
