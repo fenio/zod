@@ -30,6 +30,7 @@ TCHAR *optarg;
 
 #include "main.h"
 #include "zpath_debug.h"
+#include "zvideo.h"
 #include "common.h"
 #include "constants.h"
 #include "zsdl.h"
@@ -243,8 +244,32 @@ void run_player_thread()
 		zplayer.SetLoginPassword(starting_conditions.password);
 	if(starting_conditions.read_connect_address)
 		zplayer.SetRemoteAddress(starting_conditions.connect_address);
-	if(starting_conditions.read_resolution)
-		zplayer.SetDimensions(starting_conditions.resolution_width, starting_conditions.resolution_height);
+	{
+		int rw = starting_conditions.read_resolution ? starting_conditions.resolution_width : 800;
+		int rh = starting_conditions.read_resolution ? starting_conditions.resolution_height : 600;
+
+		//No explicit -r: adapt the logical width to the display's aspect
+		//ratio. Same height = same pixel size; the map viewport absorbs all
+		//the extra width (the HUD anchors to the right edge), and fullscreen
+		//fills the screen with no bars. -r WxH still forces any resolution.
+		if(!starting_conditions.resolution_explicit)
+		{
+			int dw, dh;
+
+			if(ZVideo_GetDesktopSize(dw, dh))
+			{
+				int aw = (int)(((long)rh * dw) / dh);
+
+				if(aw < rw) aw = rw;                  //never narrower than the classic 4:3
+				if(aw > (rh * 8) / 3) aw = (rh * 8) / 3; //sanity cap (~21:9)
+				rw = aw & ~1;
+
+				printf("display %dx%d: logical view %dx%d (use -r to override)\n", dw, dh, rw, rh);
+			}
+		}
+
+		zplayer.SetDimensions(rw, rh);
+	}
 	
 	zplayer.Setup();
 	zplayer.Run();
@@ -490,6 +515,7 @@ int input_options::getoptions(int argc, char **argv)
 					resolution_width = atoi(resolution.substr(0, temp_int).c_str());
 					resolution_height = atoi(resolution.substr(temp_int+1, 10).c_str());
 					read_resolution = true;
+					resolution_explicit = true; //user chose; don't auto-adapt
 				}
 				else
 					read_resolution = false;

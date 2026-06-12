@@ -22,6 +22,18 @@ static void destroy_scaler()
     if (g_frame_surface) { SDL_DestroySurface(g_frame_surface); g_frame_surface = NULL; }
 }
 
+bool ZVideo_GetDesktopSize(int &w, int &h)
+{
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return false;
+
+    const SDL_DisplayMode *dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    if (!dm || dm->w <= 0 || dm->h <= 0) return false;
+
+    w = dm->w;
+    h = dm->h;
+    return true;
+}
+
 void ZVideo_SetFullscreen(bool fullscreen)
 {
     if (!g_window) return;
