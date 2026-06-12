@@ -3584,18 +3584,25 @@ void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 	//impassable-overlap violation check: ground truth for "units walk
 	//through/over things" reports. Mobile units only - buildings and rocks
 	//legitimately sit on their own impassable footprint tiles - and not
-	//during force moves, which deliberately skip collision (that's how
-	//new units exit through their factory's own footprint).
-	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time
-		&& !(waypoint_list.size() && waypoint_list.begin()->mode == FORCE_MOVE_WP))
+	//during the waypoint modes that deliberately cross footprints: force
+	//moves (factory exits), crane/unit repair and fort entry (driving into
+	//the structure is the whole point).
+	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time)
 	{
-		int vx, vy;
+		int cur_mode = waypoint_list.size() ? waypoint_list.begin()->mode : -1;
 
-		pathlog_next_violation_time = the_time + 2.0;
+		if(cur_mode != FORCE_MOVE_WP && cur_mode != CRANE_REPAIR_WP
+			&& cur_mode != UNIT_REPAIR_WP && cur_mode != ENTER_FORT_WP)
+		{
+			int vx, vy;
 
-		if(tmap.WithinImpassable(loc.x + 1, loc.y + 1, width_pix - 2, height_pix - 2, vx, vy, object_type == ROBOT_OBJECT))
-			ZPathLog("VIOLAT %s: collision box overlaps impassable tile t(%d,%d)!",
-				ZPathLog_UnitDesc(this).c_str(), vx >> 4, vy >> 4);
+			pathlog_next_violation_time = the_time + 2.0;
+
+			if(tmap.WithinImpassable(loc.x + 1, loc.y + 1, width_pix - 2, height_pix - 2, vx, vy, object_type == ROBOT_OBJECT))
+				ZPathLog("VIOLAT %s: collision box overlaps impassable tile t(%d,%d)! (%s order)",
+					ZPathLog_UnitDesc(this).c_str(), vx >> 4, vy >> 4,
+					cur_mode == -1 ? "no" : ZPathLog_WPModeName(cur_mode));
+		}
 	}
 
 	if(!waypoint_list.size())
