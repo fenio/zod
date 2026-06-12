@@ -9,6 +9,7 @@ class CGun : public ZCannon
 		CGun(ZTime *ztime_, ZSettings *zsettings_ = NULL, bool just_placed = false);
 		
 		static void Init();
+		void GetGuiCenterAdjust(int &ax, int &ay) { ax = 0; ay = 7; } //its 32x18 sprite paints at the top of the 32x32 footprint
 		
 // 		SDL_Surface *GetRender();
 		void DoRender(ZMap &the_map, SDL_Surface *dest, int shift_x = 0, int shift_y = 0);
