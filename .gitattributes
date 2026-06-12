@@ -1,0 +1,29 @@
+# Binary game data and assets must NEVER get line-ending conversion. Without
+# this, a Windows checkout with core.autocrlf=true injects \r bytes into these
+# binary files, corrupting them - e.g. a .map then fails ZMap::Read and the
+# engine falls back to its featureless random map. (macOS/Linux were unaffected,
+# so this was a Windows-only "garbage map" bug.)
+*.map       binary
+*.bmp       binary
+*.png       binary
+*.ico       binary
+*.ttf       binary
+*.wav       binary
+*.ogg       binary
+*.mid       binary
+*.tileinfo  binary
+*.xcf       binary
+*.icescene  binary
+*.rar       binary
+*.zip       binary
+*.db        binary
+*.o         binary
+*.LST       binary
+*.MID       binary
+
+# Source and text data: normalize to LF in the repo. map_list.txt is parsed
+# with clean_newline(), which strips \r, so its endings don't matter at runtime.
+*.cpp  text eol=lf
+*.h    text eol=lf
+*.txt  text eol=lf
+*.md   text eol=lf
