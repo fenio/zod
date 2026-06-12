@@ -2768,6 +2768,23 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 			//cur_wp_info.y = wp->y;
 			SetTarget(wp->x, wp->y);
 
+			//target in a different region = unreachable for THIS unit type
+			//(robots wade water so their regions include islands; vehicles
+			//don't). Beelining there just drove the unit into the shore and
+			//ground on a re-issue loop, with a path line drawn over water.
+			//Drop the order instead - the original game doesn't try.
+			if(!tmap.GetPathFinder().InSameRegion(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT)))
+			{
+				if(ZPATH_LOG_ON)
+					ZPathLog("DROP   %s: target (%d,%d)t(%d,%d) unreachable (different region), dropping move",
+						ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x, cur_wp_info.y,
+						cur_wp_info.x / 16, cur_wp_info.y / 16);
+
+				StopMove();
+				KillWP(wp);
+				return;
+			}
+
 			//cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(x + (width_pix >> 1), y + (height_pix >> 1), wp->x, wp->y, (object_type == ROBOT_OBJECT), ref_id);
 			//cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(center_x, center_y, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT), ref_id);
 			cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT), HasExplosives(), ref_id);
