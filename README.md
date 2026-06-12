@@ -142,6 +142,30 @@ costs nothing when off. For unattended stress-testing, `ZOD_BOT_FUZZ=1` makes
 bots additionally order random units to random map coordinates (reachable or
 not) — combined with the log it's a pathfinding fuzz harness.
 
+## Random maps
+
+The build also produces `zod_mapgen`, a standalone skirmish map generator —
+every seed is a different map:
+
+```sh
+./build/zod_mapgen -e 2 -s 7 -o maps/random.map
+./build/zod -m maps/random.map -t red -b blue -b green -n Player -r 800x600 -w
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-e N` | number of enemy teams (1–3; teams beyond blue are green, yellow — add a `-b` per enemy when launching) |
+| `-s N` | seed (same seed = same map) |
+| `-w N` / `-h N` | map size in tiles (default 80×100) |
+| `-t N` | terrain palette: 0 desert, 1 volcanic, 2 arctic, 3 jungle, 4 city |
+| `-o file` | output path (default `maps/random.map`) |
+
+Generated maps have a fort + starting squad per team, capturable zones with
+neutral factories/radar/repair, lakes, roads, and rock fields. Run it from the
+game directory — it reads the palette info and learns its shoreline/road/ground
+tile usage from the shipped campaign maps, and it guarantees every flag and
+unit is reachable (vehicle-checked) before writing the file.
+
 ## License
 
 GPLv3 — see [`LICENSE`](LICENSE). The Zod Engine is © its original authors
