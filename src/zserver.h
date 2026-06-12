@@ -48,7 +48,7 @@ class ZServer : public ZCore
 		void DeleteObject(ZObject *obj);
 		bool ReadMapList();
 		bool ReadSelectableMapList();
-		bool ReadSelectableMapListFromFolder(string foldername = "");
+		bool ReadSelectableMapListFromFolder(string foldername = "maps");
 		int NextInMapList();
 		//single-player campaign progress: remember which map in the list we
 		//reached, so the campaign resumes there instead of restarting at map 0.
