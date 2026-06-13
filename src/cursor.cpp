@@ -24,56 +24,56 @@ void ZCursor::Init()
 		cursor[CURSOR_C][0][j].LoadBaseImage(filename_c);
 
 		sprintf(filename_c, "assets/cursors/placed_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[PLACED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[PLACE_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[PLACED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[PLACE_C][0][j] = cursor[PLACED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/attacked_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[ATTACKED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[ATTACK_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[ATTACKED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[ATTACK_C][0][j] = cursor[ATTACKED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/grabbed_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[GRABBED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[GRAB_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[GRABBED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[GRAB_C][0][j] = cursor[GRABBED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/grenaded_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[GRENADED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[GRENADE_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[GRENADED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[GRENADE_C][0][j] = cursor[GRENADED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/repaired_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[REPAIRED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[REPAIR_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[REPAIRED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[REPAIR_C][0][j] = cursor[REPAIRED_C][0][j];
 		
 		sprintf(filename_c, "assets/cursors/entered_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[ENTERED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[ENTER_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[ENTERED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[ENTER_C][0][j] = cursor[ENTERED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/exited_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[EXITED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[EXIT_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[EXITED_C][0][j] = IMG_Load_Error(filename_c);
 		//cursor[EXIT_C][0][j] = cursor[EXITED_C][0][j];
 
 		sprintf(filename_c, "assets/cursors/cannoned_n%02d.png", j);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		cursor[CANNONED_C][0][j].LoadBaseImage(temp_surface, false);
 		cursor[CANNON_C][0][j].LoadBaseImage(temp_surface);
 		//cursor[CANNONED_C][0][j] = IMG_Load_Error(filename_c);

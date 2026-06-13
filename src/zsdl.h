@@ -70,6 +70,7 @@ SDL_Surface *ZSDL_ConvertImage(SDL_Surface *src);
 SDL_Surface *ZSDL_IMG_Load(string filename);
 void ZSDL_SetDataRoot(const char *root);
 std::string ZSDL_DataPath(const std::string &f);
+SDL_Surface *ZSDL_DataIMG_Load(const std::string &f);
 SDL_Surface *IMG_Load_Error(string filename);
 ZAudio_Music *ZSDL_LoadMusic(string filename);
 ZAudio_Sound *ZSDL_LoadSound(string filename);

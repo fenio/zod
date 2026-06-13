@@ -168,7 +168,7 @@ void ZRobot::Init()
 	SDL_Surface *temp_surface;
 	
 	strcpy(filename_c, "assets/units/robots/null.png");
-	temp_surface = IMG_Load(filename_c);
+	temp_surface = ZSDL_DataIMG_Load(filename_c);
 	
 	for(j=0;j<MAX_ANGLE_TYPES;j++)
 		stand[0][j].LoadBaseImage(temp_surface, false);

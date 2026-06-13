@@ -478,6 +478,13 @@ string ZSDL_DataPath(const string &f)
 	return f;
 }
 
+// IMG_Load through the data-root resolver, for the many direct callers that
+// don't go via ZSDL_IMG_Load.
+SDL_Surface *ZSDL_DataIMG_Load(const string &f)
+{
+	return IMG_Load(ZSDL_DataPath(f).c_str());
+}
+
 SDL_Surface *ZSDL_IMG_Load(string filename)
 {
 	SDL_Surface *ret;

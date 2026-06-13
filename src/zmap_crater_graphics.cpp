@@ -33,7 +33,7 @@ void ZMapCraterGraphics::Init()
 
 					sprintf(filename, "assets/planets/craters/crater_small_%s_t%02d_n%02d.png", planet_type_string[p].c_str(), t, n);
 
-					surface = IMG_Load(filename);
+					surface = ZSDL_DataIMG_Load(filename);
 
 					//not loaded?
 					if(!surface) break;
@@ -60,7 +60,7 @@ void ZMapCraterGraphics::Init()
 
 					sprintf(filename, "assets/planets/craters/crater_large_%s_t%02d_n%02d.png", planet_type_string[p].c_str(), t, n);
 
-					surface = IMG_Load(filename);
+					surface = ZSDL_DataIMG_Load(filename);
 
 					//not loaded?
 					if(!surface) break;

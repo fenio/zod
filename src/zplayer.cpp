@@ -384,7 +384,7 @@ void ZPlayer::InitSDL()
 	view_min_zoom = 0.7;
 
 	//some stuff that just has to be right after init
-	game_icon = IMG_Load("assets/icon.png");
+	game_icon = ZSDL_DataIMG_Load("assets/icon.png");
 	//ffuts
 
 	if(game_icon) ZVideo_SetIcon(game_icon);
