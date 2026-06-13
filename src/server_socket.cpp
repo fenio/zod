@@ -1,5 +1,6 @@
 #include "server_socket.h"
 #include "common.h"
+#include <SDL3/SDL.h>
 
 using namespace COMMON;
 
@@ -139,6 +140,7 @@ int ServerSocket::CheckConnects()
 		client_socket.push_back(new SocketHandler(temp_id, temp_in));
 
 		string connect_ip = inet_ntoa(temp_in.sin_addr);
+		SDL_Log("ServerSocket: accepted client from %s (total clients %d)", connect_ip.c_str(), (int)client_socket.size());
 		ehandler->ProcessEvent(OTHER_EVENT, CONNECT_EVENT, (char*)connect_ip.c_str(), connect_ip.size()+1, client_socket.size()-1);
 		//event_list->push_back(new Event(OTHER_EVENT, CONNECT_EVENT, client_socket.size()-1, (char*)connect_ip.c_str(), connect_ip.size()+1));
 		//event_list->push_back(new Event(OTHER_EVENT, CONNECT_EVENT, client_socket.size()-1, NULL, 0));
