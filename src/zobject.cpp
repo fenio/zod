@@ -103,6 +103,9 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	next_drop_track_time = 0;
 	max_stamina = 0;
 	stamina = max_stamina;
+	//never initialized before - a fresh unit read garbage and could think
+	//it was already running (found by UBSan: 'load of value 190 for bool')
+	is_running = false;
 
 	driver_type = GRUNT;
 

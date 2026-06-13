@@ -1,0 +1,85 @@
+name: sanitizers
+
+# Build with AddressSanitizer + UndefinedBehaviorSanitizer and exercise the
+# engine: the functional tests, then a fuzzed headless bot match. This catches
+# the C++ bug classes that build/lint can't see - buffer overruns,
+# use-after-free, uninitialized reads, signed overflow - with a stack trace at
+# the moment they happen. First run already found one: an uninitialized
+# ZObject::is_running read on freshly spawned units.
+#
+# The UBSan *alignment* check is disabled: the vintage packet-parsing code
+# casts byte-buffer offsets to int* in many places. That's technically UB but
+# benign on every platform we ship, and fixing it is a dedicated refactor of
+# fragile network code (tracked separately). Everything else gates.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  asan-ubsan:
+    name: ASan + UBSan (Ubuntu 26.04)
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config curl ca-certificates \
+            libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev
+      - name: Build SDL3_mixer from source
+        # same reasoning as build.yml: 26.04's libsdl3-mixer-dev hasn't
+        # migrated to the release pocket yet
+        run: |
+          curl -fsSL -o /tmp/mixer.tar.gz \
+            https://github.com/libsdl-org/SDL_mixer/releases/download/release-3.2.4/SDL3_mixer-3.2.4.tar.gz
+          mkdir -p /tmp/mixer && tar -xzf /tmp/mixer.tar.gz -C /tmp/mixer --strip-components=1
+          cmake -S /tmp/mixer -B /tmp/mixer/build \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+            -DBUILD_SHARED_LIBS=ON -DSDLMIXER_VENDORED=OFF -DSDLMIXER_SAMPLES=OFF \
+            -DSDLMIXER_FLAC=OFF -DSDLMIXER_GME=OFF -DSDLMIXER_MOD=OFF \
+            -DSDLMIXER_MP3=OFF -DSDLMIXER_MIDI=OFF -DSDLMIXER_OPUS=OFF \
+            -DSDLMIXER_VORBIS=OFF -DSDLMIXER_WAVPACK=OFF
+          cmake --build /tmp/mixer/build --parallel 4
+          cmake --install /tmp/mixer/build
+          ldconfig
+      - name: Configure (sanitized)
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize=alignment -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build
+        run: cmake --build build --parallel 4
+      - name: Functional tests under sanitizers
+        env:
+          # the engine's global surfaces/lists are intentionally never freed;
+          # leak detection would only report that design, not bugs
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --test-dir build --output-on-failure
+      - name: Fuzzed headless bot match under sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          set -ux
+          echo "start_map_paused=0" > /tmp/settings.txt
+          ZOD_BOT_FUZZ=1 timeout 90 ./build/zod -d -s -u \
+            -m maps/p02_bb_orig01.map -b red -b blue \
+            -e /tmp/settings.txt > /tmp/run.log 2>&1
+          rc=$?
+          # 124 = ran the full 90s and was stopped by timeout: the good case.
+          # Anything else means a crash or a sanitizer abort.
+          if [ "$rc" -ne 124 ]; then
+            echo "FAIL: engine exited early (rc=$rc)"; tail -50 /tmp/run.log; exit 1
+          fi
+          if grep -qE 'ERROR: AddressSanitizer|runtime error:' /tmp/run.log; then
+            echo "FAIL: sanitizer reports during the bot match:"
+            grep -EA 20 'ERROR: AddressSanitizer|runtime error:' /tmp/run.log | head -100
+            exit 1
+          fi
+          echo "PASS: 90s fuzzed bot match, no sanitizer reports"
