@@ -7,8 +7,16 @@
 #include "event_handler.h"
 
 #ifdef _WIN32 //if windows
-#include <windows.h>		//win for Sleep(1000)
-#include <direct.h>		//win
+//Use winsock2 explicitly (matches the linked ws2_32) instead of the
+//deprecated winsock 1.1 that <windows.h> pulled in implicitly. winsock2
+//must precede any <windows.h>; WIN32_LEAN_AND_MEAN (set globally in CMake)
+//keeps a stray <windows.h> from dragging the old <winsock.h> back in.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <direct.h>		//win for _mkdir/_getcwd
 #else
 #include <sys/types.h>		//lin
 #include <sys/socket.h>		//lin
