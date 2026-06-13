@@ -454,7 +454,30 @@ void ZPlayer::InitSDL()
 
 	//splash sound best loaded here
 	//splash_music = ZSDL_LoadMusic("assets/sounds/ABATTLE.mp3");
-	splash_screen.LoadBaseImage("assets/splash.bmp");// = IMG_Load("assets/splash.bmp");
+	//the splash art is wider than the screen; scale it at load to FIT the
+	//logical resolution (whole image visible, letterboxed by the centered
+	//blit) rather than cropping its sides
+	{
+		SDL_Surface *raw = SDL_LoadBMP("assets/splash.bmp");
+
+		if(raw)
+		{
+			double fit_w = (double)init_w / raw->w;
+			double fit_h = (double)init_h / raw->h;
+			double fit = (fit_w < fit_h) ? fit_w : fit_h;
+
+			SDL_Surface *scaled = SDL_ScaleSurface(raw,
+				(int)(raw->w * fit), (int)(raw->h * fit), SDL_SCALEMODE_LINEAR);
+
+			if(scaled)
+			{
+				SDL_DestroySurface(raw);
+				splash_screen.LoadBaseImage(scaled);
+			}
+			else
+				splash_screen.LoadBaseImage(raw);
+		}
+	}
 	splash_screen.UseDisplayFormat(); //Regular needs this to do fading
 
 //	if(splash_screen)
@@ -2450,9 +2473,9 @@ void ZPlayer::ProcessSDL()
 	
 	while(SDL_PollEvent(&event) && (ZVideo_ConvertEventCoords(&event), true))
 	{
-		//the splash stays up until the player dismisses it (loading got too
-		//fast to ever see it otherwise); the dismissing click/key is
-		//swallowed so it doesn't leak into the game underneath
+		//the splash auto-dismisses after a few seconds (see DoSplash); a
+		//click or key skips it early, and is swallowed so it doesn't leak
+		//into the game underneath
 		if(!splash_dismissed && splash_fade >= 5
 			&& (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_KEY_DOWN))
 		{
@@ -2594,10 +2617,18 @@ void ZPlayer::DoSplash()
 	{
 		SDL_Rect to_rect;
 		
-		//fade only once the player dismissed the splash (a click or key);
-		//loading is fast enough now that auto-fading made it a subliminal
-		//flash. Also advance the fade per FRAME - the old code measured
-		//from the first frame ever, so the speed compounded.
+		//auto-dismiss 3s after loading finishes (a click or key skips
+		//early). Fade advances per FRAME - the old code measured from the
+		//first frame ever, so the speed compounded.
+		if(graphics_loaded && !splash_dismissed)
+		{
+			const double splash_seconds = 3.0;
+			static double loaded_time = -1;
+
+			if(loaded_time < 0) loaded_time = current_time();
+			if(current_time() - loaded_time >= splash_seconds) splash_dismissed = true;
+		}
+
 		if(graphics_loaded && splash_dismissed)
 		{
 			if(!did_init)
@@ -2637,25 +2668,9 @@ void ZPlayer::DoSplash()
 		//if(splash_screen)
 		//SDL_BlitSurface(splash_screen, NULL, screen, &to_rect);
 
-		//(the LOADING percent text is gone: loading takes a fraction of a
-		//second now, so the counter was a meaningless flash)
-
-		//credit line: the engine this port stands on
-		{
-			ZSDL_Surface credit_text;
-			SDL_Rect c_rect;
-
-			credit_text.LoadBaseImage(ZFontEngine::GetFont(LOADING_WHITE_FONT).Render("ZOD ENGINE BY MICHAEL BOK / NIGHSOFT"));
-			credit_text.MakeAlphable();
-			credit_text.SetAlpha(splash_fade / 1.5);
-			if(credit_text.GetBaseSurface())
-			{
-				c_rect.x = (init_w >> 1) - (credit_text.GetBaseSurface()->w >> 1);
-				c_rect.y = ((init_h - splash_screen.GetBaseSurface()->h) >> 1)
-					+ splash_screen.GetBaseSurface()->h - 26;
-				credit_text.BlitSurface(NULL, &c_rect);
-			}
-		}
+		//(the LOADING percent text is gone, and the Michael Bok / Nighsoft
+		//credit overlay with it - the credit is part of the splash art now,
+		//on the chalkboard sign)
 
 
 		//load the normal music
