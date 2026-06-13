@@ -1,6 +1,5 @@
 #ifndef _WIN32
 #include <unistd.h>
-#include "packet_io.h"
 #if defined(__APPLE__)
 #include <ifaddrs.h>
 #include <net/if_dl.h>
@@ -10,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "packet_io.h"
 #include <errno.h>
 
 #include "socket_handler.h"
