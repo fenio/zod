@@ -122,12 +122,19 @@ SDL_Surface *ZVideo_SetMode(int w, int h, bool fullscreen)
         g_frame_surface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
     }
 
+    SDL_Log("ZVideo_SetMode: logical %dx%d, window=%p renderer=%p driver=%s surface=%p",
+            w, h, (void*)g_window, (void*)g_renderer,
+            g_renderer ? SDL_GetRendererName(g_renderer) : "none", (void*)g_frame_surface);
+
     return g_frame_surface;
 }
 
 void ZVideo_Present()
 {
     if (!g_renderer || !g_frame_tex || !g_frame_surface) return;
+
+    static int present_n = 0;
+    if(present_n < 3) { SDL_Log("ZVideo_Present #%d (logical %dx%d)", present_n, g_logical_w, g_logical_h); present_n++; }
 
     SDL_UpdateTexture(g_frame_tex, NULL, g_frame_surface->pixels, g_frame_surface->pitch);
     SDL_RenderClear(g_renderer);
