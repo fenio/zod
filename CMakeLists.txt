@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 project(zod CXX)
 
-# Pin to C++14: the code is pre-C++11, and on Windows `using namespace std`
-# (C++17's std::byte) clashes with <windows.h>'s `byte` type ("reference to
-# 'byte' is ambiguous"). C++14 has no std::byte, so the collision disappears.
-set(CMAKE_CXX_STANDARD 14)
+# Build as C++23. This was historically pinned to C++14 because C++17's
+# std::byte (pulled in by `using namespace std`) clashed with <windows.h>'s
+# `byte` typedef on the Windows build; that clash needed an unqualified `byte`
+# use site, and there are none left in the tree, so the pin is no longer
+# needed. The Windows MSYS2 + windows-smoke CI jobs verify this holds.
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Default to a Release (optimized) build.
