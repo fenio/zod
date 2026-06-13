@@ -1,4 +1,5 @@
 #include "zplayer.h"
+#include "packet_io.h"
 #include "zprefs.h"
 #include <math.h>
 
@@ -802,8 +803,8 @@ void ZPlayer::set_object_route_event(ZPlayer *p, char *data, int size, int dummy
 	//does it hold the header info?
 	if(size < 8) return;
 
-	ref_id = ((int*)data)[0];
-	point_amount = ((int*)data)[1];
+	ref_id = PacketGetInt(data, 0);
+	point_amount = PacketGetInt(data, 4);
 
 	//should we toss this packet for bad data?
 	if(point_amount < 0) return;
@@ -817,13 +818,12 @@ void ZPlayer::set_object_route_event(ZPlayer *p, char *data, int size, int dummy
 	//store the route for the waypoint-line renderer
 	{
 		vector<ZPath_Finding_AStar::pf_point> &route = our_object->GetClientRoute();
-		int *point_data = (int*)(data + 8);
-
 		route.clear();
+		int off = 8;
 		for(int i=0;i<point_amount;i++)
 		{
-			int x = *point_data++;
-			int y = *point_data++;
+			int x = PacketGetInt(data, off); off += 4;
+			int y = PacketGetInt(data, off); off += 4;
 			route.push_back(ZPath_Finding_AStar::pf_point(x, y));
 		}
 	}

@@ -1,4 +1,5 @@
 #include "zcore.h"
+#include "packet_io.h"
 
 int p_info::next_p_id = 0;
 
@@ -483,8 +484,8 @@ void ZCore::CreateWaypointSendData(int ref_id, vector<waypoint> &waypoint_list, 
 	data = message = (char*)malloc(size);
 
 	//push header, the ref id of this object and the number of waypoints
-	((int*)message)[0] = ref_id;
-	((int*)message)[1] = waypoint_amount;
+	PacketSetInt(message, 0, ref_id);
+	PacketSetInt(message, 4, waypoint_amount);
 
 	//populate
 	message += 8;
@@ -506,8 +507,8 @@ ZObject* ZCore::ProcessWaypointData(char *data, int size, bool is_server, int ok
 	if(size < 8) return NULL;
 
 	//get header
-	ref_id = ((int*)data)[0];
-	waypoint_amount = ((int*)data)[1];
+	ref_id = PacketGetInt(data, 0);
+	waypoint_amount = PacketGetInt(data, 4);
 
 	expected_packet_size = 8 + (waypoint_amount * sizeof(waypoint));
 
@@ -588,8 +589,8 @@ ZObject* ZCore::ProcessRallypointData(char *data, int size, bool is_server, int 
 	if(size < 8) return NULL;
 
 	//get header
-	ref_id = ((int*)data)[0];
-	waypoint_amount = ((int*)data)[1];
+	ref_id = PacketGetInt(data, 0);
+	waypoint_amount = PacketGetInt(data, 4);
 
 	expected_packet_size = 8 + (waypoint_amount * sizeof(waypoint));
 

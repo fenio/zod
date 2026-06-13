@@ -1,5 +1,6 @@
 #ifndef _WIN32
 #include <unistd.h>
+#include "packet_io.h"
 #if defined(__APPLE__)
 #include <ifaddrs.h>
 #include <net/if_dl.h>
@@ -263,8 +264,8 @@ int SocketHandler::DoFastProcess(char **message, int *size, int *pack_id)
 
 	//dont even have the indentifier?
 	if(fp_buf_size < sizeof(int) + sizeof(int)) return 0;
-	*size = ((int*)fp_buf)[0];
-	*pack_id = ((int*)fp_buf)[1];
+	*size = PacketGetInt(fp_buf, 0);
+	*pack_id = PacketGetInt(fp_buf, 4);
 	*message = fp_buf + 8;
 	packet_size = *size + 8;
 
