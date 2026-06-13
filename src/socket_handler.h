@@ -2,9 +2,10 @@
 #define _SOCKETHANDLER_H_
 
 #ifdef _WIN32 //if windows
-//winsock2 must come before any <windows.h>, and WIN32_LEAN_AND_MEAN keeps
-//<windows.h> (pulled transitively) from dragging in <rpcndr.h>, whose global
-//`byte` typedef is ambiguous with C++17+ std::byte under `using namespace std`.
+//Use winsock2 explicitly (matches the linked ws2_32) instead of the
+//deprecated winsock 1.1 that <windows.h> pulled in implicitly. winsock2
+//must precede any <windows.h>; WIN32_LEAN_AND_MEAN (set globally in CMake)
+//keeps a stray <windows.h> from dragging the old <winsock.h> back in.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif

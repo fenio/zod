@@ -84,10 +84,12 @@ target_link_libraries(zod PRIVATE
 if(WIN32)
   target_link_libraries(zod PRIVATE ws2_32 iphlpapi)
   # Define WIN32_LEAN_AND_MEAN for EVERY translation unit (before any header,
-  # incl. SDL's, pulls in <windows.h>). Without it, <windows.h> includes
-  # <rpcndr.h>, whose global `byte` typedef is ambiguous with C++17+'s
-  # std::byte under `using namespace std`. A per-header #define is too late
-  # once another header has already included a full <windows.h> in the TU.
+  # incl. SDL's, pulls in <windows.h>). The socket headers now use <winsock2.h>
+  # explicitly; without LEAN, a <windows.h> pulled in elsewhere first would drag
+  # in the old <winsock.h> (1.1) and clash with winsock2 ("redefinition"). A
+  # per-header #define is too late once a full <windows.h> is already in the TU.
+  # (It also keeps <rpcndr.h>'s `byte` out, which future-proofs a move past
+  # C++14, where std::byte would otherwise be ambiguous under `using namespace std`.)
   target_compile_definitions(zod PRIVATE WIN32_LEAN_AND_MEAN)
 endif()
 
