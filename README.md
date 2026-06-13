@@ -174,6 +174,12 @@ game directory — it reads the palette info and learns its shoreline/road/groun
 tile usage from the shipped campaign maps, and it guarantees every flag and
 unit is reachable (vehicle-checked) before writing the file.
 
+## Credits
+
+- The Zod Engine is by **Michael Bok / Nighsoft** — this is an SDL3
+  modernization of their open-source remake of the 1996 Bitmap Brothers RTS *Z*.
+- Splash screen artwork by [**v2elite**](https://github.com/v2elite).
+
 ## License
 
 GPLv3 — see [`LICENSE`](LICENSE). The Zod Engine is © its original authors
