@@ -264,7 +264,7 @@ void ZTeam::LoadPalette(int team)
 	if(team == ZTEAM_BASE_TEAM) return;
 
 	filename = "assets/teams/" + team_type_string[team] + "_palette.bmp";
-	surface = IMG_Load(filename.c_str());
+	surface = ZSDL_DataIMG_Load(filename.c_str());
 
 	if(!surface)
 	{

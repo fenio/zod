@@ -1,5 +1,6 @@
 #include "client_socket.h"
 #include "common.h"
+#include <SDL3/SDL.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -100,13 +101,25 @@ int ClientSocket::Connect()
 	struct hostent * host;
 	
 	host = gethostbyname(address.c_str());
-	
-	if(!host) 
+
+	if(!host)
 	{
 		printf("could not resolve host '%s'\n", address.c_str());
 		return 0;
 	}
-	
+
+	// Only accept an IPv4 result: this is an AF_INET socket, and on IPv6-first
+	// systems (e.g. Android) gethostbyname("localhost") can hand back a 16-byte
+	// ::1, which would overflow the 4-byte sin_addr and aim connect() at
+	// garbage - the server's accept() then never fires.
+	if(host->h_addrtype != AF_INET || host->h_length != 4)
+	{
+		SDL_Log("ClientSocket: '%s' resolved to a non-IPv4 address (type=%d len=%d); cannot connect",
+		        address.c_str(), host->h_addrtype, host->h_length);
+		return 0;
+	}
+
+	memset((char*)&c_in, 0, sizeof(c_in));
 	memcpy((char*)&c_in.sin_addr, (char*)host->h_addr, host->h_length);
 	c_in.sin_family = AF_INET;
 	c_in.sin_port = htons(port);

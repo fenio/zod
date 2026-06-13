@@ -17,7 +17,7 @@ void ZFont::Init()
 	for(i=0;i<MAX_CHARACTERS;i++)
 	{
 		sprintf(filename_c, "assets/fonts/%s/char_%03d.png", font_type_string[type].c_str(), i);
-		char_img[i] = IMG_Load(filename_c);
+		char_img[i] = ZSDL_DataIMG_Load(filename_c);
 	}
 
 	finished_init = true;

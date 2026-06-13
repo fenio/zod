@@ -53,7 +53,7 @@ void CGatling::Init()
 	for(j=0;j<MAX_ANGLE_TYPES;j++)
 	{
 		sprintf(filename_c, "assets/units/cannons/gatling/empty_r%03d.png", ROTATION[j]);
-		temp_surface = IMG_Load(filename_c);
+		temp_surface = ZSDL_DataIMG_Load(filename_c);
 		fire[0][j].LoadBaseImage(temp_surface, false);
 		passive[0][j].LoadBaseImage(temp_surface, false);
 		//fire[0][j] = passive[0][j] = IMG_Load_Error(filename_c);

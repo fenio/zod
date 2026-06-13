@@ -107,7 +107,7 @@ void ZSDL_Surface::LoadBaseImage(string filename)
 	//set this for later debugging purposes
 	image_filename = filename;
 
-	SDL_Surface *surface = IMG_Load(filename.c_str());
+	SDL_Surface *surface = ZSDL_DataIMG_Load(filename.c_str());
 
 	LoadBaseImage(surface);
 }

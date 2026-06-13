@@ -196,8 +196,9 @@ int ServerSocket::Bind()
 	int &s = listen_socket;
 	
 	if(bound) return 1;
-	
-	memset((char *) &si_me, sizeof(si_me), 0);
+
+	// (was memset(&si_me, sizeof(si_me), 0) - args swapped, so it zeroed nothing)
+	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(port);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);

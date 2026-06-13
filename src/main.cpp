@@ -1,5 +1,13 @@
 #include <stdio.h>
 
+#ifdef __ANDROID__
+// On Android the process entry point is provided by SDL's Java activity (JNI),
+// which calls our main() as SDL_main. Including this header does the
+// `#define main SDL_main` rename. Guarded out on desktop builds.
+#include <SDL3/SDL_main.h>
+#include "android_assets.h"
+#endif
+
 #ifdef _WIN32
 
 //xgetopt stuff
@@ -115,11 +123,26 @@ static void chdir_to_data_dir()
 	// else: leave cwd as-is (assets/ had better be here)
 }
 
+#ifndef __ANDROID__
+// undo SDL's `#define main SDL_main` on desktop (we want a plain main there).
+// On Android we KEEP the rename: SDL's Java activity calls our SDL_main via JNI.
 #undef main
+#endif
 int main(int argc, char **argv)
 {
+#ifdef __ANDROID__
+	//make the engine's printf/stderr diagnostics visible in logcat
+	AndroidRedirectStdioToLogcat();
+#endif
+#ifdef __ANDROID__
+	//no real cwd on Android: unpack the APK-bundled game data to writable
+	//storage and cd into it, so the engine's fopen/ifstream/SDL_LoadBMP calls
+	//resolve assets/ maps/ map_list.txt the same as on desktop
+	AndroidExtractAssetsAndChdir();
+#else
 	//find the game data before anything tries to load an asset
 	chdir_to_data_dir();
+#endif
 
 	SDL_Thread *server_thread;
 

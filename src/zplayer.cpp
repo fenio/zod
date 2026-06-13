@@ -377,6 +377,11 @@ void ZPlayer::InitSDL()
 	//init SDL
 	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 
+	//we handle touch explicitly (tap/drag/pinch); stop SDL also synthesizing
+	//mouse events from touch, or every tap would fire twice.
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+	touch_count = 0;
+
 	//remember the startup resolution as the zoom==1.0 baseline
 	base_w = init_w;
 	base_h = init_h;
@@ -384,7 +389,7 @@ void ZPlayer::InitSDL()
 	view_min_zoom = 0.7;
 
 	//some stuff that just has to be right after init
-	game_icon = IMG_Load("assets/icon.png");
+	game_icon = ZSDL_DataIMG_Load("assets/icon.png");
 	//ffuts
 
 	if(game_icon) ZVideo_SetIcon(game_icon);
@@ -448,7 +453,7 @@ void ZPlayer::InitSDL()
 
 	//TTF
 	TTF_Init();
-	ttf_font = TTF_OpenFont("assets/arial.ttf",10);
+	ttf_font = TTF_OpenFont(ZSDL_DataPath("assets/arial.ttf").c_str(),10);
 	ttf_font_7 = TTF_OpenFont("assets/arial.ttf",7);
 	if (!ttf_font) printf("could not load assets/arial.ttf\n");
 
@@ -2465,6 +2470,98 @@ void ZPlayer::ExitProgram()
 	exit(0);
 }
 
+// Replay a tap as a left mouse click at (x,y): drives selection/commands the
+// same way the desktop mouse does (motion to place the cursor, then click).
+void ZPlayer::TapAsLeftClick(int x, int y)
+{
+	int shift_x, shift_y;
+
+	mouse_x = x;
+	mouse_y = y;
+	ehandler.ProcessEvent(SDL_EVENT, MOTION_EVENT, NULL, 0, 0);
+
+	zmap.GetViewShift(shift_x, shift_y);
+	lbutton.x = x;
+	lbutton.y = y;
+	lbutton.map_x = x + shift_x;
+	lbutton.map_y = y + shift_y;
+	ehandler.ProcessEvent(SDL_EVENT, LCLICK_EVENT, NULL, 0, 0);
+	ehandler.ProcessEvent(SDL_EVENT, LUNCLICK_EVENT, NULL, 0, 0);
+}
+
+void ZPlayer::HandleFingerDown(const SDL_TouchFingerEvent &t)
+{
+	// coords are render-space pixels here (SDL_ConvertEventToRenderCoordinates
+	// un-normalizes touch events in the poll loop)
+	if(touch_count == 0)
+	{
+		touch_count = 1;
+		touch_id1 = t.fingerID;
+		touch_x1 = touch_start_x = t.x;
+		touch_y1 = touch_start_y = t.y;
+		touch_moved = false;
+	}
+	else if(touch_count == 1)
+	{
+		touch_count = 2;
+		touch_id2 = t.fingerID;
+		touch_x2 = t.x;
+		touch_y2 = t.y;
+		float dx = touch_x2 - touch_x1, dy = touch_y2 - touch_y1;
+		touch_pinch0 = SDL_sqrtf(dx * dx + dy * dy);
+		if(touch_pinch0 < 1.0f) touch_pinch0 = 1.0f;
+		touch_zoom0 = view_zoom;
+	}
+}
+
+void ZPlayer::HandleFingerMotion(const SDL_TouchFingerEvent &t)
+{
+	if(touch_count == 1 && t.fingerID == touch_id1)
+	{
+		// one-finger drag pans the camera (drag the map under the finger).
+		// Keep the sub-pixel remainder so slow drags still scroll.
+		int dx = (int)(t.x - touch_x1);
+		int dy = (int)(t.y - touch_y1);
+		if(dx || dy)
+		{
+			int shift_x, shift_y;
+			zmap.GetViewShift(shift_x, shift_y);
+			zmap.SetViewShift(shift_x - dx, shift_y - dy);
+			do_focus_to = false;
+			touch_x1 += dx;
+			touch_y1 += dy;
+		}
+
+		float mvx = t.x - touch_start_x, mvy = t.y - touch_start_y;
+		if(mvx * mvx + mvy * mvy > 16.0f * 16.0f) touch_moved = true;
+	}
+	else if(touch_count == 2)
+	{
+		if(t.fingerID == touch_id1)      { touch_x1 = t.x; touch_y1 = t.y; }
+		else if(t.fingerID == touch_id2) { touch_x2 = t.x; touch_y2 = t.y; }
+
+		float dx = touch_x2 - touch_x1, dy = touch_y2 - touch_y1;
+		float dist = SDL_sqrtf(dx * dx + dy * dy);
+		if(dist < 1.0f) dist = 1.0f;
+		ApplyZoom(touch_zoom0 * (dist / touch_pinch0));
+	}
+}
+
+void ZPlayer::HandleFingerUp(const SDL_TouchFingerEvent &t)
+{
+	if(touch_count == 1 && t.fingerID == touch_id1)
+	{
+		// a finger that came down and lifted without dragging is a tap = click
+		if(!touch_moved) TapAsLeftClick((int)touch_x1, (int)touch_y1);
+		touch_count = 0;
+	}
+	else if(touch_count == 2)
+	{
+		// either finger lifting ends a pan/pinch; no tap is generated
+		touch_count = 0;
+	}
+}
+
 void ZPlayer::ProcessSDL()
 {
 	SDL_Event event;
@@ -2477,7 +2574,8 @@ void ZPlayer::ProcessSDL()
 		//click or key skips it early, and is swallowed so it doesn't leak
 		//into the game underneath
 		if(!splash_dismissed && splash_fade >= 5
-			&& (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_KEY_DOWN))
+			&& (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_KEY_DOWN
+			    || event.type == SDL_EVENT_FINGER_DOWN))
 		{
 			if(graphics_loaded) splash_dismissed = true;
 			continue;
@@ -2581,6 +2679,16 @@ void ZPlayer::ProcessSDL()
 				ehandler.ProcessEvent(SDL_EVENT, MUNCLICK_EVENT, NULL, 0, 0);
 				break;
 			}
+			break;
+		case SDL_EVENT_FINGER_DOWN:
+			HandleFingerDown(event.tfinger);
+			break;
+		case SDL_EVENT_FINGER_MOTION:
+			HandleFingerMotion(event.tfinger);
+			break;
+		case SDL_EVENT_FINGER_UP:
+		case SDL_EVENT_FINGER_CANCELED:
+			HandleFingerUp(event.tfinger);
 			break;
 		case SDL_EVENT_KEY_DOWN:
 			the_key.the_key = event.key.key;

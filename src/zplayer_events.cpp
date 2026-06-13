@@ -177,7 +177,13 @@ void ZPlayer::resize_event(ZPlayer *p, char *data, int size, int dummy)
 	}
 	else
 	{
-		ZVideo_SetMode(p->init_w, p->init_h, !p->is_windowed);
+		// MUST reassign p->screen: when the logical size changes, ZVideo_SetMode
+		// destroys and recreates the framebuffer surface, so the old p->screen
+		// is left dangling. Desktop resizes keep the same logical size (no
+		// rebuild), but Android fires a real resize at startup - the game then
+		// drew into the stale surface while the new blank one was presented,
+		// which was the black screen.
+		p->screen = ZVideo_SetMode(p->init_w, p->init_h, !p->is_windowed);
 	}
 
 	ZSDL_Surface::SetScreenDimensions(p->init_w, p->init_h);
@@ -664,7 +670,7 @@ void ZPlayer::disconnect_event(ZPlayer *p, char *data, int size, int dummy)
 void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->ProcessMapDownload(data, size);
-	
+
 	if(p->zmap.Loaded())
 	{
 		p->zmap.SetViewingDimensions(p->init_w - 100, p->init_h - 36);
