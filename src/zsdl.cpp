@@ -460,13 +460,31 @@ SDL_Surface *ZSDL_ConvertImage(SDL_Surface *src)
 	return src;
 }
 
+// On Android, SDL_IOFromFile (used by IMG_Load/TTF/mixer) reads RELATIVE paths
+// from the APK asset manager, ignoring the chdir into the extracted data dir.
+// So SDL-based loaders need an ABSOLUTE path into that dir. fopen()-based code
+// (maps, settings) is unaffected, as it honours the cwd. No-op on desktop.
+static string g_zsdl_data_root;
+
+void ZSDL_SetDataRoot(const char *root)
+{
+	g_zsdl_data_root = (root && root[0]) ? root : "";
+}
+
+string ZSDL_DataPath(const string &f)
+{
+	if(!g_zsdl_data_root.empty() && !f.empty() && f[0] != '/')
+		return g_zsdl_data_root + "/" + f;
+	return f;
+}
+
 SDL_Surface *ZSDL_IMG_Load(string filename)
 {
 	SDL_Surface *ret;
-	
-	ret = IMG_Load(filename.c_str());
 
-	if(!ret) printf("could not load:%s\n", filename.c_str()); 
+	ret = IMG_Load(ZSDL_DataPath(filename).c_str());
+
+	if(!ret) printf("could not load:%s\n", filename.c_str());
 
 	ret = ZSDL_ConvertImage(ret);
 	
@@ -490,7 +508,7 @@ ZAudio_Music *ZSDL_LoadMusic(string filename)
 {
 	ZAudio_Music *ret;
 	
-	if(!(ret = ZAudio_LoadMusic(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
+	if(!(ret = ZAudio_LoadMusic(ZSDL_DataPath(filename).c_str()))) printf("could not load:%s\n", filename.c_str());
 	
 	return ret;
 }
@@ -499,7 +517,7 @@ ZAudio_Sound *ZSDL_LoadSound(string filename)
 {
 	ZAudio_Sound *ret;
 	
-	if(!(ret = ZAudio_LoadSound(filename.c_str()))) printf("could not load:%s\n", filename.c_str());
+	if(!(ret = ZAudio_LoadSound(ZSDL_DataPath(filename).c_str()))) printf("could not load:%s\n", filename.c_str());
 	
 	return ret;
 }

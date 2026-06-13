@@ -74,6 +74,11 @@ bool AndroidExtractAssetsAndChdir()
 	std::string root = std::string(base) + "/gamedata";
 	mkdir(root.c_str(), 0755);
 
+	// SDL-based loaders (IMG_Load/TTF/mixer) ignore the chdir and read relative
+	// paths from the APK assets, so give them this absolute extracted-data root.
+	extern void ZSDL_SetDataRoot(const char *);
+	ZSDL_SetDataRoot(root.c_str());
+
 	// A marker file records which build last extracted, so we re-extract when
 	// the app is updated but skip the (slow) copy on every normal launch.
 	std::string marker = root + "/.extracted-" ZOD_VERSION;
