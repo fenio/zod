@@ -1,0 +1,100 @@
+name: android-apk
+
+# Feasibility spike, milestone 1b: link the engine + SDL3 (core/image/ttf/mixer)
+# and package a real, installable APK. Built from SDL3's official android-project
+# template with our sources injected. arm64-v8a only (most tablets) to keep the
+# build tractable. The APK is uploaded as an artifact to sideload onto a device.
+
+on:
+  push:
+    branches: [android-spike]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    name: Build debug APK (arm64-v8a)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Clone SDL3 + satellites (latest releases, with vendored deps)
+        run: |
+          set -eux
+          clone() {  # $1 = repo
+            local tag
+            tag=$(curl -s "https://api.github.com/repos/libsdl-org/$1/releases/latest" \
+                  | grep -m1 '"tag_name"' | cut -d'"' -f4)
+            echo "$1 -> $tag"
+            git clone --depth 1 --branch "$tag" --recurse-submodules --shallow-submodules \
+              "https://github.com/libsdl-org/$1" "$1"
+          }
+          clone SDL
+          clone SDL_image
+          clone SDL_ttf
+          clone SDL_mixer
+
+      - name: Assemble Android project
+        run: |
+          set -eux
+          # base = SDL's android-project template
+          cp -r SDL/android-project proj
+
+          # SDL libraries as CMake subprojects under app/jni/
+          rm -rf proj/app/jni/SDL
+          cp -r SDL          proj/app/jni/SDL
+          cp -r SDL_image    proj/app/jni/SDL_image
+          cp -r SDL_ttf      proj/app/jni/SDL_ttf
+          cp -r SDL_mixer    proj/app/jni/SDL_mixer
+
+          # our JNI build (replaces the template's hello-world jni)
+          cp repo/android/jni/CMakeLists.txt        proj/app/jni/CMakeLists.txt
+          rm -rf proj/app/jni/src
+          cp -r repo/android/jni/zodapp             proj/app/jni/zodapp
+          cp -r repo/src                            proj/app/jni/zodapp/zod
+
+          # our activity (keep SDL's org.libsdl.app.* java in place) + manifest
+          mkdir -p proj/app/src/main/java/io/github/fenio/zod
+          cp repo/android/ZodActivity.java          proj/app/src/main/java/io/github/fenio/zod/ZodActivity.java
+          cp repo/android/AndroidManifest.xml       proj/app/src/main/AndroidManifest.xml
+
+          # game data bundled into the APK (extracted at runtime in a later milestone)
+          mkdir -p proj/app/src/main/assets/zod
+          cp -r repo/assets       proj/app/src/main/assets/zod/assets
+          cp -r repo/maps         proj/app/src/main/assets/zod/maps
+          cp repo/map_list.txt    proj/app/src/main/assets/zod/map_list.txt
+
+          # point the app id / namespace at ours and limit to arm64-v8a
+          GR=proj/app/build.gradle
+          sed -i 's/applicationId *"[^"]*"/applicationId "io.github.fenio.zod"/' "$GR"
+          sed -i 's/namespace *"[^"]*"/namespace "io.github.fenio.zod"/'         "$GR"
+          # add an abiFilters line inside defaultConfig if not present
+          grep -q abiFilters "$GR" || \
+            sed -i '/defaultConfig {/a\        ndk { abiFilters "arm64-v8a" }' "$GR"
+          echo "----- app/build.gradle -----"; cat "$GR"
+
+      - name: Build APK
+        run: |
+          set -eux
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          cd proj
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Locate APK
+        if: always()
+        run: |
+          find proj -name '*.apk' -print || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zod-android-arm64-debug
+          path: proj/app/build/outputs/apk/**/*.apk
+          if-no-files-found: ignore
