@@ -1,5 +1,12 @@
 #include <stdio.h>
 
+#ifdef __ANDROID__
+// On Android the process entry point is provided by SDL's Java activity (JNI),
+// which calls our main() as SDL_main. Including this header does the
+// `#define main SDL_main` rename. Guarded out on desktop builds.
+#include <SDL3/SDL_main.h>
+#endif
+
 #ifdef _WIN32
 
 //xgetopt stuff
