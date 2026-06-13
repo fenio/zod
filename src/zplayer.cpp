@@ -2301,14 +2301,6 @@ void ZPlayer::RenderObjects()
 	}
 	zmap.SetRenderOffset(0, 0);
 
-	//draw rallypoints of "selected" building
-	if(gui_window && gui_window->GetBuildingObj())
-		gui_window->GetBuildingObj()->DoRenderWaypoints(zmap, screen, object_list, true);
-	
-	//draw object's waypoints
-	for(vector<ZObject*>::iterator i=ols.non_mapitem_olist.begin(); i!=ols.non_mapitem_olist.end(); i++)
-		(*i)->DoRenderWaypoints(zmap, screen, object_list);
-	
 	//draw objects
 	for(vector<ZObject*>::iterator i=ols.prender_olist.begin(); i!=ols.prender_olist.end(); i++)
 	{
@@ -2316,6 +2308,14 @@ void ZPlayer::RenderObjects()
 		(*i)->DoRender(zmap, screen);
 	}
 	zmap.SetRenderOffset(0, 0);
+
+	//draw waypoints AFTER the objects, so the path line and its end marker
+	//(move destination / attack crosshair / capture hand) sit on TOP of units
+	//and buildings rather than being hidden behind them (issue #17)
+	if(gui_window && gui_window->GetBuildingObj())
+		gui_window->GetBuildingObj()->DoRenderWaypoints(zmap, screen, object_list, true);
+	for(vector<ZObject*>::iterator i=ols.non_mapitem_olist.begin(); i!=ols.non_mapitem_olist.end(); i++)
+		(*i)->DoRenderWaypoints(zmap, screen, object_list);
 
 	//draw after effects
 	for(vector<ZObject*>::iterator i=ols.prender_olist.begin(); i!=ols.prender_olist.end(); i++)

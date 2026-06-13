@@ -1354,6 +1354,18 @@ void ZObject::DoRenderWaypoints(ZMap &the_map, SDL_Surface *dest, vector<ZObject
 		{
 		case MOVE_WP:
 		case FORCE_MOVE_WP:
+			kx = (i->x);// - mshift_x;
+			ky = (i->y);// - mshift_y;
+			// a move whose target is a flag is really a capture order: show the
+			// grab/hand cursor instead of the plain placement marker (issue #17)
+			{
+				ZObject *t = (i->ref_id != -1) ? GetObjectFromID(i->ref_id, object_list) : NULL;
+				unsigned char tot = 0, toid = 0;
+				if(t) t->GetObjectID(tot, toid);
+				waypoint_cursor.SetCursor(
+					(t && tot == MAP_ITEM_OBJECT && toid == FLAG_ITEM) ? GRABBED_C : PLACED_C);
+			}
+			break;
 		case ENTER_FORT_WP:
 		case DODGE_WP:
 			kx = (i->x);// - mshift_x;
