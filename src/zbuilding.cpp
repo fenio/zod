@@ -1,4 +1,5 @@
 #include "zbuilding.h"
+#include "packet_io.h"
 #include "zfont_engine.h"
 
 ZSDL_Surface ZBuilding::level_img[MAX_BUILDING_LEVELS];
@@ -206,8 +207,8 @@ void ZBuilding::CreateBuildingQueueData(char *&data, int &size)
 	data = message = (char*)malloc(size);
 
 	//push header, the ref id of this object and the number of waypoints
-	((int*)message)[0] = ref_id;
-	((int*)message)[1] = queue_amount;
+	PacketSetInt(message, 0, ref_id);
+	PacketSetInt(message, 4, queue_amount);
 
 	//populate
 	message += 8;
@@ -232,8 +233,8 @@ void ZBuilding::ProcessBuildingQueueData(char *data, int size)
 	if(size < 8) return;
 
 	//get header
-	data_ref_id = ((int*)data)[0];
-	queue_amount = ((int*)data)[1];
+	data_ref_id = PacketGetInt(data, 0);
+	queue_amount = PacketGetInt(data, 4);
 
 	expected_packet_size = 8 + (queue_amount * sizeof(ZBProductionUnit));
 
@@ -291,8 +292,8 @@ void ZBuilding::CreateBuiltCannonData(char *&data, int &size)
 	size = 8 + built_cannon_list.size();
 	data = (char*)malloc(size);
 
-	*(int*)(data) = ref_id;
-	*(int*)(data + 4) = built_cannon_list.size();
+	PacketSetInt(data, 0, ref_id);
+	PacketSetInt(data, 4, built_cannon_list.size());
 
 	for(int i=0;i<built_cannon_list.size();i++)
 	{
@@ -308,7 +309,7 @@ void ZBuilding::ProcessSetBuiltCannonData(char *data, int size)
 	//bad data?
 	if(size < 8) return;
 
-	cannon_amt = *(int*)(data + 4);
+	cannon_amt = PacketGetInt(data, 4);
 
 	//bad data?
 	if(size - 8 != cannon_amt) return;

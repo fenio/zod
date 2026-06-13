@@ -1,4 +1,5 @@
 #include "zobject.h"
+#include "packet_io.h"
 #include "zpath_debug.h"
 #include "common.h"
 #include "zfont_engine.h"
@@ -3997,7 +3998,7 @@ void ZObject::CreateLocationData(char *&data, int &size)
 	size = 4 + sizeof(object_location);
 	data = (char*)malloc(size);
 
-	((int*)data)[0] = ref_id;
+	PacketSetInt(data, 0, ref_id);
 	memcpy(data+4, &loc, sizeof(object_location));
 }
 
@@ -4692,16 +4693,16 @@ void ZObject::CreateGroupInfoData(char *&data, int &size)
 	size = 12 + (4 * minions);
 
 	data = (char*)malloc(size);
-	((int*)data)[0] = ref_id;
-	((int*)data)[1] = leader_ref_id;
-	((int*)data)[2] = minions;
+	PacketSetInt(data, 0, ref_id);
+	PacketSetInt(data, 4, leader_ref_id);
+	PacketSetInt(data, 8, minions);
 
 	for(int i=0;i<minions;i++)
 	{
 		if(minion_list[i])
-			((int*)data)[2+i] = minion_list[i]->GetRefID();
+			PacketSetInt(data, (2+i)*4, minion_list[i]->GetRefID());
 		else
-			((int*)data)[2+i] = -1;
+			PacketSetInt(data, (2+i)*4, -1);
 	}
 }
 
@@ -4736,9 +4737,9 @@ void ZObject::ProcessGroupInfoData(char *data, int size, vector<ZObject*> &objec
 	//meet min requirements?
 	if(size < 12) return;
 
-	ref_id_ = ((int*)data)[0];
-	leader_ref_id = ((int*)data)[1];
-	minions = ((int*)data)[2];
+	ref_id_ = PacketGetInt(data, 0);
+	leader_ref_id = PacketGetInt(data, 4);
+	minions = PacketGetInt(data, 8);
 
 	//other requirements?
 	if(ref_id_ != ref_id) return;
@@ -4753,7 +4754,7 @@ void ZObject::ProcessGroupInfoData(char *data, int size, vector<ZObject*> &objec
 	{
 		ZObject *new_minion;
 
-		new_minion = GetObjectFromID(((int*)data)[2+i], object_list);
+		new_minion = GetObjectFromID(PacketGetInt(data, (2+i)*4), object_list);
 
 		if(new_minion)
 		{

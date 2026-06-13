@@ -1,4 +1,5 @@
 #include "zserver.h"
+#include "packet_io.h"
 #include "map_gen_core.h"
 
 #include <time.h>
@@ -2546,16 +2547,16 @@ void ZServer::RelayObjectRoute(ZObject *obj)
 	data = (char*)malloc(size);
 
 	//header: ref id, then the number of route points
-	((int*)data)[0] = obj->GetRefID();
-	((int*)data)[1] = (int)route.size();
+	PacketSetInt(data, 0, obj->GetRefID());
+	PacketSetInt(data, 4, (int)route.size());
 
 	{
-		int *point_data = (int*)(data + 8);
+		int off = 8;
 
 		for(vector<ZPath_Finding_AStar::pf_point>::iterator i=route.begin(); i!=route.end(); ++i)
 		{
-			*point_data++ = i->x;
-			*point_data++ = i->y;
+			PacketSetInt(data, off, i->x); off += 4;
+			PacketSetInt(data, off, i->y); off += 4;
 		}
 	}
 

@@ -1,4 +1,5 @@
 #include "zserver.h"
+#include "packet_io.h"
 #include "zpath_debug.h"
 
 using namespace COMMON;
@@ -313,7 +314,7 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 
 	if(size != 4) return;
 
-	the_team = *(int*)data;
+	the_team = PacketGetInt(data, 0);
 
 	if(the_team < NULL_TEAM) return;
 	if(the_team >= MAX_TEAM_TYPES) return;
@@ -367,8 +368,8 @@ void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int p
 		if(size < 8) return;
 
 		//get header
-		ref_id = ((int*)data)[0];
-		waypoint_amount = ((int*)data)[1];
+		ref_id = PacketGetInt(data, 0);
+		waypoint_amount = PacketGetInt(data, 4);
 
 		expected_packet_size = 8 + (waypoint_amount * sizeof(waypoint));
 
@@ -533,7 +534,7 @@ void ZServer::stop_building_event(ZServer *p, char *data, int size, int player)
 	//good packet?
 	if(size != sizeof(int)) return;
 
-	ref_id = *(int*)data;
+	ref_id = PacketGetInt(data, 0);
 
 	obj = p->GetObjectFromID(ref_id, p->object_list);
 

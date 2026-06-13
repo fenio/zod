@@ -1,4 +1,5 @@
 #include "zclient.h"
+#include "packet_io.h"
 #include "common.h"
 
 using namespace COMMON;
@@ -451,7 +452,7 @@ ZObject* ZClient::ProcessDeleteObject(char *data, int size)
 
 	if(size != sizeof(int)) return NULL;
 
-	ref_id = *(int*)data;
+	ref_id = PacketGetInt(data, 0);
 
 	obj = GetObjectFromID(ref_id, object_list);
 
@@ -508,7 +509,7 @@ ZObject* ZClient::ProcessObjectLoc(char *data, int size)
 
 	if(size != 4 + sizeof(object_location)) return NULL;
 
-	ref_id = ((int*)data)[0];
+	ref_id = PacketGetInt(data, 0);
 	memcpy(&new_loc, data+4, sizeof(object_location));
 
 	obj = GetObjectFromID(ref_id, object_list);
@@ -546,7 +547,7 @@ ZObject* ZClient::ProcessBuildingQueueList(char *data, int size)
 	if(size < 8) return NULL;
 
 	//get header
-	ref_id = ((int*)data)[0];
+	ref_id = PacketGetInt(data, 0);
 
 	obj = GetObjectFromID(ref_id, object_list);
 
@@ -565,7 +566,7 @@ ZObject* ZClient::ProcessBuildingCannonList(char *data, int size)
 	//good packet?
 	if(size < 8) return NULL;
 
-	ref_id = *(int*)(data);
+	ref_id = PacketGetInt(data, 0);
 
 	obj = GetObjectFromID(ref_id, object_list);
 
@@ -584,7 +585,7 @@ ZObject* ZClient::ProcessObjectGroupInfo(char *data, int size)
 	//needs to atleast hold the ref_id at this point
 	if(size < 4) return NULL;
 
-	ref_id = *(int*)data;
+	ref_id = PacketGetInt(data, 0);
 
 	obj = GetObjectFromID(ref_id, object_list);
 
