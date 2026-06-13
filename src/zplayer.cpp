@@ -1393,6 +1393,13 @@ void ZPlayer::RenderScreen()
 {
 	double &the_time = ztime.ztime;
 
+	{
+		static int rs_n = 0;
+		if((rs_n++ % 120) == 0)
+			SDL_Log("RenderScreen: graphics_loaded=%d zmap.Loaded()=%d splash_fade=%d",
+			        graphics_loaded ? 1 : 0, zmap.Loaded() ? 1 : 0, (int)splash_fade);
+	}
+
 	if(graphics_loaded && zmap.Loaded())
 	{
 		//render base
