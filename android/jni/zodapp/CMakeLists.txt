@@ -33,7 +33,9 @@ target_compile_definitions(main PRIVATE
   # so no compiled-in datadir
   ZOD_DATADIR="")
 
-target_compile_options(main PRIVATE -Wno-deprecated -Wno-write-strings)
+# The NDK enables -Werror=format-security by default (desktop builds don't);
+# the vintage code has non-literal printf format strings that are benign here.
+target_compile_options(main PRIVATE -Wno-deprecated -Wno-write-strings -Wno-error=format-security)
 
 target_link_libraries(main PRIVATE
   SDL3::SDL3
