@@ -7,8 +7,15 @@
 #include "event_handler.h"
 
 #ifdef _WIN32 //if windows
-#include <windows.h>		//win for Sleep(1000)
-#include <direct.h>		//win
+//winsock2 must come before any <windows.h>, and WIN32_LEAN_AND_MEAN keeps
+//<windows.h> (pulled transitively) from dragging in <rpcndr.h>, whose global
+//`byte` typedef is ambiguous with C++17+ std::byte under `using namespace std`.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <direct.h>		//win for _mkdir/_getcwd
 #else
 #include <sys/types.h>		//lin
 #include <sys/socket.h>		//lin
