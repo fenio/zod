@@ -131,11 +131,8 @@ static void chdir_to_data_dir()
 int main(int argc, char **argv)
 {
 #ifdef __ANDROID__
-	//SDL routes stdout/stderr to logcat, but a pipe is block-buffered so the
-	//engine's printf diagnostics never flush while running. Unbuffer them so
-	//they appear live (tag stdout/stderr).
-	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
+	//make the engine's printf/stderr diagnostics visible in logcat
+	AndroidRedirectStdioToLogcat();
 #endif
 #ifdef __ANDROID__
 	//no real cwd on Android: unpack the APK-bundled game data to writable

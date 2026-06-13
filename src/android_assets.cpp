@@ -8,6 +8,46 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <android/log.h>
+
+// Reader thread: pull lines off the pipe that stdout/stderr were redirected to,
+// and emit each to logcat. Lets the engine's printf diagnostics show up.
+static void *zod_stdio_logcat_thread(void *arg)
+{
+	int rfd = *(int *)arg;
+	char buf[1024];
+	std::string line;
+	ssize_t n;
+	while((n = read(rfd, buf, sizeof(buf) - 1)) > 0)
+	{
+		buf[n] = 0;
+		for(ssize_t i = 0; i < n; i++)
+		{
+			if(buf[i] == '\n')
+			{
+				__android_log_write(ANDROID_LOG_INFO, "zod-stdio", line.c_str());
+				line.clear();
+			}
+			else if(buf[i] != '\r')
+				line += buf[i];
+		}
+	}
+	return NULL;
+}
+
+void AndroidRedirectStdioToLogcat()
+{
+	static int fds[2];
+	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+	if(pipe(fds) != 0) return;
+	dup2(fds[1], STDOUT_FILENO);
+	dup2(fds[1], STDERR_FILENO);
+	pthread_t t;
+	if(pthread_create(&t, NULL, zod_stdio_logcat_thread, &fds[0]) == 0)
+		pthread_detach(t);
+}
 
 // Create every directory along `path` (which is a FILE path - the last
 // component, after the final '/', is not created).

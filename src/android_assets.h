@@ -9,5 +9,9 @@
 // maps/ and map_list.txt exactly as they do on desktop. Returns true on success.
 bool AndroidExtractAssetsAndChdir();
 
+// Route the process's stdout/stderr to logcat (tag "zod-stdio"), so the engine's
+// existing printf diagnostics are visible (SDL3 doesn't forward stdio on Android).
+void AndroidRedirectStdioToLogcat();
+
 #endif
 #endif
