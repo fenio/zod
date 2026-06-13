@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The engine is client/server even in single-player: the client connects
+         to an in-process server over a localhost TCP socket. Android denies
+         socket() without this, so without it the game can never load a map. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
