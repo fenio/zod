@@ -73,10 +73,12 @@ jobs:
           ( cd proj/app/src/main/assets/zod && find assets maps map_list.txt -type f | sort > filelist.txt )
           echo "bundled data files: $(wc -l < proj/app/src/main/assets/zod/filelist.txt)"
 
-          # point the app id / namespace at ours and limit to arm64-v8a
+          # point the app id / namespace at ours and limit to arm64-v8a.
+          # the template uses the newer `namespace = "..."` DSL (with the '='),
+          # so the regex must allow an optional '='.
           GR=proj/app/build.gradle
-          sed -i 's/applicationId *"[^"]*"/applicationId "io.github.fenio.zod"/' "$GR"
-          sed -i 's/namespace *"[^"]*"/namespace "io.github.fenio.zod"/'         "$GR"
+          sed -i -E 's/(applicationId[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/' "$GR"
+          sed -i -E 's/(namespace[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/'         "$GR"
           # add an abiFilters line inside defaultConfig if not present
           grep -q abiFilters "$GR" || \
             sed -i '/defaultConfig {/a\        ndk { abiFilters "arm64-v8a" }' "$GR"
@@ -88,7 +90,10 @@ jobs:
           export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
           cd proj
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug --stacktrace
+          # -PBUILD_WITH_CMAKE selects our jni/CMakeLists.txt (which builds
+          # libmain.so from the engine); without it the template defaults to
+          # ndkBuild and our CMake is ignored.
+          ./gradlew --no-daemon assembleDebug -PBUILD_WITH_CMAKE --stacktrace
 
       - name: Locate APK
         if: always()
