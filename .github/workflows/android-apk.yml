@@ -64,11 +64,14 @@ jobs:
           cp repo/android/ZodActivity.java          proj/app/src/main/java/io/github/fenio/zod/ZodActivity.java
           cp repo/android/AndroidManifest.xml       proj/app/src/main/AndroidManifest.xml
 
-          # game data bundled into the APK (extracted at runtime in a later milestone)
+          # game data bundled into the APK; extracted to writable storage on
+          # first launch (see AndroidExtractAssetsAndChdir), driven by filelist.txt
           mkdir -p proj/app/src/main/assets/zod
           cp -r repo/assets       proj/app/src/main/assets/zod/assets
           cp -r repo/maps         proj/app/src/main/assets/zod/maps
           cp repo/map_list.txt    proj/app/src/main/assets/zod/map_list.txt
+          ( cd proj/app/src/main/assets/zod && find assets maps map_list.txt -type f | sort > filelist.txt )
+          echo "bundled data files: $(wc -l < proj/app/src/main/assets/zod/filelist.txt)"
 
           # point the app id / namespace at ours and limit to arm64-v8a
           GR=proj/app/build.gradle
