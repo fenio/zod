@@ -3,8 +3,30 @@
 #include "map_gen_core.h"
 
 #include <time.h>
+#include <stdlib.h>
 
 using namespace COMMON;
+
+// A writable path for the server's transient map files (random/generated maps
+// are round-tripped through disk so their bytes can be sent to clients). The
+// install data dir may be read-only, so use a temp dir. On Android /tmp and the
+// TMP* env vars don't exist, but the cwd is the app's writable internal storage
+// (set by AndroidExtractAssetsAndChdir), so write there.
+static string ServerTempMapPath(const char *name)
+{
+#ifdef __ANDROID__
+	return string("./") + name;
+#else
+	const char *tmp = getenv("TMPDIR");
+	if(!tmp || !tmp[0]) tmp = getenv("TEMP");
+	if(!tmp || !tmp[0]) tmp = getenv("TMP");
+#ifdef _WIN32
+	return (tmp && tmp[0]) ? string(tmp) + "\\" + name : string(name);
+#else
+	return (tmp && tmp[0]) ? string(tmp) + "/" + name : string("/tmp/") + name;
+#endif
+#endif
+}
 
 ZServer::ZServer() : ZCore()
 {
@@ -318,17 +340,7 @@ void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrai
 	if(enemies > 3) enemies = 3;
 
 	//writable scratch path (data dir may be read-only when installed)
-	string out_path;
-	{
-		const char *tmp = getenv("TMPDIR");
-		if(!tmp || !tmp[0]) tmp = getenv("TEMP");
-		if(!tmp || !tmp[0]) tmp = getenv("TMP");
-#ifdef _WIN32
-		out_path = (tmp && tmp[0]) ? string(tmp) + "\\zod_generated.map" : "zod_generated.map";
-#else
-		out_path = (tmp && tmp[0]) ? string(tmp) + "/zod_generated.map" : "/tmp/zod_generated.map";
-#endif
-	}
+	string out_path = ServerTempMapPath("zod_generated.map");
 
 	unsigned int seed = (unsigned int)time(0) ^ (rand() << 1);
 
@@ -466,11 +478,11 @@ void ZServer::LoadNextMap(string override_map_name)
 		printf("ZServer::LoadNextMap:no map set to load; generating random map\n");
 		zmap.MakeRandomMap();
 		// Round-trip through disk so map_data is populated for client downloads.
-		const char *tmp = "/tmp/zod_random.map";
-		if(zmap.Write(tmp))
+		string tmp = ServerTempMapPath("zod_random.map");
+		if(zmap.Write(tmp.c_str()))
 		{
 			zmap.ClearMap();
-			zmap.Read(tmp);
+			zmap.Read(tmp.c_str());
 		}
 	}
 
@@ -481,6 +493,12 @@ void ZServer::LoadNextMap(string override_map_name)
 	if(psettings.start_map_paused) PauseGame();
 
 	game_on = true;
+
+	{
+		char *md = NULL; int mds = 0; zmap.GetMapData(md, mds);
+		SDL_Log("ZServer::LoadNextMap: map='%s' server zmap.Loaded()=%d map_data=%d bytes",
+		        map_name.c_str(), zmap.Loaded() ? 1 : 0, mds);
+	}
 }
 
 int ZServer::NextInMapList()
