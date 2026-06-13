@@ -24,21 +24,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Clone SDL3 + satellites (latest releases, with vendored deps)
+      - name: Clone SDL3 + satellites (pinned releases, with vendored deps)
         run: |
           set -eux
-          clone() {  # $1 = repo
-            local tag
-            tag=$(curl -s "https://api.github.com/repos/libsdl-org/$1/releases/latest" \
-                  | grep -m1 '"tag_name"' | cut -d'"' -f4)
-            echo "$1 -> $tag"
-            git clone --depth 1 --branch "$tag" --recurse-submodules --shallow-submodules \
+          # pinned tags (not the GitHub API) so the build is reproducible and
+          # doesn't hit the unauthenticated API rate limit on frequent runs
+          clone() {  # $1 = repo, $2 = tag
+            echo "$1 -> $2"
+            git clone --depth 1 --branch "$2" --recurse-submodules --shallow-submodules \
               "https://github.com/libsdl-org/$1" "$1"
           }
-          clone SDL
-          clone SDL_image
-          clone SDL_ttf
-          clone SDL_mixer
+          clone SDL        release-3.4.10
+          clone SDL_image  release-3.4.4
+          clone SDL_ttf    release-3.2.2
+          clone SDL_mixer  release-3.2.4
 
       - name: Assemble Android project
         run: |
