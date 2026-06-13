@@ -68,10 +68,12 @@ jobs:
         run: |
           set -ux
           echo "start_map_paused=0" > /tmp/settings.txt
+          # `|| rc=$?` so the expected non-zero exit from `timeout` doesn't
+          # trip the shell's errexit (-e) before we can inspect it.
+          rc=0
           ZOD_BOT_FUZZ=1 timeout 90 ./build/zod -d -s -u \
             -m maps/p02_bb_orig01.map -b red -b blue \
-            -e /tmp/settings.txt > /tmp/run.log 2>&1
-          rc=$?
+            -e /tmp/settings.txt > /tmp/run.log 2>&1 || rc=$?
           # 124 = ran the full 90s and was stopped by timeout: the good case.
           # Anything else means a crash or a sanitizer abort.
           if [ "$rc" -ne 124 ]; then
