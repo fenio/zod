@@ -123,8 +123,6 @@ int ClientSocket::Connect()
 	memcpy((char*)&c_in.sin_addr, (char*)host->h_addr, host->h_length);
 	c_in.sin_family = AF_INET;
 	c_in.sin_port = htons(port);
-	SDL_Log("ClientSocket: resolved '%s' to %s, connecting on port %d",
-	        address.c_str(), inet_ntoa(c_in.sin_addr), port);
 
 	{
 		double first_failure = current_time();

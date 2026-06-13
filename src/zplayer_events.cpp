@@ -669,7 +669,6 @@ void ZPlayer::disconnect_event(ZPlayer *p, char *data, int size, int dummy)
 
 void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 {
-	SDL_Log("client store_map_event: received %d bytes, zmap.Loaded() before=%d", size, p->zmap.Loaded()?1:0);
 	p->ProcessMapDownload(data, size);
 
 	if(p->zmap.Loaded())

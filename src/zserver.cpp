@@ -493,12 +493,6 @@ void ZServer::LoadNextMap(string override_map_name)
 	if(psettings.start_map_paused) PauseGame();
 
 	game_on = true;
-
-	{
-		char *md = NULL; int mds = 0; zmap.GetMapData(md, mds);
-		SDL_Log("ZServer::LoadNextMap: map='%s' server zmap.Loaded()=%d map_data=%d bytes",
-		        map_name.c_str(), zmap.Loaded() ? 1 : 0, mds);
-	}
 }
 
 int ZServer::NextInMapList()

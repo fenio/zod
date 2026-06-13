@@ -1,13 +1,13 @@
 name: android-apk
 
-# Feasibility spike, milestone 1b: link the engine + SDL3 (core/image/ttf/mixer)
-# and package a real, installable APK. Built from SDL3's official android-project
-# template with our sources injected. arm64-v8a only (most tablets) to keep the
-# build tractable. The APK is uploaded as an artifact to sideload onto a device.
+# Build the engine + SDL3 (core/image/ttf/mixer) and package an installable APK,
+# from SDL3's official android-project template with our sources injected.
+# arm64-v8a only (most tablets). The APK is uploaded as an artifact to sideload.
 
 on:
   push:
-    branches: [android-spike]
+    branches: [master]
+  pull_request:
   workflow_dispatch:
 
 jobs:
