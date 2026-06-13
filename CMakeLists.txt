@@ -85,6 +85,12 @@ target_link_libraries(zod PRIVATE
 # and the IP Helper API (GetAdaptersInfo).
 if(WIN32)
   target_link_libraries(zod PRIVATE ws2_32 iphlpapi)
+  # Define WIN32_LEAN_AND_MEAN for EVERY translation unit (before any header,
+  # incl. SDL's, pulls in <windows.h>). Without it, <windows.h> includes
+  # <rpcndr.h>, whose global `byte` typedef is ambiguous with C++17+'s
+  # std::byte under `using namespace std`. A per-header #define is too late
+  # once another header has already included a full <windows.h> in the TU.
+  target_compile_definitions(zod PRIVATE WIN32_LEAN_AND_MEAN)
 endif()
 
 # --- install (binary -> bin/, game data -> share/zod/) ---
