@@ -376,6 +376,20 @@ class ZPlayer : public ZClient
 		TTF_Font *ttf_font_7;
 		int mouse_x, mouse_y;
 		mouse_button_info lbutton, rbutton, mbutton;
+
+		// --- touch / gesture input (Android): tap = left-click, one-finger
+		// drag = pan the camera, two-finger pinch = zoom ---
+		int touch_count;                    // fingers we're tracking (0/1/2)
+		SDL_FingerID touch_id1, touch_id2;
+		float touch_x1, touch_y1, touch_x2, touch_y2;
+		float touch_start_x, touch_start_y; // primary finger's down position
+		bool touch_moved;                   // moved past the tap threshold
+		float touch_pinch0;                 // two-finger distance at pinch start
+		double touch_zoom0;                 // zoom level at pinch start
+		void HandleFingerDown(const SDL_TouchFingerEvent &t);
+		void HandleFingerMotion(const SDL_TouchFingerEvent &t);
+		void HandleFingerUp(const SDL_TouchFingerEvent &t);
+		void TapAsLeftClick(int x, int y);
 		ZCursor cursor;
 		ZCursor Pcursor;
 		double pcursor_death_time;
