@@ -6,7 +6,10 @@ using namespace COMMON;
 
 ZClient::ZClient() : ZCore()
 {
-	remote_address = "localhost";
+	// 127.0.0.1, not "localhost": the in-process server is IPv4, and resolving
+	// "localhost" can yield IPv6 ::1 on some systems (Android), which the
+	// IPv4-only client socket can't use. A user-supplied -c address overrides this.
+	remote_address = "127.0.0.1";
 	player_name = "nameless_player";
 	our_team = NULL_TEAM;
 	our_mode = NOBODY_MODE;
