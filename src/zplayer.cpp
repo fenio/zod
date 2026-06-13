@@ -463,7 +463,7 @@ void ZPlayer::InitSDL()
 	//logical resolution (whole image visible, letterboxed by the centered
 	//blit) rather than cropping its sides
 	{
-		SDL_Surface *raw = SDL_LoadBMP("assets/splash.bmp");
+		SDL_Surface *raw = SDL_LoadBMP(ZSDL_DataPath("assets/splash.bmp").c_str());
 
 		if(raw)
 		{
