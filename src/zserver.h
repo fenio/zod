@@ -154,6 +154,7 @@ class ZServer : public ZCore
 		vector<string> map_list;
 		bool load_maps_randomly;
 		int current_map_i;
+		bool reload_same_map;   //set when the human lost: retry this map, don't advance (issue #47)
 
 		double next_scuffle_time;
 		double next_end_game_check_time;
