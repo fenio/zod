@@ -19,7 +19,7 @@ jobs:
   windows-zip:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0   # full history so `git describe` stamps the version banner
       - uses: msys2/setup-msys2@v2
