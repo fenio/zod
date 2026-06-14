@@ -12,6 +12,11 @@ on:
     types: [published]
   workflow_dispatch:
 
+# the release-upload step needs write access to the repo's releases; without
+# this the default GITHUB_TOKEN is read-only and `gh release upload` 403s
+permissions:
+  contents: write
+
 jobs:
   apk:
     name: Build debug APK (arm64-v8a)
