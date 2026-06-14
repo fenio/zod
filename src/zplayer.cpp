@@ -2974,7 +2974,7 @@ void ZPlayer::CollectSelectables()
 		//so who have we selected
 		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
 		{
-			if(!(*i)->Selectable()) continue;
+			if(!(*i)->BoxSelectable()) continue;   //box drag skips cannons (issue #40)
 			if((*i)->GetOwner() != our_team) continue;
 			if(!(*i)->WithinSelection(map_left, map_right, map_top, map_bottom)) continue;
 			select_info.selected_list.push_back(*i);
@@ -3036,10 +3036,12 @@ bool ZPlayer::CouldCollectSelectables()
 		//if we were only selecting one unit
 		if(would_be_single_unit && obj->GetGroupLeader()) obj = obj->GetGroupLeader();
 		
-		if(!obj->Selectable()) continue;
+		//match CollectSelectables: a box drag won't pick up cannons (issue #40),
+		//so the cursor must not advertise a box-select over only cannons
+		if(would_be_single_unit ? !obj->Selectable() : !obj->BoxSelectable()) continue;
 		if(obj->GetOwner() != our_team) continue;
 		if(!obj->WithinSelection(map_left, map_right, map_top, map_bottom)) continue;
-		
+
 		return true;
 	}
 

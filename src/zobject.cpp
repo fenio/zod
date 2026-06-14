@@ -918,6 +918,17 @@ bool ZObject::Selectable()
 	return selectable;
 }
 
+bool ZObject::BoxSelectable()
+{
+	//a rubber-band box drag must not sweep up cannons (stationary turrets):
+	//they can't take movement orders, so including them only pollutes a unit
+	//selection and you end up issuing commands they can't execute (issue #40).
+	//A direct click still selects one (the single-unit path uses Selectable()).
+	if(object_type == CANNON_OBJECT) return false;
+
+	return Selectable();
+}
+
 bool ZObject::UnderCursor(int &map_x, int &map_y)
 {
 	int &x = loc.x;
