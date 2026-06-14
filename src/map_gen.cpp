@@ -101,6 +101,7 @@ static vector<unsigned short> tiles;       // W*H tile indices
 static vector<char> kind;                  // per tile: 'g' ground, 'w' water, 'r' road
 static vector<bool> reserved;              // building/flag footprints: keep clear
 static vector<bool> solid;                 // engine-impassable: buildings, rocks
+static vector<bool> keepout;               // no water/rocks here: clean apron around buildings
 static vector<map_zone> zones;
 static vector<map_object> objects;
 static vector<int> fort_zone;              // zone index per team (team i = owner i+1)
@@ -143,6 +144,14 @@ static void reserve_rect(int x, int y, int w, int h, bool is_solid = false)
 			reserved[idx(i,j)] = true;
 			if(is_solid && j >= y && i >= x && j < y + h && i < x + w) solid[idx(i,j)] = true;
 		}
+
+	// clean apron: keep water/rocks (and their shoreline tiles) off the area
+	// immediately around a structure, so buildings aren't ringed by lakes or
+	// mud at their entrance. Wider for solid buildings, minimal for flags.
+	int m = is_solid ? 3 : 1;
+	for(int j = y - m; j < y + h + m; j++)
+		for(int i = x - m; i < x + w + m; i++)
+			if(i >= 0 && j >= 0 && i < W && j < H) keepout[idx(i,j)] = true;
 }
 
 static bool area_free(int x, int y, int w, int h)
@@ -361,7 +370,7 @@ static void make_water()
 				for(int i = -1; i <= 1; i++)
 				{
 					int ii = idx(x + i, y + j);
-					if(kind[ii] == 'g' && !reserved[ii]) kind[ii] = 'w';
+					if(kind[ii] == 'g' && !reserved[ii] && !keepout[ii]) kind[ii] = 'w';
 				}
 			x += rnd(3) - 1; y += rnd(3) - 1;
 			if(x < 4) x = 4; if(y < 4) y = 4;
@@ -376,7 +385,7 @@ static void make_water()
 		for(int y = 1; y < H - 1; y++)
 			for(int x = 1; x < W - 1; x++)
 			{
-				if(reserved[idx(x,y)] || kind[idx(x,y)] == 'r') continue;
+				if(reserved[idx(x,y)] || keepout[idx(x,y)] || kind[idx(x,y)] == 'r') continue;
 				int n = 0;
 				for(int j = -1; j <= 1; j++)
 					for(int i = -1; i <= 1; i++)
@@ -394,6 +403,15 @@ static void make_water()
 static void retile()
 {
 	const int dx8[8] = {-1,0,1,-1,1,-1,0,1}, dy8[8] = {-1,-1,-1,0,0,1,1,1};
+
+	// the single most-common plain-ground tile: the bulk of the ground is this
+	// one tile so the terrain reads as cohesive, not a per-tile checkerboard
+	unsigned short base_tile = starter_tiles.empty() ? 0 : starter_tiles[0];
+	{
+		int best = -1;
+		for(std::map<unsigned short, int>::iterator it = ground_tab.begin(); it != ground_tab.end(); ++it)
+			if(it->second > best) { best = it->second; base_tile = it->first; }
+	}
 
 	for(int y = 0; y < H; y++)
 		for(int x = 0; x < W; x++)
@@ -434,21 +452,24 @@ static void retile()
 			}
 
 			if(reserved[i] || ground_tab.empty())
-				tiles[i] = starter_tiles[rnd(starter_tiles.size())];
+				tiles[i] = base_tile;
 			else
 			{
-				// cluster variants in coarse 4x4 patches like the originals
-				// instead of per-tile sprinkling: each patch leans on one
-				// variant, most cells still use the dominant mix
-				unsigned int cell = ((y / 4) * 131 + (x / 4)) * 2654435761u + seed;
-				if((int)(cell >> 16 & 0xff) < 96) //~38% of patches are "varied"
+				// almost all ground is the single dominant tile; only a minority
+				// of coarse 5x5 patches introduce ONE variant, and even then it's
+				// sprinkled among the base - so variants form soft textured
+				// patches instead of high-frequency per-tile noise
+				unsigned int patch = ((y / 5) * 131u + (x / 5)) * 2654435761u + seed;
+				bool varied = ((patch >> 16) & 0xff) < 58 && ground_tab.size() > 1; //~23% of patches
+				if(!varied)
+					tiles[i] = base_tile;
+				else
 				{
 					std::map<unsigned short, int>::iterator it = ground_tab.begin();
-					std::advance(it, cell % ground_tab.size());
-					tiles[i] = (rnd(100) < 60) ? it->first : sample_tab(ground_tab);
+					std::advance(it, patch % ground_tab.size());
+					unsigned int cell = ((unsigned int)(y * W + x)) * 2246822519u ^ patch;
+					tiles[i] = ((cell >> 18) & 0x7f) < 50 ? it->first : base_tile; //~39% of the patch
 				}
-				else
-					tiles[i] = sample_tab(ground_tab);
 			}
 		}
 }
@@ -617,7 +638,7 @@ static void place_scatter()
 		for(int r = 0; r < n; r++)
 		{
 			int i = idx(x, y);
-			if(y >= 3 && kind[i] == 'g' && !reserved[i]
+			if(y >= 3 && kind[i] == 'g' && !reserved[i] && !keepout[i]
 				&& !reserved[idx(x, y-1)] && !reserved[idx(x, y-2)])
 			{
 				add_object(x, y - 2, 1, MAP_ITEM_OBJECT, ROCK_ITEM);
@@ -713,6 +734,7 @@ bool Generate(const std::string &out_path_, int enemies_, int w_, int h_,
 	kind.assign(W * H, 'g');
 	reserved.assign(W * H, false);
 	solid.assign(W * H, false);
+	keepout.assign(W * H, false);
 	rock_at.assign(W * H, -1);
 	for(int y = 0; y < H; y++) for(int x = 0; x < W; x++) set_ground(x, y);
 
