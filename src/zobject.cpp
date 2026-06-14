@@ -3927,7 +3927,12 @@ bool ZObject::DodgeMissile(int tx, int ty, double time_till_explode)
 	int f_move_dist = dist * 4.0 / 4.0;
 	if(m_move_dist <= 0) m_move_dist = 1;
 	int move_dist = f_move_dist + (rand() % m_move_dist);
-	double theta = (2 * PI) * (1000.0 / (rand() % 1000));
+	// guard the divisor: rand() % 1000 is 0 about 0.1% of the time, and
+	// 1000.0 / 0 -> inf -> cos/sin(inf) = NaN -> assigning NaN to the int nx/ny
+	// below is UB that lands as INT_MIN, which then overflows in SetTarget. Keep
+	// the existing angle distribution otherwise.
+	int theta_div = rand() % 1000;
+	double theta = (2 * PI) * (1000.0 / (theta_div ? theta_div : 1));
 
 	//move_dist = dist;
 
