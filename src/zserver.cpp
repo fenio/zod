@@ -334,7 +334,7 @@ void ZServer::ProcessEndGame()
 //number of bot enemies. Generation runs server-side so multiplayer clients
 //get the map through the normal reset/relay path; the file is just a scratch
 //handoff the server reads once.
-void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech)
+void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech, int vehicles)
 {
 	if(enemies < 1) enemies = 1;
 	if(enemies > 3) enemies = 3;
@@ -344,7 +344,7 @@ void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrai
 
 	unsigned int seed = (unsigned int)time(0) ^ (rand() << 1);
 
-	if(!MapGen::Generate(out_path, enemies, width, height, terrain, tech, seed))
+	if(!MapGen::Generate(out_path, enemies, width, height, terrain, tech, seed, vehicles))
 	{
 		printf("ZServer::GenerateAndStartMap: generation failed\n");
 		BroadCastNews("map generation failed");

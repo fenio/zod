@@ -11,6 +11,7 @@ GMMGenerateMap::GMMGenerateMap() : ZGuiMainMenuBase()
 	size_i = 0;
 	terrain_i = 0;
 	tech_i = 0;
+	vehicles_i = 1;   //"Few" by default
 
 	SetupLayout1();
 }
@@ -43,6 +44,12 @@ void GMMGenerateMap::SetupLayout1()
 	tech_button.SetCoords(GMM_SIDE_MARGIN, next_y);
 	tech_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 	AddWidget(&tech_button);
+	next_y += GMMWBUTTON_HEIGHT + 2;
+
+	vehicles_button.SetType(MMGENERIC_BUTTON);
+	vehicles_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	vehicles_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&vehicles_button);
 	next_y += GMMWBUTTON_HEIGHT + 7;
 
 	generate_button.SetType(MMGENERIC_BUTTON);
@@ -73,6 +80,9 @@ void GMMGenerateMap::UpdateButtonText()
 
 	sprintf(buf, "Tech: %s", gmmgen_tech_name[tech_i]);
 	tech_button.SetText(buf);
+
+	sprintf(buf, "Vehicles: %s", gmmgen_vehicle_name[vehicles_i]);
+	vehicles_button.SetText(buf);
 }
 
 void GMMGenerateMap::Process()
@@ -109,6 +119,11 @@ void GMMGenerateMap::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		tech_i = (tech_i + 1) % MAX_GMMGEN_TECHS;
 		UpdateButtonText();
 	}
+	else if(w_ref_id == vehicles_button.GetRefID())
+	{
+		vehicles_i = (vehicles_i + 1) % MAX_GMMGEN_VEHICLES;
+		UpdateButtonText();
+	}
 	else if(w_ref_id == generate_button.GetRefID())
 	{
 		gmm_flags.generate_map = true;
@@ -117,5 +132,6 @@ void GMMGenerateMap::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		gmm_flags.gen_height = gmmgen_size_h[size_i];
 		gmm_flags.gen_terrain = terrain_i;
 		gmm_flags.gen_tech = gmmgen_tech_level[tech_i];
+		gmm_flags.gen_vehicles = gmmgen_vehicle_count[vehicles_i];
 	}
 }

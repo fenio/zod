@@ -199,6 +199,7 @@ struct generate_map_packet
 	int height;
 	int terrain;
 	int tech;
+	int vehicles;
 };
 
 union float_packet

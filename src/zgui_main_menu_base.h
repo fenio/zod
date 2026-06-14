@@ -90,6 +90,7 @@ public:
 		gen_height = 100;
 		gen_terrain = 0;
 		gen_tech = 0;
+		gen_vehicles = -1;
 		set_game_speed_value = 1.0;
 
 		warning_flags.clear();
@@ -113,7 +114,7 @@ public:
 	bool pause_game;
 	bool set_game_speed;
 	bool generate_map;
-	int gen_enemies, gen_width, gen_height, gen_terrain, gen_tech;
+	int gen_enemies, gen_width, gen_height, gen_terrain, gen_tech, gen_vehicles;
 	float set_game_speed_value;
 
 	gmm_warning_flag warning_flags;
