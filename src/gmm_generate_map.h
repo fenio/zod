@@ -18,6 +18,11 @@ const char *const gmmgen_terrain_name[MAX_GMMGEN_TERRAINS] =
 const int gmmgen_tech_level[MAX_GMMGEN_TECHS] = { 0, 2, 5 };
 const char *const gmmgen_tech_name[MAX_GMMGEN_TECHS] = { "Basic", "Advanced", "Full" };
 
+//neutral/orphaned vehicle presets -> count to scatter
+#define MAX_GMMGEN_VEHICLES 5
+const int gmmgen_vehicle_count[MAX_GMMGEN_VEHICLES] = { 0, 3, 6, 10, 16 };
+const char *const gmmgen_vehicle_name[MAX_GMMGEN_VEHICLES] = { "None", "Few", "Some", "Many", "Swarm" };
+
 class GMMGenerateMap : public ZGuiMainMenuBase
 {
 public:
@@ -31,12 +36,14 @@ private:
 	GMMWButton size_button;
 	GMMWButton terrain_button;
 	GMMWButton tech_button;
+	GMMWButton vehicles_button;
 	GMMWButton generate_button;
 
 	int enemies_i;   //0-2 -> 1-3 enemies
 	int size_i;      //0-2
 	int terrain_i;   //0-4
 	int tech_i;      //0-2 -> Basic/Advanced/Full
+	int vehicles_i;  //0-4 -> None/Few/Some/Many/Swarm
 
 	void SetupLayout1();
 	void UpdateButtonText();

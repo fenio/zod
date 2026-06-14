@@ -59,7 +59,7 @@ class ZServer : public ZCore
 		void CheckEndGame();
 		void CheckResetGame();
 		void DoResetGame(string map_name = "");
-		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech);
+		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech, int vehicles = -1);
 		bool EndGameRequirementsMet();
 		void LoadNextMap(string map_name = "");
 		void ResetGame();

@@ -1174,7 +1174,7 @@ void ZServer::generate_map_event(ZServer *p, char *data, int size, int player)
 
 	if(size != sizeof(generate_map_packet)) return;
 
-	p->GenerateAndStartMap(pi->enemies, pi->width, pi->height, pi->terrain, pi->tech);
+	p->GenerateAndStartMap(pi->enemies, pi->width, pi->height, pi->terrain, pi->tech, pi->vehicles);
 }
 
 void ZServer::reset_map_event(ZServer *p, char *data, int size, int player)

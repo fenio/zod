@@ -3611,6 +3611,7 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 				the_data.height = the_flags.gen_height;
 				the_data.terrain = the_flags.gen_terrain;
 				the_data.tech = the_flags.gen_tech;
+				the_data.vehicles = the_flags.gen_vehicles;
 				client_socket.SendMessage(GENERATE_MAP, (char*)&the_data, sizeof(generate_map_packet));
 			}
 
