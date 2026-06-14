@@ -17,15 +17,16 @@ public:
 
 	void Process();
 private:
+	// volume and game speed use cycling BUTTONS, not radios: the radio widget's
+	// art was never shipped, so the menu had no working volume/speed control
+	// (issue #41); buttons are the reliable control this fork ships
+	GMMWButton volume_button;
+	GMMWButton speed_button;
 	GMMWButton mouse_button;
 	GMMWButton smooth_button;
 	GMMWButton reshuffle_button;
 	GMMWButton reset_button;
 	GMMWButton pause_button;
-	GMMWLabel volume_label;
-	GMMWRadio volume_radio;
-	GMMWLabel speed_label;
-	GMMWRadio speed_radio;
 
 	void SetupLayout1();
 

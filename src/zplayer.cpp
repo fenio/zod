@@ -3546,15 +3546,8 @@ bool ZPlayer::MainMenuAbsorbLClick()
 				gui_menu_list.insert(gui_menu_list.begin(), temp);
 			}
 
-			if(the_flags.set_volume) SetSoundSetting(the_flags.set_volume_value);
-
-			if(the_flags.set_game_speed) 
-			{
-				float_packet the_data;
-
-				the_data.game_speed = the_flags.set_game_speed_value;
-				client_socket.SendMessage(SET_GAME_SPEED, (char*)&the_data, sizeof(float_packet));
-			}
+			//volume/speed are applied on UNclick now (the options menu uses
+			//buttons, which fire on release) - see MainMenuAbsorbLUnClick
 
 			return true;
 		}
@@ -3615,6 +3608,16 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 				the_data.tech = the_flags.gen_tech;
 				the_data.vehicles = the_flags.gen_vehicles;
 				client_socket.SendMessage(GENERATE_MAP, (char*)&the_data, sizeof(generate_map_packet));
+			}
+
+			if(the_flags.set_volume) SetSoundSetting(the_flags.set_volume_value);
+
+			if(the_flags.set_game_speed)
+			{
+				float_packet the_data;
+
+				the_data.game_speed = the_flags.set_game_speed_value;
+				client_socket.SendMessage(SET_GAME_SPEED, (char*)&the_data, sizeof(float_packet));
 			}
 
 			return true;
