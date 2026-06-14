@@ -3615,17 +3615,57 @@ void ZServer::GivePlayerID(int player)
 	server_socket.SendMessage(player, GIVE_PLAYER_ID, (const char*)&packet, sizeof(player_id_packet));
 }
 
+// the menu shows whatever string we send here. selectable_map_list holds the
+// loadable PATHS (used to load the map by index), so we can't relabel those -
+// instead read each map's embedded name (map_name, 50 bytes at header offset 4)
+// and send THAT for display. Falls back to the bare filename when a map carries
+// no useful name (custom/random maps), so nothing ever shows a worse label than
+// before. (Names must not contain ',' - the wire format is comma-separated -
+// which the campaign names don't.)
+static string MapDisplayNameForList(const string &path)
+{
+	string name;
+
+	FILE *fp = fopen(path.c_str(), "rb");
+	if(fp)
+	{
+		char hdr[54];
+		if(fread(hdr, 1, sizeof(hdr), fp) == sizeof(hdr))
+		{
+			hdr[53] = 0;          //map_name occupies bytes 4..53, null-padded
+			name = string(hdr + 4);
+		}
+		fclose(fp);
+	}
+
+	//no real embedded name -> show the bare filename (no folder, no .map)
+	if(name.empty() || name == "clone_map")
+	{
+		size_t s = path.find_last_of("/\\");
+		name = (s == string::npos) ? path : path.substr(s + 1);
+		if(name.size() > 4 && name.compare(name.size() - 4, 4, ".map") == 0)
+			name.erase(name.size() - 4);
+	}
+
+	//never let a stray comma corrupt the comma-separated wire list
+	for(size_t k = 0; k < name.size(); k++) if(name[k] == ',') name[k] = ' ';
+
+	return name;
+}
+
 void ZServer::GivePlayerSelectableMapList(int player)
 {
 	string send_str;
 
-	//populate send_str
+	//populate send_str with the display name of each map (see helper above)
 	for(vector<string>::iterator i=selectable_map_list.begin(); i!=selectable_map_list.end(); i++)
 	{
+		string disp = MapDisplayNameForList(*i);
+
 		if(!send_str.length())
-			send_str += *i;
+			send_str += disp;
 		else
-			send_str += "," + *i;
+			send_str += "," + disp;
 	}
 
 	//send
