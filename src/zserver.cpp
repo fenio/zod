@@ -36,6 +36,7 @@ ZServer::ZServer() : ZCore()
 	srand(time(0));
 	
 	current_map_i = -1;
+	reload_same_map = false;
 	next_ref_id = 0;
 	game_on = false;
 	next_end_game_check_time = 0;
@@ -316,6 +317,34 @@ void ZServer::ProcessEndGame()
 
 	game_on = false;
 
+	// issue #47: in a campaign (sequential map list) a LOSS should retry the same
+	// map, not advance. Work out which teams still have units, then whether any
+	// HUMAN player (PLAYER_MODE, as opposed to a bot or spectator) survived. If
+	// human players are in the game and all of them were wiped out, replay this
+	// map instead of stepping to the next one. (No humans => normal rotation,
+	// so bot-only/spectator games still advance.)
+	{
+		bool team_has_units[MAX_TEAM_TYPES];
+		for(int i = 0; i < MAX_TEAM_TYPES; i++) team_has_units[i] = false;
+		for(vector<ZObject*>::iterator obj=object_list.begin(); obj!=object_list.end(); obj++)
+		{
+			unsigned char ot, oid;
+			(*obj)->GetObjectID(ot, oid);
+			if(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)
+				team_has_units[(*obj)->GetOwner()] = true;
+		}
+
+		bool any_human = false, human_survived = false;
+		for(vector<p_info>::iterator p=player_info.begin(); p!=player_info.end(); p++)
+			if(p->mode == PLAYER_MODE && p->team != NULL_TEAM && p->team < MAX_TEAM_TYPES)
+			{
+				any_human = true;
+				if(team_has_units[p->team]) human_survived = true;
+			}
+
+		reload_same_map = !load_maps_randomly && any_human && !human_survived;
+	}
+
 	//set reset time?
 	if(map_list.size())
 	{
@@ -459,10 +488,16 @@ void ZServer::LoadNextMap(string override_map_name)
 	}
 	else if(map_list.size())
 	{
-		NextInMapList();
+		// issue #47: on a campaign loss, replay this map instead of advancing
+		if(reload_same_map && current_map_i >= 0 && current_map_i < (int)map_list.size())
+			BroadCastNews("You lost - retrying this map");
+		else
+			NextInMapList();
 
 		map_name = map_list[current_map_i];
 	}
+
+	reload_same_map = false;
 
 	//load map
 	if(map_name.size())
