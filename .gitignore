@@ -16,3 +16,4 @@ CMakeFiles/
 .DS_Store
 Thumbs.db
 /build-sdl3/
+build-san/
