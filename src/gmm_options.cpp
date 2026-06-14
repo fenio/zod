@@ -20,29 +20,21 @@ void GMMOptions::SetupLayout1()
 
 	next_y = GMM_TITLE_MARGIN;
 
-	volume_label.SetText("Set Volume:");
-	volume_label.SetCoords(GMM_SIDE_MARGIN, next_y);
-	volume_label.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 0);
-	volume_label.SetJustification(MMLABEL_NORMAL);
-	AddWidget(&volume_label);
-	next_y += MMLABEL_HEIGHT + 1;
+	//volume and game speed: click cycles to the next setting; the button text
+	//shows the current value (refreshed each frame in Process from live state)
+	volume_button.SetType(MMGENERIC_BUTTON);
+	volume_button.SetText("Volume:");
+	volume_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	volume_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&volume_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
 
-	volume_radio.SetCoords(GMM_SIDE_MARGIN, next_y);
-	volume_radio.SetMaxSelections(MAX_SOUND_SETTINGS);
-	AddWidget(&volume_radio);
-	next_y += MMRADIO_HEIGHT + 2;
-
-	speed_label.SetText("Set Game Speed:");
-	speed_label.SetCoords(GMM_SIDE_MARGIN, next_y);
-	speed_label.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 0);
-	speed_label.SetJustification(MMLABEL_NORMAL);
-	AddWidget(&speed_label);
-	next_y += MMLABEL_HEIGHT + 1;
-
-	speed_radio.SetCoords(GMM_SIDE_MARGIN, next_y);
-	speed_radio.SetMaxSelections(MAX_GMMOPTIONS_SPEED_SETTINGS);
-	AddWidget(&speed_radio);
-	next_y += MMRADIO_HEIGHT + 7;
+	speed_button.SetType(MMGENERIC_BUTTON);
+	speed_button.SetText("Game Speed:");
+	speed_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	speed_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&speed_button);
+	next_y += GMMWBUTTON_HEIGHT + 7;
 
 	//player preference toggles (persisted to ~/.zod_prefs)
 	mouse_button.SetType(MMGENERIC_BUTTON);
@@ -106,16 +98,9 @@ void GMMOptions::SetTimeStatuses()
 
 	pause_button.SetGreen(ztime->IsPaused());
 
-	for(int i=0;i<MAX_GMMOPTIONS_SPEED_SETTINGS;i++)
-		if(ztime->GameSpeed() <= gmmoption_speed_setting_value[i] + 0.01)
-		{
-			char speed_str[500];
-
-			sprintf(speed_str, "Set Game Speed: %.0lf%%\n", 100 * ztime->GameSpeed());
-			speed_label.SetText(speed_str);
-			speed_radio.SetSelected(i);
-			break;
-		}
+	char speed_str[64];
+	sprintf(speed_str, "Game Speed: %.0lf%%", 100 * ztime->GameSpeed());
+	speed_button.SetText(speed_str);
 }
 
 void GMMOptions::SetVolumeStatus()
@@ -129,11 +114,7 @@ void GMMOptions::SetVolumeStatus()
 	if(si < 0) return;
 	if(si >= MAX_SOUND_SETTINGS) return;
 
-	if(si != volume_radio.GetSelected())
-	{
-		volume_label.SetText("Set Volume: " + sound_setting_string[si]);
-		volume_radio.SetSelected(si);
-	}
+	volume_button.SetText("Volume: " + sound_setting_string[si]);
 }
 
 void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
@@ -174,27 +155,24 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 			zod_render_smoothing = !zod_render_smoothing;
 			ZPrefs_Save();
 		}
-		break;
-	case GMM_CLICK_EVENT:
-		if(w_ref_id == volume_radio.GetRefID())
+		else if(w_ref_id == volume_button.GetRefID())
 		{
-			//testing
-			//volume_radio.SetSelected(volume_radio.GetGMMWFlags().mmradio_si_selected);
-
+			//cycle to the next volume setting (wraps round)
+			int si = sound_setting ? *sound_setting : 0;
+			si = (si + 1) % MAX_SOUND_SETTINGS;
 			gmm_flags.set_volume = true;
-			gmm_flags.set_volume_value = volume_radio.GetGMMWFlags().mmradio_si_selected;
+			gmm_flags.set_volume_value = si;
 		}
-		else if(w_ref_id == speed_radio.GetRefID())
+		else if(w_ref_id == speed_button.GetRefID())
 		{
-			int si;
-
-			si = speed_radio.GetGMMWFlags().mmradio_si_selected;
-
-			if(si >=0 && si < MAX_GMMOPTIONS_SPEED_SETTINGS)
-			{
-				gmm_flags.set_game_speed = true;
-				gmm_flags.set_game_speed_value = gmmoption_speed_setting_value[si];
-			}
+			//find the current speed, advance to the next (wraps round)
+			int cur = MAX_GMMOPTIONS_SPEED_SETTINGS - 1;
+			for(int i=0;i<MAX_GMMOPTIONS_SPEED_SETTINGS;i++)
+				if(ztime && ztime->GameSpeed() <= gmmoption_speed_setting_value[i] + 0.01)
+					{ cur = i; break; }
+			int next = (cur + 1) % MAX_GMMOPTIONS_SPEED_SETTINGS;
+			gmm_flags.set_game_speed = true;
+			gmm_flags.set_game_speed_value = gmmoption_speed_setting_value[next];
 		}
 		break;
 	}
