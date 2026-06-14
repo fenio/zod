@@ -1,6 +1,7 @@
 #include "zserver.h"
 #include "packet_io.h"
 #include "map_gen_core.h"
+#include "zpath_debug.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -505,8 +506,11 @@ void ZServer::LoadNextMap(string override_map_name)
 		if(!zmap.Read(map_name.c_str()))
 		{
 			printf("ZServer::LoadNextMap:could not load map '%s'; falling back to random map\n", map_name.c_str());
+			ZDiag("map load FAILED: '%s' - using a random map", map_name.c_str());
 			zmap.MakeRandomMap();
 		}
+		else
+			ZDiag("game started on map: %s", map_name.c_str());
 	}
 	else
 	{

@@ -34,4 +34,18 @@ std::string ZPathLog_UnitDesc(ZObject *obj);
 
 const char *ZPathLog_WPModeName(int mode);
 
+// ---- always-on diagnostic log (zod_diag.log) ----
+//
+// A lightweight, always-on log meant for bug reports: a version/OS banner at
+// startup, key game events, and on-demand unit-state dumps (F12 in-game). Unlike
+// ZPathLog it needs no env var, and writes to a fixed, easy-to-find file so a
+// player can just attach it to a GitHub issue. Cheap (only logs on events).
+void ZDiag_Init(const char *version);
+
+// printf-style; timestamped line + newline, flushed. No-op if the log isn't open.
+void ZDiag(const char *format, ...);
+
+// path of the open diagnostic log (for telling the user where it is), or "".
+const char *ZDiag_Path();
+
 #endif

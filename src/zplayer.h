@@ -342,6 +342,7 @@ class ZPlayer : public ZClient
 		//sdl events
 		static void resize_event(ZPlayer *p, char *data, int size, int dummy);
 		bool ClassicLeftClickOrder();
+		void DumpDiagnostics();   //F12: append selected units' state to zod_diag.log (bug reports)
 		static void lclick_event(ZPlayer *p, char *data, int size, int dummy);
 		static void lunclick_event(ZPlayer *p, char *data, int size, int dummy);
 		static void rclick_event(ZPlayer *p, char *data, int size, int dummy);

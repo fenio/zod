@@ -1,5 +1,6 @@
 #include "zplayer.h"
 #include "zprefs.h"
+#include "zpath_debug.h"
 #include <math.h>
 
 using namespace COMMON;
@@ -2894,6 +2895,47 @@ bool ZPlayer::ClassicLeftClickOrder()
 	}
 
 	return true;
+}
+
+// F12: append the full state of the currently-selected unit(s) to zod_diag.log.
+// Built for bug reports - "my unit won't move / won't attack" is undebuggable
+// from a screenshot, but this dump shows the unit's orders, attack target and
+// health, which is what we actually need.
+void ZPlayer::DumpDiagnostics()
+{
+	vector<ZObject*> &sel = select_info.selected_list;
+
+	ZDiag("=== F12 dump: %d unit(s) selected ===", (int)sel.size());
+
+	if(sel.empty())
+	{
+		ZDiag("  (nothing selected - select the misbehaving unit, then press F12)");
+		AddNewsEntry("F12: select a unit first, then press F12");
+		return;
+	}
+
+	for(vector<ZObject*>::iterator i=sel.begin(); i!=sel.end(); i++)
+	{
+		ZObject *o = *i;
+		if(!o) continue;
+
+		ZDiag("unit %s  health=%d", ZPathLog_UnitDesc(o).c_str(), o->GetHealth());
+
+		vector<waypoint> &wps = o->GetWayPointList();
+		if(wps.empty())
+			ZDiag("   orders: none (idle)");
+		else
+			for(vector<waypoint>::iterator w=wps.begin(); w!=wps.end(); w++)
+				ZDiag("   order: %s -> (%d,%d) tile(%d,%d) ref#%d",
+					ZPathLog_WPModeName(w->mode), w->x, w->y, w->x / 16, w->y / 16, w->ref_id);
+
+		ZObject *atk = o->GetAttackObject();
+		if(atk) ZDiag("   attacking: %s", ZPathLog_UnitDesc(atk).c_str());
+	}
+
+	char msg[160];
+	snprintf(msg, sizeof(msg), "F12: %d unit(s) written to %s", (int)sel.size(), ZDiag_Path());
+	AddNewsEntry(msg);
 }
 
 void ZPlayer::CollectSelectables()

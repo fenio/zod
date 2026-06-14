@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a bug in the Zod Engine
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For **movement / AI bugs** ("my unit won't move", "the enemy won't attack") a screenshot usually isn't enough — the **diagnostic log** below is the single most useful thing you can attach.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at startup ("Welcome to the Zod Engine (...)"), in the window title, and on the first lines of `zod_diag.log`.
+      placeholder: "e.g. v0.4.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux, Android]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong and what you expected instead. A screenshot/clip helps for visual bugs.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: diag
+    attributes:
+      label: Diagnostic log (important for unit / movement / AI bugs)
+      description: |
+        The game always writes **`zod_diag.log`** — next to the `.exe` on Windows, or in your home folder on macOS/Linux.
+        If a specific unit is misbehaving, **select it in-game and press `F12`** to append its full state (orders, target, health) to the log, then paste or attach `zod_diag.log` here.
+      render: text

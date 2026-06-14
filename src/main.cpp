@@ -152,6 +152,9 @@ int main(int argc, char **argv)
 	//the server / pathfinding threads exist
 	ZPathLog_Init();
 
+	//always-on diagnostic log (zod_diag.log) for bug reports
+	ZDiag_Init(ZOD_VERSION);
+
 	//player preferences (mouse mode, smoothing) + env overrides
 	ZPrefs_Load();
 

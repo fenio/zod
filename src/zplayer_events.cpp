@@ -601,6 +601,10 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 		case SDLK_F3:
 			p->SendVotePass();
 			break;
+		case SDLK_F12:
+			//diagnostics: append selected units' state to zod_diag.log (bug reports)
+			p->DumpDiagnostics();
+			break;
 	}
 }
 
