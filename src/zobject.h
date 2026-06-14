@@ -420,6 +420,7 @@ class ZObject
 		virtual void SetDestroyed(bool is_destroyed);
 		void GetObjectID(unsigned char &object_type_, unsigned char &object_id_);
 		bool Selectable();
+		bool BoxSelectable();
 		void SetRefID(int id);
 		void ShowWaypoints();
 		int GetRefID();
