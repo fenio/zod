@@ -8,6 +8,8 @@ on:
   push:
     branches: [master]
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -111,3 +113,17 @@ jobs:
           name: zod-android-arm64-debug
           path: proj/app/build/outputs/apk/**/*.apk
           if-no-files-found: ignore
+
+      # On a published release, also attach the APK to the release (experimental,
+      # debug-signed arm64-v8a build).
+      - name: Attach APK to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          tag="${{ github.event.release.tag_name }}"
+          apk="$(find proj -name '*.apk' | head -1)"
+          out="zod-android-arm64-${tag}-debug.apk"
+          cp "$apk" "$out"
+          gh release upload "$tag" "$out" --repo "$GITHUB_REPOSITORY" --clobber
