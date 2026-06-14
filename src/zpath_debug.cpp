@@ -73,6 +73,78 @@ void ZPathLog(const char *format, ...)
 	SDL_UnlockMutex(log_mutex);
 }
 
+// ---- always-on diagnostic log (zod_diag.log) ----
+
+static FILE *diag_file = NULL;
+static SDL_Mutex *diag_mutex = NULL;
+static Uint64 diag_start_ticks = 0;
+static std::string diag_path;
+
+void ZDiag_Init(const char *version)
+{
+	// prefer the game dir (cwd, where a portable Windows build lives so the file
+	// sits right next to the .exe); fall back to $HOME for read-only installs
+	// (e.g. a Homebrew Cellar), so we always end up with a writable log.
+	const char *candidates[2] = { "zod_diag.log", NULL };
+	std::string home_path;
+	const char *home = getenv("HOME");
+	if(home && home[0]) { home_path = std::string(home) + "/zod_diag.log"; candidates[1] = home_path.c_str(); }
+
+	for(int i = 0; i < 2 && !diag_file; i++)
+	{
+		if(!candidates[i]) continue;
+		diag_file = fopen(candidates[i], "w");
+		if(diag_file) diag_path = candidates[i];
+	}
+	if(!diag_file) return;
+
+	diag_mutex = SDL_CreateMutex();
+	diag_start_ticks = SDL_GetTicks();
+
+	const char *os =
+#if defined(_WIN32)
+		"windows";
+#elif defined(__ANDROID__)
+		"android";
+#elif defined(__APPLE__)
+		"macos";
+#else
+		"linux";
+#endif
+
+	char date[64];
+	time_t now = time(NULL);
+	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
+	ZDiag("zod diagnostic log");
+	ZDiag("started %s | version %s | os %s", date, version ? version : "?", os);
+	ZDiag("(in-game: select a misbehaving unit and press F12 to append its state here)");
+
+	printf("diagnostic log -> %s\n", diag_path.c_str());
+}
+
+void ZDiag(const char *format, ...)
+{
+	va_list ap;
+
+	if(!diag_file) return;
+
+	if(diag_mutex) SDL_LockMutex(diag_mutex);
+
+	fprintf(diag_file, "[%8.3f] ", (SDL_GetTicks() - diag_start_ticks) / 1000.0);
+
+	va_start(ap, format);
+	vfprintf(diag_file, format, ap);
+	va_end(ap);
+
+	fputc('\n', diag_file);
+	fflush(diag_file);
+
+	if(diag_mutex) SDL_UnlockMutex(diag_mutex);
+}
+
+const char *ZDiag_Path() { return diag_path.c_str(); }
+
 std::string ZPathLog_UnitDesc(ZObject *obj)
 {
 	char buf[160];

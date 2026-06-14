@@ -17,3 +17,5 @@ CMakeFiles/
 Thumbs.db
 /build-sdl3/
 build-san/
+zod_diag.log
+zod_path.log
