@@ -538,19 +538,19 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 			//the in-game menu instead (it has Quit, which itself confirms).
 			p->LoadMainMenu(GMM_MAIN_MAIN, true);
 			break;
-		case 305: // rctrl
+		case SDLK_RCTRL: // rctrl
 			p->rctrl_down = true;
 			break;
-		case 306: // lctrl
+		case SDLK_LCTRL: // lctrl
 			p->lctrl_down = true;
 			break;
-		case 307: // ralt
+		case SDLK_RALT: // ralt
 			p->ralt_down = true;
 			break;
-		case 308: // lalt
+		case SDLK_LALT: // lalt
 			p->lalt_down = true;
 			break;
-		case 273: //up
+		case SDLK_UP: //up
 			//p->zmap.ShiftViewUp();
 			if(!p->up_down)
 			{
@@ -559,7 +559,7 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 				p->last_vert_scroll_time = current_time();
 			}
 			break;
-		case 274: //down
+		case SDLK_DOWN: //down
 			//p->zmap.ShiftViewDown();
 			if(!p->down_down)
 			{
@@ -568,7 +568,7 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 				p->last_vert_scroll_time = current_time();
 			}
 			break;
-		case 275: //right
+		case SDLK_RIGHT: //right
 			//p->zmap.ShiftViewRight();
 			if(!p->right_down)
 			{
@@ -577,7 +577,7 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 				p->last_horz_scroll_time = current_time();
 			}
 			break;
-		case 276: //left
+		case SDLK_LEFT: //left
 			//p->zmap.ShiftViewLeft();
 			if(!p->left_down)
 			{
@@ -586,10 +586,10 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 				p->last_horz_scroll_time = current_time();
 			}
 			break;
-		case 304: //left shift
+		case SDLK_LSHIFT: //left shift
 			p->lshift_down = true;
 			break;
-		case 303: //right shift
+		case SDLK_RSHIFT: //right shift
 			p->rshift_down = true;
 			break;
 		case SDLK_F1:
@@ -619,35 +619,35 @@ void ZPlayer::keyup_event(ZPlayer *p, char *data, int size, int dummy)
 
 	switch(the_key)
 	{
-		case 305: // rctrl
+		case SDLK_RCTRL: // rctrl
 			p->rctrl_down = false;
 			break;
-		case 306: // lctrl
+		case SDLK_LCTRL: // lctrl
 			p->lctrl_down = false;
 			break;
-		case 307: // ralt
+		case SDLK_RALT: // ralt
 			p->ralt_down = false;
 			break;
-		case 308: // lalt
+		case SDLK_LALT: // lalt
 			p->lalt_down = false;
 			break;
-		case 273: //up
+		case SDLK_UP: //up
 			p->up_down = false;
 			break;
-		case 274: //down
+		case SDLK_DOWN: //down
 			p->down_down = false;
 			break;
-		case 275: //right
+		case SDLK_RIGHT: //right
 			p->right_down = false;
 			break;
-		case 276: //left
+		case SDLK_LEFT: //left
 			p->left_down = false;
 			break;
-		case 304: //left shift
+		case SDLK_LSHIFT: //left shift
 			p->lshift_down = false;
 			if(!p->ShiftDown()) p->SendDevWayPointsOfSelected();
 			break;
-		case 303: //right shift
+		case SDLK_RSHIFT: //right shift
 			p->rshift_down = false;
 			if(!p->ShiftDown()) p->SendDevWayPointsOfSelected();
 			break;
