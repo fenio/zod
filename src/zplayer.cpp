@@ -613,10 +613,12 @@ void ZPlayer::ApplyZoom(double new_zoom)
 	if(new_zoom < view_min_zoom) new_zoom = view_min_zoom;
 	if(new_zoom > 3.0) new_zoom = 3.0;
 
+	bool rebuilt = false;
 	if(fabs(new_zoom - view_zoom) >= 0.0001)
 	{
 		view_zoom = new_zoom;
 		RebuildView((int)lround(base_w / view_zoom), (int)lround(base_h / view_zoom));
+		rebuilt = true;
 	}
 
 	//always report the current level (even at the clamp) so it's easy to find
@@ -624,6 +626,11 @@ void ZPlayer::ApplyZoom(double new_zoom)
 	char msg[64];
 	sprintf(msg, "zoom: %d%%", (int)lround(view_zoom * 100));
 	AddNewsEntry(msg);
+
+	//diagnostic: lets a remote tester confirm zoom input is reaching here and
+	//whether the framebuffer was rebuilt (vs clamped) - attach zod_diag.log
+	ZDiag("zoom -> %d%% (min %d%%, framebuffer %s)", (int)lround(view_zoom * 100),
+		(int)lround(view_min_zoom * 100), rebuilt ? "rebuilt" : "unchanged/clamped");
 }
 
 int ZPlayer::Load_Graphics(void *p)
@@ -2692,6 +2699,18 @@ void ZPlayer::ProcessSDL()
 			HandleFingerUp(event.tfinger);
 			break;
 		case SDL_EVENT_KEY_DOWN:
+			//zoom keys handled here by SDL3 keycode, so they work regardless of
+			//keyboard layout, numpad vs main row, or text-input/unicode quirks
+			//(the old unicode path dropped numpad +/- and was platform-fragile).
+			//Skipped while typing a chat message so '-'/'=' insert normally.
+			if(!collect_chat_message)
+			{
+				SDL_Keycode zk = event.key.key;
+				if(zk == SDLK_EQUALS || zk == SDLK_PLUS || zk == SDLK_KP_PLUS)
+					ApplyZoom(view_zoom + 0.1);
+				else if(zk == SDLK_MINUS || zk == SDLK_KP_MINUS)
+					ApplyZoom(view_zoom - 0.1);
+			}
 			the_key.the_key = event.key.key;
 			the_key.the_unicode = (event.key.key < 128) ? event.key.key : 0;
 			ehandler.ProcessEvent(SDL_EVENT, KEYDOWN_EVENT_, (char*)&the_key, sizeof(key_event), 0);
@@ -3572,7 +3591,11 @@ bool ZPlayer::ShiftDown()
 
 bool ZPlayer::CtrlDown()
 {
-	return lctrl_down || rctrl_down;
+	//lctrl_down/rctrl_down are set from a key switch that still uses SDL1 keycodes
+	//(case 305/306), which never match SDL3's keycodes - so they stay false and
+	//Ctrl+wheel zoom / Ctrl-attack-move never fired. Ask SDL for the live modifier
+	//state instead (same fix AltDown already uses).
+	return (SDL_GetModState() & SDL_KMOD_CTRL) != 0;
 }
 
 bool ZPlayer::AltDown()
@@ -4191,14 +4214,7 @@ void ZPlayer::ProcessUnicode(int key)
 			//grabs). Appends the selected unit's group state to zod_diag.log.
 			DumpDiagnostics();
 		}
-		else if(key == '=' || key == '+')   //zoom in (keyboard; trackpad-friendly)
-		{
-			ApplyZoom(view_zoom + 0.1);
-		}
-		else if(key == '-' || key == '_')   //zoom out
-		{
-			ApplyZoom(view_zoom - 0.1);
-		}
+		//(zoom +/- now handled by keycode in ProcessSDL, so numpad works too)
 		else if(key == 'm' || key == 'M')
 		{
 			if(ZVideo_GetGrab())
