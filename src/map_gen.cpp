@@ -645,7 +645,9 @@ static void place_flags()
 		if(is_fort) continue;
 
 		map_zone &z = zones[zi];
-		int fx = z.x + z.w / 2, fy = z.y + z.h / 2;   // fallback: centre
+		int fx = -1, fy = -1;
+
+		// prefer a varied random open-ground spot in the zone interior
 		for(int a = 0; a < 50; a++)
 		{
 			int rx = z.x + 3 + rnd(z.w > 6 ? z.w - 6 : 1);
@@ -653,6 +655,26 @@ static void place_flags()
 			int i = idx(rx, ry);
 			if(rx > 0 && ry > 0 && rx < W - 1 && ry < H - 1 && kind[i] == 'g' && !reserved[i])
 				{ fx = rx; fy = ry; break; }
+		}
+
+		// the random tries can all miss in a cramped or watery zone; scan the whole
+		// zone so the flag still lands on open ground (never water/road/rock) rather
+		// than the old unchecked centre fallback that could strand it in a lake
+		if(fx < 0)
+			for(int ry = z.y + 1; ry < z.y + z.h - 1 && fx < 0; ry++)
+				for(int rx = z.x + 1; rx < z.x + z.w - 1; rx++)
+				{
+					int i = idx(rx, ry);
+					if(rx > 0 && ry > 0 && rx < W - 1 && ry < H - 1 && kind[i] == 'g' && !reserved[i])
+						{ fx = rx; fy = ry; break; }
+				}
+
+		// no open ground anywhere in the zone (degenerate): carve the centre to
+		// ground so the flag is on dry, reachable land instead of in the water
+		if(fx < 0)
+		{
+			fx = z.x + z.w / 2; fy = z.y + z.h / 2;
+			set_ground(fx, fy);
 		}
 		// reserve the flag cell + a keepout ring WITHOUT clearing terrain (it sits
 		// on open ground already; reserve_rect's border would erase an adjacent road)
