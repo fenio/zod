@@ -389,9 +389,14 @@ static void make_zones()
 	#define ZONE_IN(c0, c1, r0, r1) (((r0) + rnd((r1) - (r0) + 1)) * cols + ((c0) + rnd((c1) - (c0) + 1)))
 	if(enemies + 1 == 2)
 	{
-		bool top_first = rnd(2);
-		fort_zone.push_back(ZONE_IN(0, cols - 1, top_first ? 0 : rows - hr, top_first ? hr - 1 : rows - 1));
-		fort_zone.push_back(ZONE_IN(0, cols - 1, top_first ? rows - hr : 0, top_first ? rows - 1 : hr - 1));
+		// DIAGONAL corners: opposite horizontal halves AND top/bottom, so the two
+		// bases are well separated both ways. (Picking a random column for each
+		// independently let them land in the same column - stacked and too close.)
+		bool flip = rnd(2);
+		int lc0 = 0, lc1 = hc - 1;             // left-half columns
+		int rc0 = cols - hc, rc1 = cols - 1;   // right-half columns
+		fort_zone.push_back(ZONE_IN(flip ? lc0 : rc0, flip ? lc1 : rc1, 0, hr - 1));            // top, one side
+		fort_zone.push_back(ZONE_IN(flip ? rc0 : lc0, flip ? rc1 : lc1, rows - hr, rows - 1));  // bottom, other side
 	}
 	else
 	{
@@ -1026,18 +1031,37 @@ static void place_scatter()
 	(void)tries;
 	SPOT(true, (W*H)/900, add_object(x, y, 0, MAP_ITEM_OBJECT, HUT_ITEM))
 	SPOT(true, 5, add_object(x, y, 1, MAP_ITEM_OBJECT, GRENADES_ITEM))
-	int veh = (n_vehicles < 0) ? enemies + 1 : n_vehicles;  // <0 = auto
-	SPOT(x < W - 4 && y < H - 4 && area_free(x, y, 2, 2)
-		&& kind[idx(x+1,y)] == 'g' && kind[idx(x,y+1)] == 'g' && kind[idx(x+1,y+1)] == 'g'
-		&& !keepout[idx(x+1,y)] && !keepout[idx(x,y+1)] && !keepout[idx(x+1,y+1)],
-		veh, {
-			// a vehicle is a movable UNIT: just reserve its 2x2 so nothing else
-			// spawns there — do NOT reserve_rect (that clears terrain to ground and
-			// its 1-tile border would punch a ground notch into an adjacent road)
-			reserved[idx(x+1,y)] = reserved[idx(x,y+1)] = reserved[idx(x+1,y+1)] = true;
-			add_object(x, y, 0, VEHICLE_OBJECT, random_neutral_vehicle());
-		})
 	#undef SPOT
+
+	// neutral/orphaned vehicles: spread them EVENLY across the map so no side is
+	// favoured - every player should have similar access to hijack them. Enforce
+	// a minimum spacing (Poisson-disk style) that relaxes as attempts run out, so
+	// they fan out instead of clumping where the random scatter happened to land.
+	int veh = (n_vehicles < 0) ? enemies + 1 : n_vehicles;  // <0 = auto
+	vector<int> vx, vy;
+	int base_sep = (W < H ? W : H) / 3;
+	for(int k = 0, tries = 0; k < veh && tries < 6000; tries++)
+	{
+		int x = 3 + rnd(W - 6), y = 3 + rnd(H - 6), i = idx(x, y);
+
+		if(kind[i] != 'g' || reserved[i] || keepout[i]) continue;
+		if(!(x < W - 4 && y < H - 4 && area_free(x, y, 2, 2)
+			&& kind[idx(x+1,y)] == 'g' && kind[idx(x,y+1)] == 'g' && kind[idx(x+1,y+1)] == 'g'
+			&& !keepout[idx(x+1,y)] && !keepout[idx(x,y+1)] && !keepout[idx(x+1,y+1)])) continue;
+
+		//spacing shrinks toward 0 as tries climb, guaranteeing placement
+		int sep = base_sep * (6000 - tries) / 6000;
+		bool too_close = false;
+		for(size_t v = 0; v < vx.size() && !too_close; v++)
+			if(abs(vx[v] - x) < sep && abs(vy[v] - y) < sep) too_close = true;
+		if(too_close) continue;
+
+		//a vehicle is a movable UNIT: reserve its 2x2 without clearing terrain
+		reserved[i] = reserved[idx(x+1,y)] = reserved[idx(x,y+1)] = reserved[idx(x+1,y+1)] = true;
+		add_object(x, y, 0, VEHICLE_OBJECT, random_neutral_vehicle());
+		vx.push_back(x); vy.push_back(y);
+		k++;
+	}
 }
 
 static bool write_map()
