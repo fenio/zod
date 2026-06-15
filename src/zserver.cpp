@@ -510,7 +510,11 @@ void ZServer::LoadNextMap(string override_map_name)
 			zmap.MakeRandomMap();
 		}
 		else
+		{
 			ZDiag("game started on map: %s", map_name.c_str());
+			ZDiag("active auto-grab radius: vehicle=%d flag=%d (px)",
+				zsettings.auto_grab_vehicle_distance, zsettings.auto_grab_flag_distance);
+		}
 	}
 	else
 	{
