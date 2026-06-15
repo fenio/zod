@@ -273,8 +273,8 @@ void ZSettings::SetDefaults()
 	map_item_turrent_damage = 50.0 / 240;
 
 	agro_distance = 40;
-	auto_grab_vehicle_distance = 220;
-	auto_grab_flag_distance = 220;
+	auto_grab_vehicle_distance = 160;
+	auto_grab_flag_distance = 160;
 	building_auto_repair_time = 10 * 60;
 	building_auto_repair_random_additional_time = 60;
 	max_turrent_horizontal_distance = 300;

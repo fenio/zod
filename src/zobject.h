@@ -533,6 +533,13 @@ class ZObject
 		void Engage(ZObject *attack_object_);
 		bool Disengage();
 		void CheckPassiveEngage(double &the_time, ZOLists &ols);
+		void CheckOpportunisticGrab(double &the_time, ZOLists &ols);   //#60: grab objects while moving
+		//#48/#60: peel a single group member off to grab, instead of the whole group
+		bool IsOnGrabDetour();
+		bool TargetAlreadyClaimed(int target_ref, ZOLists &ols);
+		bool NonGroupFriendlyCloser(ZObject *target, double dist, ZOLists &ols);
+		ZObject* ClosestGrabMember(ZObject *target, ZOLists &ols);
+		void GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode);
 		bool IsMoving();
 		//virtual bool ServerFireTurrentMissile(int &x_, int &y_, int &damage, int &radius, double &offset_time);
 		virtual vector<fire_missile_info> ServerFireTurrentMissile(int &damage, int &radius);
@@ -612,6 +619,7 @@ class ZObject
 		double next_attack_time;
 		double last_loc_set_time;
 		double next_check_passive_attack_time;
+		double next_opportunistic_grab_time;   //#60: throttle for grab-while-moving scan
 		double next_loc_update_time;
 		double loc_update_int;
 		object_location loc;
