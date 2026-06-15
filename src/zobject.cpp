@@ -5452,7 +5452,7 @@ void ZObject::GetRemainingRoute(vector<ZPath_Finding_AStar::pf_point> &out)
 
 bool sort_objects_func (ZObject *a, ZObject *b)
 {
-	// depth sort by the sprite's bottom edge. When two overlapping units share
+	// depth sort by the sprite's bottom edge. When two overlapping objects share
 	// the same bottom-y the comparator would call them equal, and std::sort
 	// (unstable) is then free to swap them from frame to frame - which renders
 	// as flicker on the overlapping pixels (issue #49). Break ties on the stable
@@ -5460,6 +5460,12 @@ bool sort_objects_func (ZObject *a, ZObject *b)
 	int ay = a->loc.y + a->height_pix;
 	int by = b->loc.y + b->height_pix;
 	if(ay != by) return ay < by;
-	return a->ref_id < b->ref_id;
+	if(a->ref_id != b->ref_id) return a->ref_id < b->ref_id;
+	// final tiebreak: the object's address is unique and stable within a session,
+	// so the order stays total - and thus deterministic frame to frame - even if
+	// two objects ever share a ref_id (e.g. the -1 default before one is assigned,
+	// or a static map decoration that slips through). Otherwise the platform's
+	// std::sort is free to flicker them (issue #50, the static-object form of #49).
+	return a < b;
 }
 
