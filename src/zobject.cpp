@@ -83,6 +83,7 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	health = max_health;
 	last_wp.mode = -1;
 	next_check_passive_attack_time = 0;
+	next_opportunistic_grab_time = 0;
 	buildlist = NULL;
 	connected_zone = NULL;
 	unit_limit_reached = NULL;
@@ -1612,6 +1613,9 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 	//see if they want to attack someone nearby
 	CheckPassiveEngage(the_time, ols);
 
+	//#60: while moving on a player order, grab capturable objects passed close to
+	CheckOpportunisticGrab(the_time, ols);
+
 	//let them do their damage
 	ProcessAttackDamage(tmap, attack_player_given);
 
@@ -1905,23 +1909,261 @@ void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols)
 				}
 			}
 
-			obj_choice->GetCenterCords(ox, oy);
-
-			waypoint new_movepoint;
-
-			new_movepoint.mode = waypoint_mode;
-			new_movepoint.ref_id = obj_choice->GetRefID();
-			new_movepoint.x = ox;
-			new_movepoint.y = oy;
-			new_movepoint.attack_to = true;
-
-			waypoint_list.push_back(new_movepoint);
-
-			//doesn't hurt to call this if we don't have minions
-			//but needed if we do
-			CloneMinionWayPoints();
+			//peel off exactly one member - the nearest free minion, or ourself
+			//if lone - rather than sending the whole group at one object (#48),
+			//and only if nobody is already claiming this object
+			if(!TargetAlreadyClaimed(obj_choice->GetRefID(), ols))
+			{
+				ZObject *grabber = ClosestGrabMember(obj_choice, ols);
+				if(grabber)
+					GiveGrabWaypoint(grabber, obj_choice, waypoint_mode);
+			}
 		}
 	}
+}
+
+// #60: a robot executing a normal player MOVE order should grab capturable
+// objects it passes close to (empty vehicles/cannons to crew, enemy/neutral
+// flags to take, grenades to pick up) instead of walking past them. We insert
+// the grab as a FRONT-of-queue waypoint, so the unit diverts to it and then
+// resumes the original move once the grab waypoint is done ("divert & resume").
+// Only fires on a player MOVE_WP (the engine's internal FORCE_MOVE_WP repositions
+// and grab waypoints themselves are skipped), within the same small auto-grab
+// radii used when idle, so it only triggers for things genuinely on the way.
+// A "grab detour" is an engine-inserted grab/enter/pickup waypoint (not a player
+// order) that a single group member peels off to perform. They carry attack_to
+// with player_given false; that signature distinguishes a member mid-detour from
+// one following the leader's shared path, so the leader's re-clones leave it be.
+bool ZObject::IsOnGrabDetour()
+{
+	//scan the WHOLE list, not just the front: while navigating, ProcessMove
+	//front-inserts internal DODGE_WP/FORCE_MOVE_WP waypoints ahead of the grab.
+	//If we only checked the front we'd briefly read "not detouring" during those,
+	//and the leader's next re-clone would clobber the detour - causing the unit
+	//to oscillate between the grab target and the group's path.
+	for(vector<waypoint>::iterator i=waypoint_list.begin(); i!=waypoint_list.end(); i++)
+	{
+		if(i->player_given) continue;       //a player order, not an engine grab
+		if(!i->attack_to) continue;         //grabs carry attack_to; dodges/agro don't
+
+		if(i->mode == ENTER_WP || i->mode == MOVE_WP || i->mode == PICKUP_GRENADES_WP)
+			return true;
+	}
+
+	return false;
+}
+
+// Is any friendly unit already on its way to grab this target? Scans their grab
+// waypoints (engine grabs: attack_to set, player_given clear) by ref_id. This is
+// the deterministic guard against several units piling onto one object - it works
+// even after a grabber has been detached from its group (unlike a member check),
+// and unlike a distance check it doesn't flicker while the first grabber is still
+// pulling ahead of the pack.
+bool ZObject::TargetAlreadyClaimed(int target_ref, ZOLists &ols)
+{
+	for(vector<ZObject*>::iterator o=ols.mobile_olist.begin(); o!=ols.mobile_olist.end(); o++)
+	{
+		if(*o == this) continue;
+		if((*o)->GetOwner() != owner) continue;
+
+		vector<waypoint> &wl = (*o)->GetWayPointList();
+		for(vector<waypoint>::iterator w=wl.begin(); w!=wl.end(); w++)
+			if(!w->player_given && w->attack_to && w->ref_id == target_ref
+				&& (w->mode == ENTER_WP || w->mode == MOVE_WP || w->mode == PICKUP_GRENADES_WP))
+				return true;
+	}
+
+	return false;
+}
+
+// Is a friendly robot that is NOT in our group closer to this target than `dist`?
+// If so, that other unit/group should take it. Our own minions are excluded so
+// the group's internal "closest member" choice stands (#48/#60).
+bool ZObject::NonGroupFriendlyCloser(ZObject *target, double dist, ZOLists &ols)
+{
+	for(vector<ZObject*>::iterator o=ols.mobile_olist.begin(); o!=ols.mobile_olist.end(); o++)
+	{
+		if(*o == this) continue;
+		if((*o)->GetGroupLeader() == this) continue;   //our own minion
+
+		if((*o)->GetOwner() != owner) continue;
+
+		unsigned char ot, oid;
+		(*o)->GetObjectID(ot, oid);
+		if(ot != ROBOT_OBJECT) continue;
+
+		if((*o)->DistanceFromObject(*target) < dist) return true;
+	}
+
+	return false;
+}
+
+// Pick the single group member that should peel off to grab `target`: the nearest
+// free minion, or ourself when we are a lone unit. We never pick the leader of a
+// non-empty group, because the server re-clones a leader's waypoints to all its
+// minions - which is exactly the "whole group piles onto one object" bug (#48/#60).
+// Returns NULL if no eligible member, or if another group is closer.
+ZObject* ZObject::ClosestGrabMember(ZObject *target, ZOLists &ols)
+{
+	int tref = target->GetRefID();
+	ZObject *best = NULL;
+	double best_d = 0;
+
+	if(minion_list.empty())
+	{
+		//a lone unit grabs for itself (no minions to wrongly clone to)
+		if(CanMove()) { best = this; best_d = DistanceFromObject(*target); }
+	}
+	else
+	{
+		//a group: peel off the nearest free minion, never the leader
+		for(vector<ZObject*>::iterator i=minion_list.begin(); i!=minion_list.end(); i++)
+		{
+			if(!*i) continue;
+
+			//a member is already detouring to this exact target: leave it to
+			//them, so we don't keep sending fresh minions over successive scans
+			if((*i)->IsOnGrabDetour() && (*i)->GetWayPointList().front().ref_id == tref)
+				return NULL;
+
+			if(!(*i)->CanMove()) continue;
+			if((*i)->IsOnGrabDetour()) continue;   //already busy with another grab
+
+			double d = (*i)->DistanceFromObject(*target);
+			if(!best || d < best_d) { best = *i; best_d = d; }
+		}
+	}
+
+	if(!best) return NULL;
+	if(NonGroupFriendlyCloser(target, best_d, ols)) return NULL;
+
+	return best;
+}
+
+// Hand `grabber` a front-of-queue grab/enter/pickup waypoint for `target` and flag
+// it for relay. Front-inserting means: a moving minion diverts then resumes the
+// group's path (rejoining at the destination - or becoming the vehicle if it
+// entered one); an idle minion simply has the grab as its only waypoint.
+void ZObject::GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode)
+{
+	int ox, oy;
+	target->GetCenterCords(ox, oy);
+
+	waypoint grab;
+	grab.mode = mode;
+	grab.ref_id = target->GetRefID();
+	grab.x = ox;
+	grab.y = oy;
+	grab.attack_to = true;
+	grab.player_given = false;   //engine grab, not a player order
+
+	vector<waypoint> &wl = grabber->GetWayPointList();
+	wl.insert(wl.begin(), grab);
+
+	//detach the grabber from our group so it owns this detour outright. It peels
+	//off, does the grab, then walks its own copy of the route on to the
+	//destination. Being independent means our re-clones can't oscillate it back
+	//(the old bug) nor strand it with our emptied path when we arrive (the
+	//straggler bug); a vehicle grab then deletes it, a flag/grenade grab just
+	//leaves it travelling on. Mirrors the engine's own minion-leaves handling.
+	//(grabber==this only for a lone unit, which has no group to leave.)
+	if(grabber != this && grabber->GetGroupLeader() == this)
+	{
+		RemoveGroupMinion(grabber);
+		grabber->SetGroupLeader(NULL);
+	}
+
+	//redirect now; we deliberately do NOT set updated_waypoints, so this
+	//automatic grab does not flash a path line on the client (matching how the
+	//original idle auto-grab moved silently via location updates). Movement still
+	//syncs because ProcessMove relays velocity/location as the unit walks.
+	grabber->SetVelocity();
+
+	//timeline: who was sent to grab what. Same target ref# appearing for several
+	//grabbers = a piling-on bug; different refs = each unit on its own side-quest.
+	ZDiag("GRAB %s -> %s ref#%d (mode %s)%s", ZPathLog_UnitDesc(grabber).c_str(),
+		ZPathLog_UnitDesc(target).c_str(), target->GetRefID(), ZPathLog_WPModeName(mode),
+		grabber == this ? " [lone]" : " [peeled from group]");
+}
+
+void ZObject::CheckOpportunisticGrab(double &the_time, ZOLists &ols)
+{
+	if(object_type != ROBOT_OBJECT) return;
+	if(owner == NULL_TEAM) return;
+	if(IsMinion()) return;
+	if(!CanMove()) return;
+
+	//only while carrying out a player move order (not internal force-moves, and
+	//not while already diverting to a grab - those waypoints are not player_given)
+	if(waypoint_list.empty()) return;
+	waypoint &front = *waypoint_list.begin();
+	if(front.mode != MOVE_WP || !front.player_given) return;
+
+	//throttle: this scan walks the object lists
+	if(the_time < next_opportunistic_grab_time) return;
+	next_opportunistic_grab_time = the_time + 0.5;
+
+	ZObject *best = NULL;
+	int best_mode = MOVE_WP;
+	double best_dist = 0;
+
+	//empty vehicles / cannons to crew (same rule as the idle auto-enter)
+	for(vector<ZObject*>::iterator o=ols.passive_engagable_olist.begin(); o!=ols.passive_engagable_olist.end(); o++)
+	{
+		unsigned char ot, oid;
+		int ox, oy;
+		(*o)->GetObjectID(ot, oid);
+		(*o)->GetCenterCords(ox, oy);
+
+		if((*o)->CanBeEntered() && WithinAutoEnterRadius(ox, oy)
+			&& !(ot == VEHICLE_OBJECT && oid == APC) && !(just_left_cannon && ot == CANNON_OBJECT))
+		{
+			double d = DistanceFromObject(**o);
+			if(!best || d < best_dist) { best = *o; best_mode = ENTER_WP; best_dist = d; }
+		}
+	}
+
+	//capturable flags
+	for(vector<ZObject*>::iterator o=ols.flag_olist.begin(); o!=ols.flag_olist.end(); o++)
+	{
+		unsigned char ot, oid;
+		int ox, oy;
+		(*o)->GetObjectID(ot, oid);
+		if(ot != MAP_ITEM_OBJECT || oid != FLAG_ITEM) continue;
+		if((*o)->GetOwner() == owner) continue;
+		(*o)->GetCenterCords(ox, oy);
+		if(!WithinAutoGrabFlagRadius(ox, oy)) continue;
+
+		double d = DistanceFromObject(**o);
+		if(!best || d < best_dist) { best = *o; best_mode = MOVE_WP; best_dist = d; }
+	}
+
+	//grenades
+	if(CanPickupGrenades())
+	for(vector<ZObject*>::iterator o=ols.grenades_olist.begin(); o!=ols.grenades_olist.end(); o++)
+	{
+		unsigned char ot, oid;
+		int ox, oy;
+		(*o)->GetObjectID(ot, oid);
+		if(ot != MAP_ITEM_OBJECT || oid != GRENADES_ITEM) continue;
+		(*o)->GetCenterCords(ox, oy);
+		if(!WithinAutoEnterRadius(ox, oy)) continue;
+
+		double d = DistanceFromObject(**o);
+		if(!best || d < best_dist) { best = *o; best_mode = PICKUP_GRENADES_WP; best_dist = d; }
+	}
+
+	if(!best) return;
+
+	//someone (group member or already-peeled unit) is on it: don't pile on
+	if(TargetAlreadyClaimed(best->GetRefID(), ols)) return;
+
+	//peel off exactly one member - the nearest free minion, or ourself if lone.
+	//the rest of the group keeps marching to the player's destination.
+	ZObject *grabber = ClosestGrabMember(best, ols);
+	if(!grabber) return;
+
+	GiveGrabWaypoint(grabber, best, best_mode);
 }
 
 bool ZObject::EstimateMissileTarget(ZObject *target, int &tx, int &ty)
@@ -2590,9 +2832,12 @@ void ZObject::ProcessPickupWP(vector<waypoint>::iterator &wp, double time_dif, b
 	//are we there?
 	if(target_object->UnderCursor(center_x, center_y))
 	{
+		//see ENTER_WP: a minion deliberately peeled off to grab these may complete
+		bool deliberate_grab = (!wp->player_given && wp->attack_to);
+
 		KillWP(wp);
 
-		if(!IsMinion()) 
+		if(!IsMinion() || deliberate_grab)
 		{
 			sflags.do_pickup_grenade_anim = true;
 			sflags.updated_grenade_amount = true;
@@ -2708,9 +2953,15 @@ void ZObject::ProcessEnterWP(vector<waypoint>::iterator &wp, double time_dif, bo
 	//are we at the target?
 	if(target_object->UnderCursor(cx, cy))
 	{
+		//a minion normally won't enter (it just follows the leader), but if it
+		//was deliberately peeled off to grab this (an engine grab waypoint:
+		//attack_to, not player_given) it must be allowed to. Entering deletes the
+		//robot, which auto-removes it from the group (#48/#60).
+		bool deliberate_grab = (!wp->player_given && wp->attack_to);
+
 		KillWP(wp);
 
-		if(!IsMinion())
+		if(!IsMinion() || deliberate_grab)
 		{
 			sflags.entered_target_ref_id = target_object->GetRefID();
 		}
@@ -2740,7 +2991,20 @@ void ZObject::ProcessEnterWP(vector<waypoint>::iterator &wp, double time_dif, bo
 		sflags.updated_route = true;
 	}
 	else
+	{
+		//reached the end of the path but our center never landed inside the
+		//target's sprite. If it can still be entered and we are touching it,
+		//board anyway rather than giving up - otherwise a moving auto-grabber
+		//that can't path exactly onto a (often small) vehicle just walks off and
+		//hands it to the next unit. A minion may board only if it was
+		//deliberately peeled off to grab (an engine grab waypoint).
+		if(target_object && target_object->CanBeEntered()
+			&& (!IsMinion() || (!wp->player_given && wp->attack_to))
+			&& IntersectsObject(*target_object))
+			sflags.entered_target_ref_id = target_object->GetRefID();
+
 		KillWP(wp);
+	}
 }
 
 void ZObject::ProcessDodgeWP(vector<waypoint>::iterator &wp, double time_dif, bool is_new, ZOLists &ols, ZMap &tmap)
@@ -4688,6 +4952,11 @@ void ZObject::CloneMinionWayPoints()
 	for(vector<ZObject*>::iterator i=minion_list.begin();i!=minion_list.end();i++)
 	{
 		if(!*i) continue;
+
+		//a minion that has peeled off to grab something keeps its own detour;
+		//don't overwrite it with the leader's shared path (#48/#60). When the
+		//grab is done its front waypoint is no longer a detour and it re-syncs.
+		if((*i)->IsOnGrabDetour()) continue;
 
 		(*i)->GetWayPointList() = waypoint_list;
 		(*i)->SetVelocity();

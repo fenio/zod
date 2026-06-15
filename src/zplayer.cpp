@@ -2914,27 +2914,104 @@ void ZPlayer::DumpDiagnostics()
 		return;
 	}
 
+	//gather the full movement group(s) of whatever is selected, de-duplicated, so
+	//pressing F12 on any member dumps the whole leader+minions picture (the grab
+	//bugs live in that relationship, not in one unit)
+	vector<ZObject*> dump;
 	for(vector<ZObject*>::iterator i=sel.begin(); i!=sel.end(); i++)
 	{
 		ZObject *o = *i;
 		if(!o) continue;
 
-		ZDiag("unit %s  health=%d", ZPathLog_UnitDesc(o).c_str(), o->GetHealth());
+		ZObject *leader = o->GetGroupLeader() ? o->GetGroupLeader() : o;
+
+		vector<ZObject*> grp;
+		grp.push_back(leader);
+		for(vector<ZObject*>::iterator m=leader->GetMinionList().begin(); m!=leader->GetMinionList().end(); m++)
+			if(*m) grp.push_back(*m);
+
+		for(vector<ZObject*>::iterator g=grp.begin(); g!=grp.end(); g++)
+		{
+			bool dup = false;
+			for(vector<ZObject*>::iterator d=dump.begin(); d!=dump.end(); d++)
+				if(*d == *g) { dup = true; break; }
+			if(!dup) dump.push_back(*g);
+		}
+	}
+
+	for(vector<ZObject*>::iterator i=dump.begin(); i!=dump.end(); i++)
+	{
+		ZObject *o = *i;
+		if(!o) continue;
+
+		int cx, cy;
+		o->GetCenterCords(cx, cy);
+
+		//role within the movement group
+		const char *role = "solo";
+		if(o->GetGroupLeader())            role = "MINION";
+		else if(o->GetMinionList().size()) role = "LEADER";
+
+		ZDiag("unit %s  health=%d  tile(%d,%d)  %s%s%s",
+			ZPathLog_UnitDesc(o).c_str(), o->GetHealth(), cx / 16, cy / 16,
+			role,
+			o->IsMoving() ? " moving" : " stopped",
+			o->IsOnGrabDetour() ? " ON-GRAB-DETOUR" : "");
+
+		if(o->GetGroupLeader())
+			ZDiag("   leader: %s", ZPathLog_UnitDesc(o->GetGroupLeader()).c_str());
+		if(o->GetMinionList().size())
+			ZDiag("   minions: %d", (int)o->GetMinionList().size());
 
 		vector<waypoint> &wps = o->GetWayPointList();
 		if(wps.empty())
 			ZDiag("   orders: none (idle)");
 		else
 			for(vector<waypoint>::iterator w=wps.begin(); w!=wps.end(); w++)
-				ZDiag("   order: %s -> (%d,%d) tile(%d,%d) ref#%d",
-					ZPathLog_WPModeName(w->mode), w->x, w->y, w->x / 16, w->y / 16, w->ref_id);
+				ZDiag("   order: %-14s tile(%d,%d) ref#%d  [%s]",
+					ZPathLog_WPModeName(w->mode), w->x / 16, w->y / 16, w->ref_id,
+					w->player_given ? "player" : (w->attack_to ? "grab" : "engine"));
 
 		ZObject *atk = o->GetAttackObject();
 		if(atk) ZDiag("   attacking: %s", ZPathLog_UnitDesc(atk).c_str());
 	}
 
-	char msg[160];
-	snprintf(msg, sizeof(msg), "F12: %d unit(s) written to %s", (int)sel.size(), ZDiag_Path());
+	//nearby grabbable objects, so ref#N in the orders above can be matched to a
+	//real vehicle/cannon/flag (and we can see what is being chased)
+	if(!dump.empty())
+	{
+		int ax, ay;
+		dump.front()->GetCenterCords(ax, ay);
+		ZDiag("nearby grabbables (within ~12 tiles of first unit):");
+		bool any = false;
+		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
+		{
+			ZObject *o = *i;
+			if(!o) continue;
+
+			unsigned char ot, oid;
+			o->GetObjectID(ot, oid);
+
+			bool is_flag = (ot == MAP_ITEM_OBJECT && oid == FLAG_ITEM);
+			if(!o->CanBeEntered() && !is_flag) continue;
+
+			int ox, oy;
+			o->GetCenterCords(ox, oy);
+			int dt = (abs(ox - ax) + abs(oy - ay)) / 16;
+			if(dt > 12) continue;
+
+			ZDiag("   %s tile(%d,%d) ref#%d  ~%d tiles  owner=%d",
+				ZPathLog_UnitDesc(o).c_str(), ox / 16, oy / 16, o->GetRefID(), dt, o->GetOwner());
+			any = true;
+		}
+		if(!any) ZDiag("   (none)");
+	}
+
+	ZDiag("to report: open an issue at https://github.com/fenio/zod/issues and attach this file");
+
+	char msg[200];
+	snprintf(msg, sizeof(msg), "dumped %d unit(s) to %s - attach it to an issue at github.com/fenio/zod/issues",
+		(int)sel.size(), ZDiag_Path());
 	AddNewsEntry(msg);
 }
 
@@ -4107,6 +4184,12 @@ void ZPlayer::ProcessUnicode(int key)
 			zod_render_smoothing = !zod_render_smoothing;
 			ZPrefs_Save();
 			AddNewsEntry(zod_render_smoothing ? "render smoothing: ON" : "render smoothing: OFF");
+		}
+		else if(key == '\\')
+		{
+			//diagnostics dump - macOS-friendly alternative to F12 (which the OS
+			//grabs). Appends the selected unit's group state to zod_diag.log.
+			DumpDiagnostics();
 		}
 		else if(key == '=' || key == '+')   //zoom in (keyboard; trackpad-friendly)
 		{

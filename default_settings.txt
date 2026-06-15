@@ -240,8 +240,8 @@ map_item.grenades.grenade_attack_speed=2.254000
 map_item.map_item.map_item_turrent_damage=0.208333
 
 global.global.agro_distance=40
-global.global.auto_grab_vehicle_distance=220
-global.global.auto_grab_flag_distance=220
+global.global.auto_grab_vehicle_distance=160
+global.global.auto_grab_flag_distance=160
 global.global.building_auto_repair_time=600
 global.global.building_auto_repair_random_additional_time=60
 global.global.max_turrent_horizontal_distance=300
