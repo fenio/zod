@@ -20,7 +20,8 @@
             android:label="Zod Engine"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"><!-- #85: frameless; restores the fullscreen theme SDL's template manifest had (we overwrite the manifest). A platform theme, so no dependency on the template's styles.xml -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
