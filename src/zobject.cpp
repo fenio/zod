@@ -2098,6 +2098,13 @@ void ZObject::CheckOpportunisticGrab(double &the_time, ZOLists &ols)
 	if(IsMinion()) return;
 	if(!CanMove()) return;
 
+	//already boarding a vehicle this tick: ProcessServer runs the enter waypoint
+	//(which sets entered_target_ref_id and then exposes the resumed move order)
+	//BEFORE this scan, and the actual entry/delete only happens after the object
+	//loop - so without this guard we'd re-issue a phantom grab for the very
+	//vehicle we just boarded, the tick before we vanish into it.
+	if(sflags.entered_target_ref_id != -1) return;
+
 	//only while carrying out a player move order (not internal force-moves, and
 	//not while already diverting to a grab - those waypoints are not player_given)
 	if(waypoint_list.empty()) return;
