@@ -319,6 +319,16 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 	if(the_team < NULL_TEAM) return;
 	if(the_team >= MAX_TEAM_TYPES) return;
 
+	//#59: in a sequential campaign, whether you advance is decided by whether your
+	//team survived the map - so switching to the about-to-win side turns a loss
+	//into a win (and leaves the next map's bot on the wrong team). Disallow team
+	//changes during the campaign; team selection stays open in skirmish/multiplayer.
+	if(p->map_list.size() && !p->load_maps_randomly)
+	{
+		p->SendNews(player, "team switching is disabled during the campaign", 0, 0, 0);
+		return;
+	}
+
 	p->ChangePlayerTeam(player, the_team);
 
 	p->player_info[player].team = (team_type)the_team;
