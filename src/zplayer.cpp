@@ -2871,6 +2871,14 @@ void ZPlayer::SelectAllOfType(int type)
 	GiveHudSelected();
 }
 
+//How far (in map pixels) the cursor may drift between press and release and still
+//count as a click rather than a box-drag. The old value of 1px was far too tight:
+//ordinary hand jitter during a click registered as a tiny drag, so the order was
+//swallowed as a (near-empty) box-select and "not submitted" (issue #39). A few
+//pixels of slop makes clicks reliable while a deliberate box-select still drags
+//well past it.
+static const int CLICK_DRAG_SLOP = 5;
+
 //Classic (original-Z) mouse: a plain left click on open ground or an enemy
 //while units are selected issues the order, like the 1996 game did. Returns
 //true when the click was consumed as an order; clicks on own selectable
@@ -2888,7 +2896,7 @@ bool ZPlayer::ClassicLeftClickOrder()
 	mouse_y_map = mouse_y + shift_y;
 
 	//a drag is a box select
-	if(abs(lbutton.map_x - mouse_x_map) > 1 || abs(lbutton.map_y - mouse_y_map) > 1) return false;
+	if(abs(lbutton.map_x - mouse_x_map) > CLICK_DRAG_SLOP || abs(lbutton.map_y - mouse_y_map) > CLICK_DRAG_SLOP) return false;
 
 	//clicking one of our own selectable units means (re)selection
 	for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
@@ -3072,7 +3080,7 @@ void ZPlayer::CollectSelectables()
 	}
 
 	//are we only selecting one unit?
-	if(abs(lbutton.map_x - mouse_x_map) <= 1 && abs(lbutton.map_y - mouse_y_map) <= 1)
+	if(abs(lbutton.map_x - mouse_x_map) <= CLICK_DRAG_SLOP && abs(lbutton.map_y - mouse_y_map) <= CLICK_DRAG_SLOP)
 	{
 		vector<ZObject*> choice_list;
 
@@ -3158,7 +3166,7 @@ bool ZPlayer::CouldCollectSelectables()
 		map_bottom = mouse_y_map;
 	}
 
-	if(abs(lbutton.map_x - mouse_x_map) <= 1 && abs(lbutton.map_y - mouse_y_map) <= 1)
+	if(abs(lbutton.map_x - mouse_x_map) <= CLICK_DRAG_SLOP && abs(lbutton.map_y - mouse_y_map) <= CLICK_DRAG_SLOP)
 		would_be_single_unit = true;
 	else
 		would_be_single_unit = false;
