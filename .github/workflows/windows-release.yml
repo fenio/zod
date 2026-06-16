@@ -61,3 +61,53 @@ jobs:
           if (-not $tag) { $tag = "${{ github.event.inputs.tag }}" }
           Compress-Archive -Path zod-windows-x86_64 -DestinationPath zod-windows-x86_64.zip -Force
           gh release upload "$tag" zod-windows-x86_64.zip --repo $env:GITHUB_REPOSITORY --clobber
+
+  # Native Windows-on-ARM build. Same MSYS2 recipe as the x86_64 job, but on a
+  # GitHub windows-11-arm runner with the CLANGARM64 toolchain (clang -> aarch64
+  # + mingw-w64-clang-aarch64-sdl3*), so the artifact runs natively on ARM64
+  # Windows with no x64/Prism emulation.
+  windows-arm64-zip:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # full history so `git describe` stamps the version banner
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            mingw-w64-clang-aarch64-clang
+            mingw-w64-clang-aarch64-cmake
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-pkgconf
+            mingw-w64-clang-aarch64-sdl3
+            mingw-w64-clang-aarch64-sdl3-image
+            mingw-w64-clang-aarch64-sdl3-mixer
+            mingw-w64-clang-aarch64-sdl3-ttf
+
+      - name: Build and assemble dist
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 4
+          DIST=zod-windows-arm64
+          rm -rf "$DIST"; mkdir -p "$DIST"
+          cp build/zod.exe "$DIST"/
+          # bundle the CLANGARM64 DLLs the exe needs (transitive closure from ldd)
+          ldd build/zod.exe | awk '/\/clangarm64\/bin\// {print $3}' | sort -u \
+            | while read -r dll; do cp "$dll" "$DIST"/; done
+          cp -r assets maps "$DIST"/
+          cp map_list.txt README.md LICENSE "$DIST"/
+          printf 'EXPERIMENTAL Windows ARM64 build of Zod.\r\nDouble-click zod.exe to start the single-player campaign.\r\n' > "$DIST/READ_ME_FIRST.txt"
+
+      - name: Zip and upload to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if (-not $tag) { $tag = "${{ github.event.inputs.tag }}" }
+          Compress-Archive -Path zod-windows-arm64 -DestinationPath zod-windows-arm64.zip -Force
+          gh release upload "$tag" zod-windows-arm64.zip --repo $env:GITHUB_REPOSITORY --clobber

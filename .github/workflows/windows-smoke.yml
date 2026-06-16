@@ -84,3 +84,75 @@ jobs:
           }
 
           Write-Host "PASS: real campaign map loaded on Windows and its units are active ($lines pathlog lines)"
+
+  # Same smoke test, native Windows-on-ARM (windows-11-arm runner + CLANGARM64).
+  # Builds the ARM64 binary and headlessly runs it on a real campaign map, so the
+  # ARM64 artifact is verified to actually run on every PR.
+  windows-arm64-smoke:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            mingw-w64-clang-aarch64-clang
+            mingw-w64-clang-aarch64-cmake
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-pkgconf
+            mingw-w64-clang-aarch64-sdl3
+            mingw-w64-clang-aarch64-sdl3-image
+            mingw-w64-clang-aarch64-sdl3-mixer
+            mingw-w64-clang-aarch64-sdl3-ttf
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 4
+          # assemble a run dir matching the shipped zip layout
+          DIST=run; rm -rf "$DIST"; mkdir -p "$DIST"
+          cp build/zod.exe "$DIST"/
+          ldd build/zod.exe | awk '/\/clangarm64\/bin\// {print $3}' | sort -u \
+            | while read -r dll; do cp "$dll" "$DIST"/; done
+          cp -r assets maps "$DIST"/
+          cp map_list.txt "$DIST"/
+
+      - name: Headless map-load smoke test
+        shell: pwsh
+        run: |
+          cd run
+          "start_map_paused=0" | Out-File -Encoding ascii settings.txt
+          $env:ZOD_PATHLOG = "1"
+          $env:ZOD_PATHLOG_FILE = "$PWD\smoke_path.log"
+          # dedicated server (no window), no sound/music, two bots on a real map
+          $p = Start-Process -FilePath .\zod.exe `
+            -ArgumentList '-d','-s','-u','-m','maps/p02_bb_orig01.map','-b','red','-b','blue','-e','settings.txt' `
+            -RedirectStandardOutput out.txt -RedirectStandardError err.txt -PassThru
+          Start-Sleep -Seconds 25
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+
+          Write-Host "----- stdout -----"; if (Test-Path out.txt) { Get-Content out.txt }
+          Write-Host "----- stderr -----"; if (Test-Path err.txt) { Get-Content err.txt }
+
+          $out = ""
+          if (Test-Path out.txt) { $out = Get-Content out.txt -Raw }
+
+          if ($out -match 'could not load map' -or $out -match 'generating random map') {
+            Write-Error "FAIL: campaign map did not load - engine fell back to the random map (binary data corruption?)"
+            exit 1
+          }
+
+          $lines = 0
+          if (Test-Path smoke_path.log) { $lines = (Get-Content smoke_path.log).Count }
+          Write-Host "pathlog lines: $lines"
+          if ($lines -lt 5) {
+            Write-Error "FAIL: no unit/pathfinding activity - the loaded map appears empty (garbage fallback?)"
+            exit 1
+          }
+
+          Write-Host "PASS: real campaign map loaded on Windows ARM64 and its units are active ($lines pathlog lines)"
