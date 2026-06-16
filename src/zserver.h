@@ -157,6 +157,7 @@ class ZServer : public ZCore
 		bool reload_same_map;   //set when the human lost: retry this map, don't advance (issue #47)
 
 		double next_scuffle_time;
+		double start_pause_at;   //#: defer the start-of-map pause so units finish scuffling apart first (-1 = none)
 		double next_end_game_check_time;
 		double next_reset_game_time;
 		double next_make_suggestions_time;

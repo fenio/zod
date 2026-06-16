@@ -957,8 +957,13 @@ static void place_team(int t)
 			if(i >= 0 && j >= 0 && i < W && j < H) keepout[idx(i, j)] = true;
 
 	// starting squad outside the footprint, on the fort's open side
-	int uy = top_half ? fy + 10 : fy - 2;
-	for(int i = 0; i < 3; i++) add_object(fx + 3 + i, uy, t + 1, ROBOT_OBJECT, GRUNT_R);
+	int uy = top_half ? fy + 10 : fy - 2;          // cannon/vehicle row, by the door
+	// each grunt object spawns a whole (stacked) group, so 3 of them one tile apart
+	// at the door crowds ~9 units at the entrance as they fan out. Push the grunts
+	// a few tiles further from the fort and spread the spawn points wider so the
+	// groups have room to scuffle apart cleanly.
+	int guy = top_half ? fy + 11 : fy - 3;       // grunts: just a touch further out
+	for(int i = 0; i < 3; i++) add_object(fx + 2 + 2 * i, guy, t + 1, ROBOT_OBJECT, GRUNT_R);
 	add_object(fx + 8, uy, t + 1, CANNON_OBJECT, GATLING_C);
 
 	//at higher tech, also start with a vehicle so it is not all grunts
