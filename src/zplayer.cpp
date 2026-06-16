@@ -1914,8 +1914,13 @@ void ZPlayer::FocusCameraToFort()
 
 		(*i)->GetCenterCords(goto_x, goto_y);
 
+		//center the fort: offset by half the view in each axis. The Y offset must
+		//use the view HEIGHT, not the width (#74) - with the old view_w here, a
+		//wide screen pushed the fort far below the visible area, so on game start
+		//you couldn't see your own fort. SetViewShift clamps to the map edges, so
+		//a fort near a corner of a small map still lands on-screen.
 		goto_x = goto_x - (view_w >> 1);
-		goto_y = goto_y - (view_w >> 1);
+		goto_y = goto_y - (view_h >> 1);
 
 		zmap.SetViewShift(goto_x, goto_y);
 		return;
