@@ -223,6 +223,7 @@ public:
 
 	bool Click(int x_, int y_);
 	bool UnClick(int x_, int y_);
+	bool Motion(int x_, int y_);          //drag the scrollbar (#78)
 	bool WheelUpButton() { return MoveUp(); }
 	bool WheelDownButton() { return MoveDown(); }
 
@@ -264,6 +265,8 @@ private:
 	bool MoveDown();
 	bool WithinUpButton(int x_, int y_);
 	bool WithinDownButton(int x_, int y_);
+	bool WithinScrollTrack(int x_, int y_);   //the strip between the up/down buttons (#78)
+	void SetViewFromTrackY(int y_);           //jump view_i to a dragged scrollbar position
 	int WithinEntry(int x_, int y_);
 
 	int visible_entries;
@@ -271,6 +274,7 @@ private:
 
 	int up_button_state;
 	int down_button_state;
+	bool dragging_scroller;   //#78: left button is held on the scrollbar track
 
 	double button_down_time;
 
