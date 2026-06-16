@@ -3249,6 +3249,12 @@ bool ZPlayer::UnitNearHostiles(ZObject *obj)
 
 void ZPlayer::AddDevWayPointToSelected()
 {
+	//no commanding units while the game is paused (#76). This covers the
+	//"Click to Start / Resume Game" screen at the start of a match - you can still
+	//select and look around, but move/attack orders are ignored until you kick the
+	//round off (and, consistently, during any later pause).
+	if(ztime.IsPaused()) return;
+
 	waypoint new_waypoint;
 	bool coords_from_mini_map;
 
