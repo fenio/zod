@@ -102,6 +102,9 @@ public:
 
 	bool Click(int x_, int y_);
 	bool UnClick(int x_, int y_);
+	bool Motion(int x_, int y_);          //tracks hover so the wheel can target us (#73)
+	bool WheelUpButton() { return hovered; }
+	bool WheelDownButton() { return hovered; }
 
 	void SetText(string text_) { text = text_; rerender_text = true; }
 	void SetType(int type_) { type = type_; DetermineDimensions(); }
@@ -132,7 +135,8 @@ private:
 	int state;
 	int type;
 	bool is_green;
-	
+	bool hovered;
+
 };
 
 #define MMLABEL_HEIGHT 10

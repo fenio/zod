@@ -20,6 +20,7 @@ GMMWButton::GMMWButton() : ZGMMWidget()
 	state = MMBUTTON_NORMAL;
 	type = MMGENERIC_BUTTON;
 	is_green = false;
+	hovered = false;
 }
 
 void GMMWButton::Init()
@@ -246,4 +247,13 @@ bool GMMWButton::UnClick(int x_, int y_)
 	//call an unclick event if we were previously pressed
 	//and the unclick is over the button
 	return (previous_state == MMBUTTON_PRESSED);
+}
+
+//remember whether the cursor is over us, so a mouse-wheel turn knows which
+//button to adjust (#73 - wheel events arrive without coordinates). We return
+//false so this doesn't count as a handled motion / change any other behaviour.
+bool GMMWButton::Motion(int x_, int y_)
+{
+	hovered = (active && WithinDimensions(x_, y_));
+	return false;
 }

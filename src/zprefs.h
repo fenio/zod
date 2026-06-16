@@ -9,6 +9,11 @@
 // right click cancels. Off = RTS-style right-click orders.
 extern bool zod_classic_mouse;
 
+// Audio volume (a sound_setting index, 0..MAX_SOUND_SETTINGS-1) and game speed
+// multiplier, remembered across sessions so the Options menu values stick (#73).
+extern int zod_volume_setting;
+extern double zod_game_speed;
+
 void ZPrefs_Load();
 void ZPrefs_Save();
 

@@ -448,9 +448,10 @@ void ZPlayer::InitSDL()
 		printf("InitSDL::ZAudio_Open() error\n");
 
 	ZAudio_QuerySpec(&audio_rate, &audio_format, &audio_channels);
-	ZAudio_SetChannelVolume(-1, 128);
-	ZAudio_SetMusicVolume(80);
-	sound_setting = SOUND_100;
+	//#73: restore the saved volume instead of always starting at full
+	sound_setting = zod_volume_setting;
+	if(sound_setting < 0 || sound_setting >= MAX_SOUND_SETTINGS) sound_setting = SOUND_100;
+	ApplyVolume();
 
 	//TTF
 	TTF_Init();
@@ -3666,7 +3667,10 @@ bool ZPlayer::MainMenuWheelUp()
 {
 	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)
 		if((*i)->WheelUpButton())
+		{
+			ApplyMenuWheelFlags((*i)->GetGMMFlags());
 			return true;
+		}
 
 	return false;
 }
@@ -3675,9 +3679,28 @@ bool ZPlayer::MainMenuWheelDown()
 {
 	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)
 		if((*i)->WheelDownButton())
+		{
+			ApplyMenuWheelFlags((*i)->GetGMMFlags());
 			return true;
+		}
 
 	return false;
+}
+
+//#73: a wheel turn over the Options Volume/Speed buttons sets the same flags a
+//click would, but the wheel path doesn't run through UnClick where those are
+//normally applied - so apply the volume/speed ones here.
+void ZPlayer::ApplyMenuWheelFlags(gmm_flag &the_flags)
+{
+	if(the_flags.set_volume) SetSoundSetting(the_flags.set_volume_value);
+
+	if(the_flags.set_game_speed)
+	{
+		float_packet the_data;
+
+		the_data.game_speed = the_flags.set_game_speed_value;
+		client_socket.SendMessage(SET_GAME_SPEED, (char*)&the_data, sizeof(float_packet));
+	}
 }
 
 bool ZPlayer::MainMenuKeyPress(int c)
@@ -4430,6 +4453,20 @@ void ZPlayer::SetNextSoundSetting()
 	SetSoundSetting(sound_setting+1);
 }
 
+//apply the current sound_setting to the audio mixer (no UI feedback). Split out
+//so it can run silently at startup as well as from SetSoundSetting.
+void ZPlayer::ApplyVolume()
+{
+	switch(sound_setting)
+	{
+	case SOUND_0:   ZAudio_SetChannelVolume(-1, 0);         ZAudio_SetMusicVolume(0);        break;
+	case SOUND_25:  ZAudio_SetChannelVolume(-1, 128 / 4);   ZAudio_SetMusicVolume(80 / 4);   break;
+	case SOUND_50:  ZAudio_SetChannelVolume(-1, 128 / 2);   ZAudio_SetMusicVolume(80 / 2);   break;
+	case SOUND_75:  ZAudio_SetChannelVolume(-1, 128 * 3 / 4); ZAudio_SetMusicVolume(80 * 3 / 4); break;
+	case SOUND_100: ZAudio_SetChannelVolume(-1, 128);       ZAudio_SetMusicVolume(80);       break;
+	}
+}
+
 void ZPlayer::SetSoundSetting(int sound_setting_)
 {
 	sound_setting = sound_setting_;
@@ -4437,33 +4474,19 @@ void ZPlayer::SetSoundSetting(int sound_setting_)
 	if(sound_setting < 0) sound_setting = 0;
 	if(sound_setting >= MAX_SOUND_SETTINGS) sound_setting = 0;
 
+	ApplyVolume();
+
+	//#73: remember the choice across sessions
+	zod_volume_setting = sound_setting;
+	ZPrefs_Save();
+
 	switch(sound_setting)
 	{
-	case SOUND_0: 
-		ZAudio_SetChannelVolume(-1, 0); 
-		ZAudio_SetMusicVolume(0);
-		AddNewsEntry("volume off");
-		break;
-	case SOUND_25: 
-		ZAudio_SetChannelVolume(-1, 128 / 4); 
-		ZAudio_SetMusicVolume(80 / 4);
-		AddNewsEntry("volume 25%");
-		break;
-	case SOUND_50: 
-		ZAudio_SetChannelVolume(-1, 128 / 2); 
-		ZAudio_SetMusicVolume(80 / 2);
-		AddNewsEntry("volume 50%");
-		break;
-	case SOUND_75: 
-		ZAudio_SetChannelVolume(-1, 128 * 3 / 4); 
-		ZAudio_SetMusicVolume(80 * 3 / 4);
-		AddNewsEntry("volume 75%");
-		break;
-	case SOUND_100: 
-		ZAudio_SetChannelVolume(-1, 128); 
-		ZAudio_SetMusicVolume(80);
-		AddNewsEntry("volume full");
-		break;
+	case SOUND_0:   AddNewsEntry("volume off"); break;
+	case SOUND_25:  AddNewsEntry("volume 25%"); break;
+	case SOUND_50:  AddNewsEntry("volume 50%"); break;
+	case SOUND_75:  AddNewsEntry("volume 75%"); break;
+	case SOUND_100: AddNewsEntry("volume full"); break;
 	}
 }
 
