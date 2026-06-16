@@ -3471,14 +3471,13 @@ void ZPlayer::SendDevWayPointsOfSelected()
 			SendDevWayPointsOfObj(*i);
 	}
 
-	i=select_info.selected_list.begin();
-	if(i!=select_info.selected_list.end() && (*i)->GetWayPointDevList().size())
-	{
-		j = (*i)->GetWayPointDevList().end();
-		j--;
-
-		ShowPcursor(j->x, j->y);
-	}
+	//Collapse the double destination marker (#38): a command used to draw BOTH the
+	//Pcursor feedback pulse here AND the waypoint-line end-marker, overlapping at
+	//the destination for the same 3s and not always agreeing (e.g. a capture order
+	//showed the hand plus a plain cross). The waypoint end-marker (DoRenderWaypoints)
+	//already draws exactly one action-specific marker - hand to capture, crosshair
+	//to attack, cross to move - so we no longer raise the redundant Pcursor.
+	//(void)ShowPcursor; -- intentionally not shown
 
 	//ok its sent, so clear the lists
 	ClearDevWayPointsOfSelected();
