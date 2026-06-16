@@ -532,7 +532,7 @@ class ZObject
 		void DoKillMe(double killtime = 0);
 		void Engage(ZObject *attack_object_);
 		bool Disengage();
-		void CheckPassiveEngage(double &the_time, ZOLists &ols);
+		void CheckPassiveEngage(double &the_time, ZOLists &ols, ZMap &tmap);
 		void CheckOpportunisticGrab(double &the_time, ZOLists &ols);   //#60: grab objects while moving
 		//#48/#60: peel a single group member off to grab, instead of the whole group
 		bool IsOnGrabDetour();

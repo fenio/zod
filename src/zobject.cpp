@@ -1611,7 +1611,7 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 	if(ZPATH_LOG_ON) ProcessPathLogStallCheck(the_time, tmap);
 
 	//see if they want to attack someone nearby
-	CheckPassiveEngage(the_time, ols);
+	CheckPassiveEngage(the_time, ols, tmap);
 
 	//#60: while moving on a player order, grab capturable objects passed close to
 	CheckOpportunisticGrab(the_time, ols);
@@ -1676,7 +1676,7 @@ bool ZObject::IsMoving()
 	return !((loc.dx > -z && loc.dx < z) && (loc.dy > -z && loc.dy < z));
 }
 
-void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols)
+void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols, ZMap &tmap)
 {
 	//is it time, since this is a "tiny bit intensive"
 	if(the_time < next_check_passive_attack_time) return;
@@ -1740,8 +1740,15 @@ void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols)
 			//if we have no waypoints and are "not a cannon" / "able to move"
 			if(!waypoint_list.size() && object_type != CANNON_OBJECT)
 			{
-				//if(WithinAgroRadius(ox, oy))
-				if(WithinAgroRadius(*obj))
+				//#71: only chase an attacker we can actually path to. An enemy
+				//across water (or otherwise in a different pathfinding region) can
+				//plink at us from a place we'll never reach; without this guard we
+				//start an AGRO_WP and shuffle toward it forever instead of holding
+				//the commanded position. We still shoot back from the Engage path
+				//above if it comes within attack range (that has no region check),
+				//so this only suppresses the futile pursuit.
+				if(WithinAgroRadius(*obj)
+					&& tmap.GetPathFinder().InSameRegion(loc.x + 8, loc.y + 8, ox, oy, (object_type == ROBOT_OBJECT)))
 					agro_choices.push_back(*obj);
 			}
 		}
