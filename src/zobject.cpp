@@ -49,6 +49,7 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	pathlog_stall_reported = false;
 	pathlog_last_block_time = 0;
 	pathlog_next_violation_time = 0;
+	next_diag_event_time = 0;
 	slide_start_time = 0;
 	width = 0;
 	height = 0;
@@ -1608,7 +1609,9 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 	//pathfinding debug: flag units stalled on a move order or overlapping
 	//impassable terrain (after the switch: KillWP may have erased the
 	//waypoint just processed)
-	if(ZPATH_LOG_ON) ProcessPathLogStallCheck(the_time, tmap);
+	//always runs now: the stall watchdog emits a release ZDiag (the impassable
+	//VIOLAT scan inside stays dev-only / ZPATH_LOG gated)
+	ProcessPathLogStallCheck(the_time, tmap);
 
 	//see if they want to attack someone nearby
 	CheckPassiveEngage(the_time, ols, tmap);
@@ -1747,9 +1750,14 @@ void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols, ZMap &tmap)
 				//the commanded position. We still shoot back from the Engage path
 				//above if it comes within attack range (that has no region check),
 				//so this only suppresses the futile pursuit.
-				if(WithinAgroRadius(*obj)
-					&& tmap.GetPathFinder().InSameRegion(loc.x + 8, loc.y + 8, ox, oy, (object_type == ROBOT_OBJECT)))
-					agro_choices.push_back(*obj);
+				if(WithinAgroRadius(*obj))
+				{
+					if(tmap.GetPathFinder().InSameRegion(loc.x + 8, loc.y + 8, ox, oy, (object_type == ROBOT_OBJECT)))
+						agro_choices.push_back(*obj);
+					else if(DiagThrottleReady())
+						ZDiag("agro-skip: %s can't reach attacker ref#%d (different region) - holding position (#71)",
+							ZPathLog_UnitDesc(this).c_str(), (*obj)->GetRefID());
+				}
 			}
 		}
 
@@ -3092,6 +3100,13 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 						ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x, cur_wp_info.y,
 						cur_wp_info.x / 16, cur_wp_info.y / 16);
 
+				//release diagnostic: a player ordered this unit somewhere it can't
+				//reach (e.g. a vehicle to the far side of water). Surfaces the
+				//otherwise-silent drop in bug-report logs (#54-style "won't move").
+				if(wp->player_given && DiagThrottleReady())
+					ZDiag("move dropped: %s ordered to t(%d,%d) but can't path there (different region - e.g. across water)",
+						ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x / 16, cur_wp_info.y / 16);
+
 				StopMove();
 				KillWP(wp);
 				return;
@@ -3906,6 +3921,20 @@ bool ZObject::ProcessMoveOrKillWP(double time_dif, ZMap &tmap, vector<waypoint>:
 //pathfinding debug log watchdog: flag units that sit on a move order without
 //making progress, and units whose collision box overlaps an impassable tile
 //(which should be impossible). Observation only - never touches movement.
+//rate-limit a unit's auto-diagnostic events so a persistent condition (e.g. an
+//unreachable attacker re-evaluated every half second) writes one line, not a
+//flood - ZDiag is unbuffered and always-on in releases. Returns true at most
+//once per 5s per unit.
+bool ZObject::DiagThrottleReady()
+{
+	double t = ztime ? ztime->ztime : 0;
+
+	if(t < next_diag_event_time) return false;
+
+	next_diag_event_time = t + 5.0;
+	return true;
+}
+
 void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 {
 	const double stall_seconds = 5.0;
@@ -3915,8 +3944,9 @@ void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 	//legitimately sit on their own impassable footprint tiles - and not
 	//during the waypoint modes that deliberately cross footprints: force
 	//moves (factory exits), crane/unit repair and fort entry (driving into
-	//the structure is the whole point).
-	if(CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time)
+	//the structure is the whole point). Dev-only (the WithinImpassable scan is
+	//the expensive part); the stall watchdog below runs in releases too.
+	if(ZPATH_LOG_ON && CanMove() && !IsDestroyed() && the_time >= pathlog_next_violation_time)
 	{
 		int cur_mode = waypoint_list.size() ? waypoint_list.begin()->mode : -1;
 
@@ -3970,6 +4000,15 @@ void ZObject::ProcessPathLogStallCheck(double the_time, ZMap &tmap)
 			cur_wp_info.x, cur_wp_info.y, cur_wp_info.x / 16, cur_wp_info.y / 16,
 			cur_wp_info.path_finding_id ? " (still waiting on the A* thread!)" : "",
 			(int)cur_wp_info.pf_point_list.size());
+
+		//release diagnostic: a unit the player commanded has made no progress for
+		//a while - the classic "unit not moving" report (#54). pathlog_stall_reported
+		//keeps it to one line per stall, so no throttle helper needed here.
+		if(waypoint_list.begin()->player_given)
+			ZDiag("stuck: %s no progress for %.0fs on a move order to t(%d,%d)%s",
+				ZPathLog_UnitDesc(this).c_str(), the_time - pathlog_progress_time,
+				cur_wp_info.x / 16, cur_wp_info.y / 16,
+				cur_wp_info.path_finding_id ? " (waiting on pathfinder)" : "");
 	}
 }
 

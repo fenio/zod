@@ -57,6 +57,7 @@ class ZServer : public ZCore
 		void LoadCampaignProgress();
 		void ProcessEndGame();
 		void CheckEndGame();
+		void DiagStalemateCheck(double the_time);   //#54: flag a match that can't end
 		void CheckResetGame();
 		void DoResetGame(string map_name = "");
 		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech, int vehicles = -1);
@@ -158,6 +159,7 @@ class ZServer : public ZCore
 
 		double next_scuffle_time;
 		double next_end_game_check_time;
+		double next_stalemate_diag_time;   //#54 throttle for the endgame-stall diag
 		double next_reset_game_time;
 		double next_make_suggestions_time;
 		bool do_reset_game;

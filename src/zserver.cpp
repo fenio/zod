@@ -42,6 +42,7 @@ ZServer::ZServer() : ZCore()
 	next_ref_id = 0;
 	game_on = false;
 	next_end_game_check_time = 0;
+	next_stalemate_diag_time = 0;
 	next_reset_game_time = 0;
 	do_reset_game = false;
 	next_scuffle_time = 0;
@@ -430,7 +431,50 @@ void ZServer::CheckEndGame()
 
 		if(EndGameRequirementsMet())
 			ProcessEndGame();
+		else
+			DiagStalemateCheck(the_time);
 	}
+}
+
+//#54: the match ends only when <=1 team has any robot/vehicle/cannon. A team
+//whose fort is gone but that still has a unit keeps the game running - and if
+//that unit is stranded/unreachable (can't be killed), the game never ends. Log
+//such fort-less-but-alive teams periodically so a report captures the stall
+//instead of just "it stayed like this forever".
+void ZServer::DiagStalemateCheck(double the_time)
+{
+	if(the_time < next_stalemate_diag_time) return;
+
+	int team_units[MAX_TEAM_TYPES], team_forts[MAX_TEAM_TYPES];
+	for(int t=0; t<MAX_TEAM_TYPES; t++) { team_units[t] = 0; team_forts[t] = 0; }
+
+	for(vector<ZObject*>::iterator i=ols.object_list->begin(); i!=ols.object_list->end(); i++)
+	{
+		ZObject *o = *i;
+		if(!o || o->IsDestroyed()) continue;
+
+		int owner = o->GetOwner();
+		if(owner < 1 || owner >= MAX_TEAM_TYPES) continue;
+
+		unsigned char ot, oid;
+		o->GetObjectID(ot, oid);
+
+		if(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT) team_units[owner]++;
+		else if(ot == BUILDING_OBJECT && (oid == FORT_FRONT || oid == FORT_BACK)) team_forts[owner]++;
+	}
+
+	bool any_fortless_alive = false;
+	for(int t=1; t<MAX_TEAM_TYPES; t++)
+		if(team_units[t] && !team_forts[t]) any_fortless_alive = true;
+
+	if(!any_fortless_alive) return;   //ordinary ongoing game - nothing to flag
+
+	next_stalemate_diag_time = the_time + 20.0;
+
+	ZDiag("endgame-stall: match still running; fort-less team(s) kept alive by leftover units:");
+	for(int t=1; t<MAX_TEAM_TYPES; t++)
+		if(team_units[t] && !team_forts[t])
+			ZDiag("   team %d: %d unit(s), no fort", t, team_units[t]);
 }
 
 bool ZServer::EndGameRequirementsMet()

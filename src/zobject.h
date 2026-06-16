@@ -541,6 +541,8 @@ class ZObject
 		ZObject* ClosestGrabMember(ZObject *target, ZOLists &ols);
 		void GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode);
 		bool IsMoving();
+		int GetEnteredTargetRefID() { return sflags.entered_target_ref_id; }   //-1 unless mid vehicle/fort entry
+		bool DiagThrottleReady();   //rate-limit a unit's auto-diagnostic events (zod_diag.log)
 		//virtual bool ServerFireTurrentMissile(int &x_, int &y_, int &damage, int &radius, double &offset_time);
 		virtual vector<fire_missile_info> ServerFireTurrentMissile(int &damage, int &radius);
 		virtual bool SetBuildingDefaultProduction() { return false; }
@@ -640,6 +642,7 @@ class ZObject
 		int center_x, center_y;
 		float xover, yover;
 		server_flag sflags;
+		double next_diag_event_time;   //throttle for ZDiag auto-events on this unit
 		int move_speed;
 		double real_move_speed;
 		int width, height;
