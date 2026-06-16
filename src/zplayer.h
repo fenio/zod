@@ -221,6 +221,7 @@ class ZPlayer : public ZClient
 		bool MainMenuMotion();
 		bool MainMenuWheelUp();
 		bool MainMenuWheelDown();
+		void ApplyMenuWheelFlags(gmm_flag &the_flags);
 		bool MainMenuKeyPress(int c);
 		bool MainMenuAbsorbLClick();
 		bool MainMenuAbsorbLUnClick();
@@ -252,6 +253,7 @@ class ZPlayer : public ZClient
 		void RefindOurFortRefID();
 		void SetNextSoundSetting();
 		void SetSoundSetting(int sound_setting_);
+		void ApplyVolume();
 		bool UnitNearHostiles(ZObject *obj);
 		void LoadControlGroup(int n);
 		void LoadMainMenu(int menu_type, bool kill_if_open = false, gmm_warning_flag warning_flags = gmm_warning_flag());

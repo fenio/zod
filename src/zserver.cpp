@@ -2,6 +2,7 @@
 #include "packet_io.h"
 #include "map_gen_core.h"
 #include "zpath_debug.h"
+#include "zprefs.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -197,6 +198,11 @@ void ZServer::InitPerpetualServerSettings()
 		if(!psettings.LoadSettings(p_settings_filename))
 			psettings.SaveSettings(p_settings_filename);
 	}
+
+	//#73: start at the game speed the player last chose. ztime keeps it across
+	//maps within a session, and ChangeGameSpeed re-saves it whenever it changes.
+	if(psettings.allow_game_speed_change)
+		ztime.SetGameSpeed(zod_game_speed);
 
 	if(psettings.use_database && psettings.use_mysql)
 	{
@@ -4130,6 +4136,10 @@ void ZServer::ChangeGameSpeed(float new_speed)
 
 	//set
 	ztime.SetGameSpeed(new_speed);
+
+	//#73: remember the speed across sessions (applied again at startup)
+	zod_game_speed = ztime.GameSpeed();
+	ZPrefs_Save();
 
 	//tell them all the news
 	RelayGameSpeed();

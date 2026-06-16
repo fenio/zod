@@ -175,5 +175,37 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 			gmm_flags.set_game_speed_value = gmmoption_speed_setting_value[next];
 		}
 		break;
+
+	//#73: the mouse wheel nudges the value under the cursor up (wheel up) or
+	//down (wheel down), clamped at the ends - so you can lower volume/speed,
+	//not just cycle forward with a click.
+	case GMM_WHEELUP_EVENT:
+	case GMM_WHEELDOWN_EVENT:
+		{
+			int dir = (event_type == GMM_WHEELUP_EVENT) ? +1 : -1;
+
+			if(w_ref_id == volume_button.GetRefID())
+			{
+				int si = sound_setting ? *sound_setting : 0;
+				si += dir;
+				if(si < 0) si = 0;
+				if(si >= MAX_SOUND_SETTINGS) si = MAX_SOUND_SETTINGS - 1;
+				gmm_flags.set_volume = true;
+				gmm_flags.set_volume_value = si;
+			}
+			else if(w_ref_id == speed_button.GetRefID())
+			{
+				int cur = MAX_GMMOPTIONS_SPEED_SETTINGS - 1;
+				for(int i=0;i<MAX_GMMOPTIONS_SPEED_SETTINGS;i++)
+					if(ztime && ztime->GameSpeed() <= gmmoption_speed_setting_value[i] + 0.01)
+						{ cur = i; break; }
+				int next = cur + dir;
+				if(next < 0) next = 0;
+				if(next >= MAX_GMMOPTIONS_SPEED_SETTINGS) next = MAX_GMMOPTIONS_SPEED_SETTINGS - 1;
+				gmm_flags.set_game_speed = true;
+				gmm_flags.set_game_speed_value = gmmoption_speed_setting_value[next];
+			}
+		}
+		break;
 	}
 }
