@@ -2060,18 +2060,20 @@ void ZObject::GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode)
 	vector<waypoint> &wl = grabber->GetWayPointList();
 	wl.insert(wl.begin(), grab);
 
-	//detach the grabber from our group so it owns this detour outright. It peels
-	//off, does the grab, then walks its own copy of the route on to the
-	//destination. Being independent means our re-clones can't oscillate it back
-	//(the old bug) nor strand it with our emptied path when we arrive (the
-	//straggler bug); a vehicle grab then deletes it, a flag/grenade grab just
-	//leaves it travelling on. Mirrors the engine's own minion-leaves handling.
-	//(grabber==this only for a lone unit, which has no group to leave.)
-	if(grabber != this && grabber->GetGroupLeader() == this)
-	{
-		RemoveGroupMinion(grabber);
-		grabber->SetGroupLeader(NULL);
-	}
+	//Keep the grabber in its group. It still peels off and does the grab
+	//undisturbed, because CloneMinionWayPoints skips a minion while it
+	//IsOnGrabDetour() - the grab waypoint sits at the front, shielded from the
+	//leader's re-clones, so it can't be oscillated back onto the group's path.
+	//Once the grab is done the minion re-syncs to the leader and rejoins.
+	//
+	//We used to detach it outright (SetGroupLeader(NULL)) so it owned the detour
+	//and walked its own route copy on independently. But that orphaned the unit:
+	//it dropped out of the group's selection, so once a couple of robots peeled
+	//off to grab flags the player could only steer the leader and the grabbers sat
+	//stranded at their flags. Staying a minion means a single order to the group
+	//reaches them again. (A vehicle entry deletes the robot anyway - group
+	//membership is cleaned up on removal; a flag/grenade grab leaves it as a
+	//normal minion. grabber==this only for a lone unit, which has no group.)
 
 	//redirect now; we deliberately do NOT set updated_waypoints, so this
 	//automatic grab does not flash a path line on the client (matching how the
