@@ -44,7 +44,6 @@ ZServer::ZServer() : ZCore()
 	next_reset_game_time = 0;
 	do_reset_game = false;
 	next_scuffle_time = 0;
-	start_pause_at = -1;
 	next_make_suggestions_time = 0;
 
 	//bots
@@ -534,11 +533,7 @@ void ZServer::LoadNextMap(string override_map_name)
 	InitObjects();
 	InitZones();
 
-	//Defer the start pause ~1s so freshly placed/built units (which spawn stacked)
-	//finish being scuffled apart by ScuffleUnits() - which only nudges IDLE units,
-	//so it can.t run while paused. The player then sees a spread army and fully
-	//drawn sprites instead of one stacked blob.
-	if(psettings.start_map_paused) start_pause_at = ztime.ztime + 1.2;
+	if(psettings.start_map_paused) PauseGame();
 
 	game_on = true;
 }
@@ -1127,9 +1122,6 @@ void ZServer::Run()
 
 		//scuffle
 		ScuffleUnits();
-
-		//deferred start pause: let units scuffle apart for ~1s, then pause
-		if(start_pause_at >= 0 && ztime.ztime >= start_pause_at) { PauseGame(); start_pause_at = -1; }
 
 		//run stuff
 		process_objects_time = current_time();
