@@ -26,6 +26,7 @@ GMMWList::GMMWList() : ZGMMWidget()
 	SetVisibleEntries(MMLIST_MIN_ENTRIES);
 	up_button_state = MMLIST_NORMAL;
 	down_button_state = MMLIST_NORMAL;
+	dragging_scroller = false;
 	button_down_time = 0;
 }
 
@@ -159,11 +160,21 @@ bool GMMWList::Click(int x_, int y_)
 		button_down_time=current_time()+0.2;
 		return true; 
 	}
-	if(WithinDownButton(x_, y_)) 
-	{ 
-		down_button_state=MMLIST_PRESSED; 
+	if(WithinDownButton(x_, y_))
+	{
+		down_button_state=MMLIST_PRESSED;
 		button_down_time=current_time()+0.2;
-		return true; 
+		return true;
+	}
+
+	//scrollbar track (the strip between the up/down buttons): jump the view to
+	//where you click and keep dragging to scroll - so you don't have to click
+	//the arrow once per row to reach a distant entry (#78)
+	if(WithinScrollTrack(x_, y_))
+	{
+		dragging_scroller = true;
+		SetViewFromTrackY(y_);
+		return true;
 	}
 
 	//entry?
@@ -197,11 +208,65 @@ bool GMMWList::UnClick(int x_, int y_)
 
 	up_button_state = MMLIST_NORMAL;
 	down_button_state = MMLIST_NORMAL;
+	dragging_scroller = false;
 
 	if(prev_up_button_state==MMLIST_PRESSED && WithinUpButton(x_, y_)) { return MoveUp(); }
 	if(prev_down_button_state==MMLIST_PRESSED && WithinDownButton(x_, y_)) { return MoveDown(); }
 
 	return false;
+}
+
+//while the left button is held after grabbing the scrollbar track, follow the
+//cursor (#78). Returns true so the menu treats the motion as consumed.
+bool GMMWList::Motion(int x_, int y_)
+{
+	if(!dragging_scroller) return false;
+
+	y_-=y;
+	SetViewFromTrackY(y_);
+
+	return true;
+}
+
+//the scrollbar track is the right-edge column between the up and down buttons.
+bool GMMWList::WithinScrollTrack(int x_, int y_)
+{
+	const int button_h = 8;   //matches WithinUp/DownButton
+	int track_left, track_top, track_bottom;
+
+	track_left = w - MMLIST_UP_BUTTON_FROM_RIGHT;
+	track_top = MMLIST_UP_BUTTON_FROM_TOP + button_h;
+	track_bottom = h - MMLIST_DOWN_BUTTON_FROM_BOTTOM;
+
+	if(x_ < track_left) return false;
+	if(x_ > w) return false;
+	if(y_ < track_top) return false;
+	if(y_ > track_bottom) return false;
+
+	return true;
+}
+
+//map a y within the scrollbar track to a view position. Clamps at both ends.
+void GMMWList::SetViewFromTrackY(int y_)
+{
+	const int button_h = 8;
+	int track_top, track_bottom, available;
+	double pct;
+
+	available = (int)entry_list.size() - visible_entries;
+	if(available <= 0) { view_i = 0; return; }
+
+	track_top = MMLIST_UP_BUTTON_FROM_TOP + button_h;
+	track_bottom = h - MMLIST_DOWN_BUTTON_FROM_BOTTOM;
+	if(track_bottom <= track_top) { view_i = 0; return; }
+
+	pct = (double)(y_ - track_top) / (track_bottom - track_top);
+	if(pct < 0) pct = 0;
+	if(pct > 1) pct = 1;
+
+	view_i = (int)(pct * available + 0.5);
+	if(view_i < 0) view_i = 0;
+	if(view_i > available) view_i = available;
 }
 
 int GMMWList::WithinEntry(int x_, int y_)
