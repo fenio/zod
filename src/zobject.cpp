@@ -2077,6 +2077,11 @@ void ZObject::GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode)
 	//automatic grab does not flash a path line on the client (matching how the
 	//original idle auto-grab moved silently via location updates). Movement still
 	//syncs because ProcessMove relays velocity/location as the unit walks.
+	//Point cur_wp_info at the grab BEFORE setting velocity: otherwise a unit that
+	//was already moving elsewhere keeps its old heading for a tick (SetVelocity
+	//aims at the stale previous leg) until ProcessMove re-paths - a visible
+	//wrong-way twitch when it peels off to grab.
+	grabber->SetTarget(ox, oy);
 	grabber->SetVelocity();
 
 	//timeline: who was sent to grab what. Same target ref# appearing for several
