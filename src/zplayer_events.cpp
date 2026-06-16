@@ -357,7 +357,14 @@ void ZPlayer::lunclick_event(ZPlayer *p, char *data, int size, int dummy)
 	//p->GuiAbsorbLUnClick();
 
 	//collect selectables
-	if(!p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
+	if(p->ztime.IsPaused())
+	{
+		//#91: the game world is frozen until the round starts - a click here must
+		//not order, select, or trigger a unit's "reporting"/"yes sir" voice.
+		//(Resume is handled above; the HUD and menus still work.)
+		p->lbutton.down = false;
+	}
+	else if(!p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
 	{
 		//classic mouse: a plain click with units selected is an order
 		if(zod_classic_mouse && p->ClassicLeftClickOrder())

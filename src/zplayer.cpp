@@ -4152,6 +4152,9 @@ bool ZPlayer::DoPlaceCannon()
 
 	if(!place_cannon) return false;
 
+	//#91: no placing cannons before the round starts
+	if(ztime.IsPaused()) { place_cannon = false; return false; }
+
 	place_cannon = false;
 
 	the_data.ref_id = place_cannon_ref_id;
@@ -4597,6 +4600,10 @@ void ZPlayer::DoSpaceBarEvent()
 bool ZPlayer::ObjectMakeGuiWindow(ZObject *obj)
 {
 	if(!obj) return false;
+
+	//#91: no opening a building's production window before the round starts -
+	//otherwise you can queue/change build targets on the paused start screen.
+	if(ztime.IsPaused()) return false;
 
 	//only one can exist
 	DeleteCurrentGuiWindow();

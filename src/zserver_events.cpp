@@ -340,6 +340,8 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 
 void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91: no orders before the round starts
+
 	ZObject *our_object;
 
 	//logged in?
@@ -449,6 +451,8 @@ void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int p
 
 void ZServer::rcv_object_rallypoints_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	ZObject *our_object;
 
 	//logged in?
@@ -476,6 +480,8 @@ void ZServer::rcv_object_rallypoints_event(ZServer *p, char *data, int size, int
 
 void ZServer::start_building_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91: no production changes before the round starts
+
 	start_building_packet *pi = (start_building_packet*)data;
 	ZObject *obj;
 
@@ -528,6 +534,8 @@ void ZServer::start_building_event(ZServer *p, char *data, int size, int player)
 
 void ZServer::stop_building_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	int ref_id;
 	ZObject *obj;
 
@@ -583,6 +591,8 @@ void ZServer::stop_building_event(ZServer *p, char *data, int size, int player)
 
 void ZServer::place_cannon_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	place_cannon_packet *pi = (place_cannon_packet*)data;
 	ZObject *obj, *new_obj;
 
@@ -657,6 +667,8 @@ void ZServer::relay_chat_event(ZServer *p, char *data, int size, int player)
 
 void ZServer::exit_vehicle_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	eject_vehicle_packet *pi = (eject_vehicle_packet*)data;
 	ZObject *obj, *new_obj;
 
@@ -1042,6 +1054,8 @@ void ZServer::set_game_speed_event(ZServer *p, char *data, int size, int player)
 
 void ZServer::add_building_queue_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	add_building_queue_packet *pi = (add_building_queue_packet*)data;
 	ZObject *obj;
 
@@ -1089,6 +1103,8 @@ void ZServer::add_building_queue_event(ZServer *p, char *data, int size, int pla
 
 void ZServer::cancel_building_queue_event(ZServer *p, char *data, int size, int player)
 {
+	if(p->InGameCommandsBlocked()) return;   //#91
+
 	cancel_building_queue_packet *pi = (cancel_building_queue_packet*)data;
 	ZObject *obj;
 

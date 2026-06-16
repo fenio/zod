@@ -62,6 +62,12 @@ class ZServer : public ZCore
 		void DoResetGame(string map_name = "");
 		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech, int vehicles = -1);
 		bool EndGameRequirementsMet();
+		//#91: before the round is kicked off (the start-screen pause) - and during
+		//any later pause - no in-game command should take effect OR play a
+		//confirmation. Server-authoritative so it covers every command path
+		//(orders, production, building placement, eject) and emits no misleading
+		//audio for an action that did nothing.
+		bool InGameCommandsBlocked() { return ztime.IsPaused(); }
 		void LoadNextMap(string map_name = "");
 		void ResetGame();
 		vector<ZObject*>::iterator DeleteObject(vector<ZObject*>::iterator obj);
