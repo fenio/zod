@@ -40,6 +40,6 @@ body:
     attributes:
       label: Diagnostic log (important for unit / movement / AI bugs)
       description: |
-        The game always writes **`zod_diag.log`** — next to the `.exe` on Windows, or in your home folder on macOS/Linux.
-        If a specific unit is misbehaving, **select it in-game and press `F12`** to append its full state (orders, target, health) to the log, then paste or attach `zod_diag.log` here.
+        The game always writes **`zod_diag.log`** — next to the `.exe` on Windows, or in your home folder on macOS/Linux. It also **auto-records suspicious events** as they happen (a move order to somewhere a unit can't reach, a unit stuck with no progress, a match that can't end), so it's worth attaching even if you didn't catch the exact moment.
+        If a specific unit is misbehaving, **select it in-game and press `F12`** — or **`\`** if F12 does nothing (e.g. on macOS, where the OS reserves F12) — to append its full state to the log: its orders, target, owner, whether it can move, crewed vs. driverless, plus a per-team unit census (which shows why a match has or hasn't ended). Then attach `zod_diag.log` here.
       render: text

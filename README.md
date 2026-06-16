@@ -139,6 +139,16 @@ through its position-correction "snaps" and gives stationary vehicles a smooth
 idle engine bob. It never affects gameplay. Toggle live with **`Y`**, or start
 with it off via `ZOD_SMOOTH=0`.
 
+**Reporting a bug (`zod_diag.log`):** the game always writes a diagnostic log —
+`zod_diag.log`, next to the binary on Windows or in your home folder on
+macOS/Linux. It auto-records suspicious events as they happen (a move order to an
+unreachable spot, a unit stuck with no progress, a match that can't end). If a
+specific unit misbehaves, **select it and press `F12`** (or **`\`** where the OS
+reserves F12, e.g. macOS) to append its full state — orders, target, owner,
+whether it can move, crewed vs. driverless — plus a per-team unit census. Attach
+that file to a bug report; it's far more useful than a screenshot for movement/AI
+issues.
+
 **Pathfinding debug log:** to collect evidence when a unit gets stuck or takes
 a weird route, run with `ZOD_PATHLOG=1` — the engine writes `zod_path.log`
 recording every move order, A\* request/result (with search time), the chosen
