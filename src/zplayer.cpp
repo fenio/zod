@@ -2991,6 +2991,18 @@ void ZPlayer::DumpDiagnostics()
 			o->IsMoving() ? " moving" : " stopped",
 			o->IsOnGrabDetour() ? " ON-GRAB-DETOUR" : "");
 
+		//movement + ownership detail - spots the "ghost"/"won't move" units (#54):
+		//owner team, whether it physically can move, whether it's destroyed, and
+		//for vehicles/cannons whether anyone is actually crewing it.
+		{
+			unsigned char ot, oid;
+			o->GetObjectID(ot, oid);
+			ZDiag("   owner=%d  canmove=%s  destroyed=%s%s",
+				o->GetOwner(), o->CanMove() ? "yes" : "no", o->IsDestroyed() ? "yes" : "no",
+				(ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)
+					? (o->GetDrivers().size() ? "  crewed" : "  DRIVERLESS") : "");
+		}
+
 		if(o->GetGroupLeader())
 			ZDiag("   leader: %s", ZPathLog_UnitDesc(o->GetGroupLeader()).c_str());
 		if(o->GetMinionList().size())
@@ -3038,6 +3050,34 @@ void ZPlayer::DumpDiagnostics()
 			any = true;
 		}
 		if(!any) ZDiag("   (none)");
+	}
+
+	//per-team census of alive fighting units + forts. The match ends only when
+	//<=1 team has any robot/vehicle/cannon, so this shows why a game has or hasn't
+	//ended - e.g. a single stranded unit keeping a team "alive" forever (#54).
+	{
+		int team_units[MAX_TEAM_TYPES], team_forts[MAX_TEAM_TYPES];
+		for(int t=0; t<MAX_TEAM_TYPES; t++) { team_units[t] = 0; team_forts[t] = 0; }
+
+		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
+		{
+			ZObject *o = *i;
+			if(!o || o->IsDestroyed()) continue;
+
+			int owner = o->GetOwner();
+			if(owner < 0 || owner >= MAX_TEAM_TYPES) continue;
+
+			unsigned char ot, oid;
+			o->GetObjectID(ot, oid);
+
+			if(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT) team_units[owner]++;
+			else if(ot == BUILDING_OBJECT && (oid == FORT_FRONT || oid == FORT_BACK)) team_forts[owner]++;
+		}
+
+		ZDiag("team census (alive fighting units / forts):");
+		for(int t=1; t<MAX_TEAM_TYPES; t++)
+			if(team_units[t] || team_forts[t])
+				ZDiag("   team %d: %d unit(s), %d fort(s)", t, team_units[t], team_forts[t]);
 	}
 
 	ZDiag("to report: open an issue at https://github.com/fenio/zod/issues and attach this file");
