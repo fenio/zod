@@ -147,7 +147,12 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 		//#107: the rectangle/drag select runs here on each motion, not just on
 		//release - so the pause gate in the unclick handler (#91) missed it, and a
 		//box-drag still selected units before the round started. Freeze it too.
-		if(!p->ztime.IsPaused() && !p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
+		//#102: only once the drag is past the click slop. CollectSelectables clears
+		//the selection, so running it for a 1-2px click jitter wiped the units
+		//before the unclick could order them - the "command not taken" bug. A real
+		//box drag (> slop) still selects live.
+		if(!p->ztime.IsPaused() && !p->lbutton.started_over_hud && !p->lbutton.started_over_gui
+			&& p->DragExceedsSlop())
 			p->CollectSelectables();
 	}
 	else

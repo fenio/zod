@@ -190,6 +190,7 @@ class ZPlayer : public ZClient
 		void ProcessGame();
 		void ProcessVerbalWarnings();
 		void CollectSelectables();
+		bool DragExceedsSlop();		//#102: is the held drag past the click slop?
 		bool CouldCollectSelectables();
 		void SelectZObject(ZObject *obj);
 		void SelectAllOfType(int type = -1);
