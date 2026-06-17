@@ -2939,6 +2939,11 @@ void ZPlayer::DumpDiagnostics()
 	vector<ZObject*> &sel = select_info.selected_list;
 
 	ZDiag("=== F12 dump: %d unit(s) selected ===", (int)sel.size());
+	//#93: name the exact map (+ paused state) so the dump is a self-contained
+	//reproduction - reload this map, place the unit at its tile, give the order,
+	//and you get the same route.
+	ZDiag("map: %s%s", game_map_name.empty() ? "(unknown - server didn't send it)" : game_map_name.c_str(),
+		ztime.IsPaused() ? "   [game PAUSED]" : "");
 
 	if(sel.empty())
 	{
@@ -2997,8 +3002,13 @@ void ZPlayer::DumpDiagnostics()
 		{
 			unsigned char ot, oid;
 			o->GetObjectID(ot, oid);
-			ZDiag("   owner=%d  canmove=%s  destroyed=%s%s",
+			//pathfinding uses a different tile table per unit kind + explosives
+			//(robots wade water; explosives let a unit path through rock), so log
+			//both - they're needed to reproduce a route (#93).
+			ZDiag("   owner=%d  canmove=%s  destroyed=%s  %s  explosives=%s%s",
 				o->GetOwner(), o->CanMove() ? "yes" : "no", o->IsDestroyed() ? "yes" : "no",
+				ot == ROBOT_OBJECT ? "robot-pathing" : "vehicle-pathing",
+				o->HasExplosives() ? "yes" : "no",
 				(ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)
 					? (o->GetDrivers().size() ? "  crewed" : "  DRIVERLESS") : "");
 		}

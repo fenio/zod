@@ -398,11 +398,61 @@ void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrai
 	//load it and reset the game onto it (relays to all clients)
 	DoResetGame(out_path);
 
+	//#93: a generated map has no shareable file, but generation is deterministic
+	//from these params + seed - so record the exact zod_mapgen command that
+	//recreates it. Set AFTER DoResetGame (LoadNextMap just set it to the temp
+	//path); the client requests the map - and gets this - asynchronously after.
+	{
+		char recipe[256];
+		snprintf(recipe, sizeof(recipe),
+			"generated: ./build/zod_mapgen -e %d -w %d -h %d -t %d -L %d -v %d -s %u -o repro.map",
+			enemies, width, height, terrain, tech, vehicles, seed);
+		game_repro_desc = recipe;
+	}
+
 	//start a bot on each enemy team (human is red / team 1)
 	for(int t = RED_TEAM + 1; t <= RED_TEAM + enemies && t < MAX_TEAM_TYPES; t++)
 		if(!bot_thread[t]) StartBot(t);
 
 	BroadCastNews("new random map generated");
+}
+
+//#93: the error-path fallback (a map file failed to load, or none was set). Use
+//the real generator (MapGen::Generate) so the fallback map is playable AND
+//reproducible - a seeded recipe, like the menu's Generate Map. The old
+//ZMap::MakeRandomMap (a structureless random-tile fill, unplayable and not
+//seeded) is kept only as an absolute last resort if the real generator can't run
+//(e.g. missing tileinfo assets). Runs inside LoadNextMap, which already cleared
+//the game and expects zmap loaded on return.
+void ZServer::LoadFallbackGeneratedMap()
+{
+	const int enemies = 1, width = 80, height = 100, terrain = 0, tech = 2, vehicles = 4;
+	unsigned int seed = (unsigned int)time(0) ^ (rand() << 1);
+	string out_path = ServerTempMapPath("zod_fallback.map");
+
+	if(MapGen::Generate(out_path, enemies, width, height, terrain, tech, seed, vehicles))
+	{
+		zmap.ClearMap();
+		if(zmap.Read(out_path.c_str()))
+		{
+			map_name = out_path;
+
+			char recipe[256];
+			snprintf(recipe, sizeof(recipe),
+				"generated (fallback): ./build/zod_mapgen -e %d -w %d -h %d -t %d -L %d -v %d -s %u -o repro.map",
+				enemies, width, height, terrain, tech, vehicles, seed);
+			game_repro_desc = recipe;
+
+			ZDiag("map fell back to a generated map (%s)", game_repro_desc.c_str());
+			return;
+		}
+	}
+
+	//real generator unavailable - last-ditch primitive fill so the game still has
+	//a map to stand on (not playable, not reproducible - and flagged as such).
+	zmap.MakeRandomMap();
+	game_repro_desc = "(last-ditch random fill - generator unavailable, non-reproducible)";
+	ZDiag("map generation fallback FAILED - used the primitive random fill");
 }
 
 void ZServer::DoResetGame(string map_name)
@@ -557,14 +607,18 @@ void ZServer::LoadNextMap(string override_map_name)
 
 	reload_same_map = false;
 
+	//#93: default repro descriptor = the map file. GenerateAndStartMap overrides
+	//this with the zod_mapgen recipe after it resets onto a generated map.
+	game_repro_desc = map_name;
+
 	//load map
 	if(map_name.size())
 	{
 		if(!zmap.Read(map_name.c_str()))
 		{
-			printf("ZServer::LoadNextMap:could not load map '%s'; falling back to random map\n", map_name.c_str());
-			ZDiag("map load FAILED: '%s' - using a random map", map_name.c_str());
-			zmap.MakeRandomMap();
+			printf("ZServer::LoadNextMap:could not load map '%s'; falling back to a generated map\n", map_name.c_str());
+			ZDiag("map load FAILED: '%s' - using a generated map", map_name.c_str());
+			LoadFallbackGeneratedMap();
 		}
 		else
 		{
@@ -575,15 +629,8 @@ void ZServer::LoadNextMap(string override_map_name)
 	}
 	else
 	{
-		printf("ZServer::LoadNextMap:no map set to load; generating random map\n");
-		zmap.MakeRandomMap();
-		// Round-trip through disk so map_data is populated for client downloads.
-		string tmp = ServerTempMapPath("zod_random.map");
-		if(zmap.Write(tmp.c_str()))
-		{
-			zmap.ClearMap();
-			zmap.Read(tmp.c_str());
-		}
+		printf("ZServer::LoadNextMap:no map set to load; generating a map\n");
+		LoadFallbackGeneratedMap();
 	}
 
 			
