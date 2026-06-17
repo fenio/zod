@@ -954,6 +954,34 @@ void ZPlayer::set_object_health_event(ZPlayer *p, char *data, int size, int dumm
 void ZPlayer::end_game_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->ProcessEndGame();
+
+	//#88: the match is over. Losers get no TEAM_ENDED, so decide win/loss here
+	//from whether we still have any combat unit on the field, freeze the elapsed
+	//time, and raise the summary panel for the server's end-of-game pause. Skip
+	//for spectators (no real team of our own).
+	if(p->our_team > NULL_TEAM && p->our_team < MAX_TEAM_TYPES)
+	{
+		bool have_units = false;
+
+		for(vector<ZObject*>::iterator i=p->object_list.begin(); i!=p->object_list.end(); i++)
+		{
+			if((*i)->GetOwner() != p->our_team) continue;
+
+			unsigned char ot, oid;
+			(*i)->GetObjectID(ot, oid);
+
+			if(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)
+			{
+				have_units = true;
+				break;
+			}
+		}
+
+		p->match_won = have_units;
+		p->match_duration = p->ztime.ztime;
+		p->BuildMatchSummary();
+		p->show_match_summary = true;
+	}
 }
 
 void ZPlayer::reset_game_event(ZPlayer *p, char *data, int size, int dummy)
@@ -981,6 +1009,26 @@ void ZPlayer::destroy_object_event(ZPlayer *p, char *data, int size, int dummy)
 
 	//good packet (double check)?
 	if(size != sizeof(destroy_object_packet) + (sizeof(fire_missile_info) * pi->fire_missile_amount)) return;
+
+	//#88: tally combat-unit losses/kills for the end-of-match summary. Our unit
+	//dying is a loss; an enemy combat unit dying to one of ours is a kill (the
+	//killer's owner is checked so a third team's kill isn't credited to us).
+	{
+		unsigned char ot, oid;
+		obj->GetObjectID(ot, oid);
+
+		if(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)
+		{
+			if(obj->GetOwner() == p->our_team)
+				p->match_units_lost++;
+			else if(pi->killer_ref_id != -1)
+			{
+				ZObject *kobj = ZObject::GetObjectFromID(pi->killer_ref_id, p->object_list);
+				if(kobj && kobj->GetOwner() == p->our_team)
+					p->match_enemies_killed++;
+			}
+		}
+	}
 
 	obj->SetHealth(0, p->zmap);
 	obj->DoDeathEffect(pi->do_fire_death, pi->do_missile_death);

@@ -180,6 +180,10 @@ class ZPlayer : public ZClient
 		void RenderPreviousCursor();
 		void RenderMouse();
 		void RenderNews();
+		void RenderMatchSummary();	//#88
+		void BuildMatchSummary();	//#88
+		void EnsureSummaryScaled();	//#88
+		void ResetMatchStats();		//#88
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();
@@ -423,6 +427,23 @@ class ZPlayer : public ZClient
 		string login_password;
 		int fort_ref_id;
 		int sound_setting;
+
+		//#88: post-match summary shown during the server's end-of-game pause.
+		//Stats are tallied client-side (no protocol change); win/loss is decided
+		//locally at END_GAME because wiped-out players get no TEAM_ENDED.
+		bool show_match_summary;
+		bool match_won;
+		double match_duration;
+		int match_enemies_killed;
+		int match_units_lost;
+		int summary_line_count;
+		ZSDL_Surface summary_line_img[5];
+		ZSDL_Surface summary_strip_img;		//translucent backing for the stats
+		ZSDL_Surface summary_won_img;		//#88 win art, scaled to current res
+		ZSDL_Surface summary_lost_img;		//#88 loss art, scaled to current res
+		SDL_Surface *summary_won_raw;		//#88 unscaled source (zoom re-scales)
+		SDL_Surface *summary_lost_raw;		//#88 unscaled source
+		int summary_scaled_w, summary_scaled_h;	//res the art was last scaled to
 		
 		ZSDL_Surface splash_screen;
 		ZAudio_Music *splash_music;
