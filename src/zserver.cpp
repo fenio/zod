@@ -38,6 +38,7 @@ ZServer::ZServer() : ZCore()
 	srand(time(0));
 	
 	current_map_i = -1;
+	max_unlocked_i = 0;
 	reload_same_map = false;
 	next_ref_id = 0;
 	game_on = false;
@@ -101,6 +102,12 @@ void ZServer::Setup()
 
 		printf("ZServer::Setup:using selectable map list as the map list\n");
 	}
+
+	//#77: in a sequential campaign the Change-Map menu IS the campaign - show those
+	//maps in order (not the whole maps/ folder) so the per-map unlock and the gray
+	//-out line up by index with max_unlocked_i.
+	if(map_list.size() && !load_maps_randomly)
+		selectable_map_list = map_list;
 
 
 	//needed for pathfinding
@@ -609,6 +616,12 @@ int ZServer::NextInMapList()
 	if(current_map_i != -1)
 		printf("NextInMapList::returning %d '%s'\n", current_map_i, map_list[current_map_i].c_str());
 
+	//#77: reaching a map unlocks it. NextInMapList only advances on a win or the
+	//initial/resumed load (a loss replays via reload_same_map without coming here),
+	//so the watermark only ever climbs. Don't let the end-of-list wrap to 0 lower it.
+	if(!load_maps_randomly && current_map_i > max_unlocked_i)
+		max_unlocked_i = current_map_i;
+
 	//remember how far the campaign has progressed
 	SaveCampaignProgress();
 
@@ -636,7 +649,8 @@ void ZServer::SaveCampaignProgress()
 
 	FILE *fp = fopen(path.c_str(), "w");
 	if(!fp) return;
-	fprintf(fp, "%d\n", current_map_i);
+	//line 1: where you are; line 2: highest map unlocked (#77)
+	fprintf(fp, "%d\n%d\n", current_map_i, max_unlocked_i);
 	fclose(fp);
 }
 
@@ -651,13 +665,21 @@ void ZServer::LoadCampaignProgress()
 	FILE *fp = fopen(path.c_str(), "r");
 	if(!fp) return;
 
-	int idx = -1;
-	if(fscanf(fp, "%d", &idx) == 1 && idx >= 0 && idx < (int)map_list.size())
+	int idx = -1, unlocked = -1;
+	int got = fscanf(fp, "%d %d", &idx, &unlocked);
+	if(got >= 1 && idx >= 0 && idx < (int)map_list.size())
 	{
 		//resume AT idx: set current_map_i so the first NextInMapList() lands on it
 		current_map_i = idx - 1;
 		printf("ZServer: resuming campaign at map %d ('%s')\n", idx, map_list[idx].c_str());
 	}
+	//#77: second line is the unlock watermark. Old single-line files (got==1) have
+	//none - fall back to the resume index so existing saves stay consistent.
+	if(got >= 2 && unlocked >= 0)
+		max_unlocked_i = unlocked;
+	else if(got >= 1 && idx >= 0)
+		max_unlocked_i = idx;
+	if(max_unlocked_i >= (int)map_list.size()) max_unlocked_i = (int)map_list.size() - 1;
 	fclose(fp);
 }
 
