@@ -581,6 +581,7 @@ void ZServer::LoadNextMap(string override_map_name)
 			printf("ZServer::LoadNextMap:could not load map '%s'; falling back to random map\n", map_name.c_str());
 			ZDiag("map load FAILED: '%s' - using a random map", map_name.c_str());
 			zmap.MakeRandomMap();
+			game_repro_desc = "(non-reproducible random fallback - map file failed to load)";   //#93
 		}
 		else
 		{
@@ -593,6 +594,7 @@ void ZServer::LoadNextMap(string override_map_name)
 	{
 		printf("ZServer::LoadNextMap:no map set to load; generating random map\n");
 		zmap.MakeRandomMap();
+		game_repro_desc = "(non-reproducible random fallback - no map was set)";   //#93
 		// Round-trip through disk so map_data is populated for client downloads.
 		string tmp = ServerTempMapPath("zod_random.map");
 		if(zmap.Write(tmp.c_str()))
