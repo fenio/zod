@@ -398,6 +398,13 @@ class ZPlayer : public ZClient
 		bool touch_moved;                   // moved past the tap threshold
 		float touch_pinch0;                 // two-finger distance at pinch start
 		double touch_zoom0;                 // zoom level at pinch start
+		//#111: a pinch fires many FINGER_MOTION events; each ApplyZoom->RebuildView
+		//is heavy (recreates the framebuffer, re-renders the HUD), and ProcessSDL
+		//drains the whole queue in one frame - so a pinch did dozens of rebuilds
+		//before rendering once, freezing for seconds on Android. Record the target
+		//here and apply it at most once per frame in ProcessGame.
+		double pinch_pending_zoom;
+		bool pinch_zoom_dirty;
 		void HandleFingerDown(const SDL_TouchFingerEvent &t);
 		void HandleFingerMotion(const SDL_TouchFingerEvent &t);
 		void HandleFingerUp(const SDL_TouchFingerEvent &t);
