@@ -328,7 +328,12 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 	//team survived the map - so switching to the about-to-win side turns a loss
 	//into a win (and leaves the next map's bot on the wrong team). Disallow team
 	//changes during the campaign; team selection stays open in skirmish/multiplayer.
-	if(p->map_list.size() && !p->load_maps_randomly)
+	//
+	//...but only a *change*. A freshly-connected client is on NULL_TEAM and sends
+	//SET_TEAM once to claim its launch team (-t / desired_team); blocking that too
+	//left the human teamless (a spectator) for the whole campaign while the bot
+	//played uncontested. Allow the first claim; block only switches off a real team.
+	if(p->map_list.size() && !p->load_maps_randomly && p->player_info[player].team != NULL_TEAM)
 	{
 		p->SendNews(player, "team switching is disabled during the campaign", 0, 0, 0);
 		return;
