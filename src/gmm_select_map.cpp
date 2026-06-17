@@ -3,7 +3,7 @@
 GMMSelectMap::GMMSelectMap() : ZGuiMainMenuBase()
 {
 	menu_type = GMM_SELECT_MAP;
-	title = "Select Map";
+	title = "Play Campaign";	//#77
 	w = 112 + 56;
 	h = 118;
 
@@ -23,7 +23,7 @@ void GMMSelectMap::SetupLayout1()
 
 	next_y += 2;
 	select_button.SetType(MMGENERIC_BUTTON);
-	select_button.SetText("Select Map");
+	select_button.SetText("Play");	//#77: was "Select Map"; title now carries the name
 	select_button.SetCoords(GMM_SIDE_MARGIN, next_y);
 	select_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 	AddWidget(&select_button);
