@@ -14,7 +14,7 @@ enum gmm_main_menu_button
 const string gmm_main_menu_button_string[MAX_GMMMM_BUTTONS] = 
 {
 	"Change Teams", "Manage Bots", "Player List", 
-	"Select Map", "Generate Map", "Multiplayer", "Options", "Quit Game"
+	"Play Campaign", "Generate Map", "Multiplayer", "Options", "Quit Game"
 };
 
 class GMMMainMenu : public ZGuiMainMenuBase
