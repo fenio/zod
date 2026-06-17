@@ -3095,6 +3095,25 @@ bool ZPlayer::ClassicLeftClickOrder()
 	return true;
 }
 
+//#102: has the held left-drag moved beyond the click slop, i.e. is it a real box
+//drag rather than a jittery click? motion_event uses this to avoid running the
+//box-select (which clears the selection) mid-click: a click that drifts a pixel
+//or two would otherwise wipe the selection before the unclick could turn it into
+//an order - the long-standing "command not taken" (worse when clicking fast).
+bool ZPlayer::DragExceedsSlop()
+{
+	int shift_x, shift_y;
+
+	if(!lbutton.down) return false;
+
+	zmap.GetViewShift(shift_x, shift_y);
+
+	int mx = mouse_x + shift_x;
+	int my = mouse_y + shift_y;
+
+	return abs(lbutton.map_x - mx) > CLICK_DRAG_SLOP || abs(lbutton.map_y - my) > CLICK_DRAG_SLOP;
+}
+
 // F12: append the full state of the currently-selected unit(s) to zod_diag.log.
 // Built for bug reports - "my unit won't move / won't attack" is undebuggable
 // from a screenshot, but this dump shows the unit's orders, attack target and
