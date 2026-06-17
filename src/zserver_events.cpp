@@ -1181,6 +1181,15 @@ void ZServer::select_map_event(ZServer *p, char *data, int size, int player)
 	//good packet?
 	if(size != sizeof(int_packet)) return;
 
+	//#77: in a sequential campaign you can replay any map you've reached, but can't
+	//skip ahead to one you haven't unlocked by winning the earlier maps. (Skirmish
+	//and random map lists have no lock.)
+	if(p->map_list.size() && !p->load_maps_randomly && pi->map_num > p->max_unlocked_i)
+	{
+		p->SendNews(player, "that campaign map is locked - win the earlier maps first", 0, 0, 0);
+		return;
+	}
+
 	p->StartVote(CHANGE_MAP_VOTE, pi->map_num, player);
 }
 
