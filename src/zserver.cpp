@@ -364,7 +364,11 @@ void ZServer::ProcessEndGame()
 	if(map_list.size())
 	{
 		do_reset_game = true;
-		next_reset_game_time = current_time() + 10.0;
+		//#120: the client shows a post-match summary the player dismisses with a
+		//click/Enter (which sends CONTINUE_AFTER_END and advances us immediately).
+		//This is only a safety fallback so a disconnected/AFK client can't wedge
+		//the game forever - generous, since the player is reading the summary.
+		next_reset_game_time = current_time() + 120.0;
 	}
 
 	//give clients the game over message

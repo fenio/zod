@@ -48,7 +48,8 @@ void ZServer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, GENERATE_MAP, generate_map_event);
 	ehandler.AddFunction(TCP_EVENT, RESET_MAP, reset_map_event);
 	ehandler.AddFunction(TCP_EVENT, REQUEST_VERSION, request_version_event);
-	
+	ehandler.AddFunction(TCP_EVENT, CONTINUE_AFTER_END, continue_after_end_event);	//#120
+
 	ehandler.AddFunction(OTHER_EVENT, CONNECT_EVENT, connect_event);
 	ehandler.AddFunction(OTHER_EVENT, DISCONNECT_EVENT, disconnect_event);
 }
@@ -1192,6 +1193,14 @@ void ZServer::stop_bot_event(ZServer *p, char *data, int size, int player)
 	if(pi->team == NULL_TEAM) return;
 
 	p->StartVote(STOP_BOT, pi->team, player);
+}
+
+//#120: a player dismissed the post-match summary (click/Enter). Advance to the
+//next map now instead of waiting out the fallback timer set in ProcessEndGame.
+void ZServer::continue_after_end_event(ZServer *p, char *data, int size, int player)
+{
+	if(p->do_reset_game)
+		p->next_reset_game_time = current_time();
 }
 
 void ZServer::select_map_event(ZServer *p, char *data, int size, int player)
