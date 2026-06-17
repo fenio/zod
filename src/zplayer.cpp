@@ -4462,6 +4462,7 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 		new_menu->SetCenterCoords(init_w >> 1, init_h >> 1);
 		new_menu->SetPlayerInfoList(&player_info);
 		new_menu->SetSelectableMapList(&selectable_map_list);
+		new_menu->SetCampaignUnlock(&campaign_max_unlocked);
 		new_menu->SetPlayerTeam((int*)&our_team);
 		new_menu->SetSoundSetting(&sound_setting);
 		new_menu->SetZTime(&ztime);

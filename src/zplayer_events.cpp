@@ -49,6 +49,7 @@ void ZPlayer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, VOTE_INFO, set_vote_info_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_PLAYER_ID, set_player_id_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_SELECTABLE_MAP_LIST, set_selectable_map_list_event);
+	ehandler.AddFunction(TCP_EVENT, GIVE_CAMPAIGN_UNLOCK, set_campaign_unlock_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_LOGINOFF, display_login_event);
 	ehandler.AddFunction(TCP_EVENT, SET_GRENADE_AMOUNT, set_grenade_amount_event);
 	ehandler.AddFunction(TCP_EVENT, PICKUP_GRENADE_ANIM, pickup_grenade_event);
@@ -1325,6 +1326,15 @@ void ZPlayer::set_player_id_event(ZPlayer *p, char *data, int size, int dummy)
 void ZPlayer::set_selectable_map_list_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->ProcessSelectableMapList(data, size);
+}
+
+//#77: the server tells us how far the campaign is unlocked; the Select-Map menu
+//marks anything past it as locked. (Skirmish never sends this, so the default
+//"nothing locked" stands.)
+void ZPlayer::set_campaign_unlock_event(ZPlayer *p, char *data, int size, int dummy)
+{
+	if(size < (int)sizeof(int)) return;
+	p->campaign_max_unlocked = PacketGetInt(data, 0);
 }
 
 void ZPlayer::display_login_event(ZPlayer *p, char *data, int size, int dummy)

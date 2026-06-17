@@ -185,12 +185,13 @@ class mmlist_entry
 {
 public:
 	mmlist_entry() { clear(); }
-	mmlist_entry(string text_, int ref_id_, int sort_number_) 
-	{ 
-		text = text_; 
-		ref_id = ref_id_; 
-		sort_number= sort_number_; 
+	mmlist_entry(string text_, int ref_id_, int sort_number_)
+	{
+		text = text_;
+		ref_id = ref_id_;
+		sort_number= sort_number_;
 		state = MMLIST_NORMAL;
+		disabled = false;
 	}
 
 	void clear()
@@ -199,12 +200,14 @@ public:
 		ref_id = -1;
 		sort_number = -1;
 		state = MMLIST_NORMAL;
+		disabled = false;
 	}
 
 	string text;
 	int ref_id;
 	int sort_number;
 	int state;
+	bool disabled;   //#77: locked entry - shown with a marker, can't be selected
 
 	friend bool sort_mmlist_entry_func (const mmlist_entry &a, const mmlist_entry &b);
 };

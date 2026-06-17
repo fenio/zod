@@ -186,6 +186,7 @@ class ZCore
 		//vector<string> player_name;
 		//vector<team_type> player_team;
 		vector<string> selectable_map_list;
+		int campaign_max_unlocked = 0x7fffffff;   //#77: highest selectable index; default = nothing locked (skirmish)
 
 		bool allow_run;
 

@@ -3788,6 +3788,15 @@ void ZServer::GivePlayerSelectableMapList(int player)
 		server_socket.SendMessage(player, GIVE_SELECTABLE_MAP_LIST, send_str.c_str(), send_str.length()+1);
 	else
 		server_socket.SendMessage(player, GIVE_SELECTABLE_MAP_LIST, NULL, 0);
+
+	//#77: in a campaign the list IS the campaign sequence (set in Setup), so the
+	//client can mark every entry past this index as locked. Skirmish/random don't
+	//send it - the client defaults to "nothing locked".
+	if(map_list.size() && !load_maps_randomly)
+	{
+		int val = max_unlocked_i;
+		server_socket.SendMessage(player, GIVE_CAMPAIGN_UNLOCK, (char*)&val, sizeof(int));
+	}
 }
 
 bool ZServer::TeamHasBot(int team, bool active_only)

@@ -329,6 +329,7 @@ class ZPlayer : public ZClient
 		static void set_vote_info_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_player_id_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_selectable_map_list_event(ZPlayer *p, char *data, int size, int dummy);
+		static void set_campaign_unlock_event(ZPlayer *p, char *data, int size, int dummy);   //#77
 		static void display_login_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_grenade_amount_event(ZPlayer *p, char *data, int size, int dummy);
 		static void pickup_grenade_event(ZPlayer *p, char *data, int size, int dummy);
