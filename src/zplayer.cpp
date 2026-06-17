@@ -3019,6 +3019,31 @@ void ZPlayer::DumpDiagnostics()
 
 		ZObject *atk = o->GetAttackObject();
 		if(atk) ZDiag("   attacking: %s", ZPathLog_UnitDesc(atk).c_str());
+
+		//#93: the actual A* route the unit is following (the path the server
+		//relayed, that we draw the route line from). This is what makes a
+		//"weird path finding" report diagnosable from one dump - it shows the
+		//detours/bulges around terrain that the order alone can't. Empty for a
+		//direct (no-A*) hop.
+		{
+			vector<ZPath_Finding_AStar::pf_point> &route = o->GetClientRoute();
+			if(route.empty())
+				ZDiag("   route: direct (no A* legs)");
+			else
+			{
+				string legs;
+				int shown = 0;
+				const int max_legs = 30;
+				for(vector<ZPath_Finding_AStar::pf_point>::iterator r=route.begin(); r!=route.end() && shown<max_legs; ++r, ++shown)
+				{
+					char buf[24];
+					snprintf(buf, sizeof(buf), " t(%d,%d)", r->x / 16, r->y / 16);
+					legs += buf;
+				}
+				ZDiag("   route (%d legs):%s%s", (int)route.size(), legs.c_str(),
+					(int)route.size() > max_legs ? " ..." : "");
+			}
+		}
 	}
 
 	//nearby grabbable objects, so ref#N in the orders above can be matched to a
