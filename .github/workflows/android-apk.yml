@@ -70,6 +70,11 @@ jobs:
           cp repo/android/ZodActivity.java          proj/app/src/main/java/io/github/fenio/zod/ZodActivity.java
           cp repo/android/AndroidManifest.xml       proj/app/src/main/AndroidManifest.xml
 
+          # #86: our launcher icon (red bot face) over the template's default SDL
+          # icon - adaptive (mipmap-anydpi-v26) plus legacy PNG densities. The
+          # manifest references @mipmap/ic_launcher. Trailing /. copies contents.
+          cp -r repo/android/res/.                  proj/app/src/main/res/
+
           # game data bundled into the APK; extracted to writable storage on
           # first launch (see AndroidExtractAssetsAndChdir), driven by filelist.txt
           mkdir -p proj/app/src/main/assets/zod
