@@ -144,7 +144,10 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 			//printf("object under cursor:%s\n", p->hover_object->GetObjectName().c_str());
 		}
 		
-		if(!p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
+		//#107: the rectangle/drag select runs here on each motion, not just on
+		//release - so the pause gate in the unclick handler (#91) missed it, and a
+		//box-drag still selected units before the round started. Freeze it too.
+		if(!p->ztime.IsPaused() && !p->lbutton.started_over_hud && !p->lbutton.started_over_gui)
 			p->CollectSelectables();
 	}
 	else

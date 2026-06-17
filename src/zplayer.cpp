@@ -1532,7 +1532,9 @@ void ZPlayer::RenderMouse()
 	int shift_x, shift_y;
 	int x, y;
 
-	if(lbutton.down && !lbutton.started_over_hud && !lbutton.started_over_gui)
+	//#107: don't even draw the drag-select rectangle before the round starts -
+	//selection is frozen (handled in the input events), so the box would be a lie.
+	if(lbutton.down && !ztime.IsPaused() && !lbutton.started_over_hud && !lbutton.started_over_gui)
 	{
 		//move forward
 		if(the_time > next_shift_time)
