@@ -184,6 +184,7 @@ class ZPlayer : public ZClient
 		void BuildMatchSummary();	//#88
 		void EnsureSummaryScaled();	//#88
 		void ResetMatchStats();		//#88
+		void SendContinueAfterEnd();	//#120
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();
@@ -433,6 +434,11 @@ class ZPlayer : public ZClient
 		//Stats are tallied client-side (no protocol change); win/loss is decided
 		//locally at END_GAME because wiped-out players get no TEAM_ENDED.
 		bool show_match_summary;
+		//#120: the summary waits for the end-of-game explosion to finish, then
+		//stays up until the player dismisses it with a click/Enter.
+		bool summary_pending;
+		double summary_show_time;
+		bool summary_continue_sent;
 		bool match_won;
 		double match_duration;
 		int match_enemies_killed;

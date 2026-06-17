@@ -271,6 +271,7 @@ class ZServer : public ZCore
 		static void generate_map_event(ZServer *p, char *data, int size, int player);
 		static void reset_map_event(ZServer *p, char *data, int size, int player);
 		static void request_version_event(ZServer *p, char *data, int size, int player);
+		static void continue_after_end_event(ZServer *p, char *data, int size, int player);	//#120
 };
 
 #endif

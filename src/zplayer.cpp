@@ -234,11 +234,26 @@ ZPlayer::ZPlayer() : ZClient()
 void ZPlayer::ResetMatchStats()
 {
 	show_match_summary = false;
+	summary_pending = false;
+	summary_show_time = 0;
+	summary_continue_sent = false;
 	match_won = false;
 	match_duration = 0;
 	match_enemies_killed = 0;
 	match_units_lost = 0;
 	summary_line_count = 0;
+}
+
+//#120: the player dismissed the summary (click/Enter) - tell the server to load
+//the next map now instead of waiting out the safety fallback. Guarded so a flurry
+//of clicks only sends it once.
+void ZPlayer::SendContinueAfterEnd()
+{
+	if(!show_match_summary) return;
+	if(summary_continue_sent) return;
+
+	summary_continue_sent = true;
+	client_socket.SendMessage(CONTINUE_AFTER_END, NULL, 0);
 }
 
 //#88: gap between stacked summary stat lines, shared by build + render
@@ -1310,7 +1325,16 @@ void ZPlayer::ProcessSocketEvents()
 void ZPlayer::ProcessGame()
 {
 	double &the_time = ztime.ztime;
-	
+
+	//#120: once the game has ended, hold the summary back until the end-of-game
+	//explosion (the fort blowing up - a ~3s death animation) has played out, then
+	//reveal it. Uses real time, not ztime, since it's about the on-screen anim.
+	if(summary_pending && current_time() >= summary_show_time)
+	{
+		summary_pending = false;
+		show_match_summary = true;
+	}
+
 	//zmap.DoEffects(the_time);
 
 	ZMusicEngine::Process(object_list, zmap, our_team, fort_ref_id);

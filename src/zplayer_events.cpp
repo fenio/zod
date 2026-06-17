@@ -216,6 +216,15 @@ void ZPlayer::lclick_event(ZPlayer *p, char *data, int size, int dummy)
 
 	p->lbutton.down = true;
 
+	//#120: while the post-match summary is up, a left click dismisses it and
+	//advances to the next map - it must not fall through to game/HUD handling.
+	if(p->show_match_summary)
+	{
+		p->SendContinueAfterEnd();
+		p->lbutton.down = false;
+		return;
+	}
+
 	//taken by a main menu?
 	if(p->MainMenuAbsorbLClick())
 	{
@@ -526,6 +535,13 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 	//printf("keydown:%d unicode:%d\n", the_key, the_unicode);
 
 	p->SetAsciiState(the_key, true);
+
+	//#120: Enter/Return dismisses the post-match summary and advances
+	if(p->show_match_summary && (the_key == SDLK_RETURN || the_key == SDLK_KP_ENTER))
+	{
+		p->SendContinueAfterEnd();
+		return;
+	}
 
 	switch(the_key)
 	{
@@ -985,7 +1001,13 @@ void ZPlayer::end_game_event(ZPlayer *p, char *data, int size, int dummy)
 		p->match_won = have_units;
 		p->match_duration = p->ztime.ztime;
 		p->BuildMatchSummary();
-		p->show_match_summary = true;
+
+		//#120: don't pop the summary over the explosion - wait for the fort's
+		//death animation (~3s) to finish, then ProcessGame reveals it. It then
+		//stays up until the player dismisses it (see lclick/keydown -> Continue).
+		p->summary_pending = true;
+		p->summary_continue_sent = false;
+		p->summary_show_time = current_time() + 3.0;
 	}
 }
 
