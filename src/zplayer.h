@@ -182,6 +182,7 @@ class ZPlayer : public ZClient
 		void RenderNews();
 		void RenderMatchSummary();	//#88
 		void BuildMatchSummary();	//#88
+		void EnsureSummaryScaled();	//#88
 		void ResetMatchStats();		//#88
 		void RenderGUI();
 		void RenderMainMenu();
@@ -438,8 +439,11 @@ class ZPlayer : public ZClient
 		int summary_line_count;
 		ZSDL_Surface summary_line_img[5];
 		ZSDL_Surface summary_strip_img;		//translucent backing for the stats
-		ZSDL_Surface summary_won_img;		//#88 full-screen win art
-		ZSDL_Surface summary_lost_img;		//#88 full-screen loss art
+		ZSDL_Surface summary_won_img;		//#88 win art, scaled to current res
+		ZSDL_Surface summary_lost_img;		//#88 loss art, scaled to current res
+		SDL_Surface *summary_won_raw;		//#88 unscaled source (zoom re-scales)
+		SDL_Surface *summary_lost_raw;		//#88 unscaled source
+		int summary_scaled_w, summary_scaled_h;	//res the art was last scaled to
 		
 		ZSDL_Surface splash_screen;
 		ZAudio_Music *splash_music;

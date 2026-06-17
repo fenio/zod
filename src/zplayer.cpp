@@ -192,6 +192,11 @@ ZPlayer::ZPlayer() : ZClient()
 	show_chat_history = false;
 	fort_ref_id = -1;
 
+	//#88: summary art is loaded raw once and (re)scaled to the live logical
+	//resolution on demand, since zoom changes init_w/init_h mid-game
+	summary_won_raw = NULL;
+	summary_lost_raw = NULL;
+	summary_scaled_w = summary_scaled_h = -1;
 	ResetMatchStats();	//#88
 
 	ClearAsciiStates();
@@ -279,11 +284,45 @@ void ZPlayer::BuildMatchSummary()
 	summary_strip_img.SetAlpha(140);
 }
 
+//#88: cover-scale the raw summary art to the current logical resolution. No-op
+//unless the resolution changed (launch size, window resize, or a zoom step), so
+//it only does real work when needed - not every frame.
+void ZPlayer::EnsureSummaryScaled()
+{
+	if(summary_scaled_w == init_w && summary_scaled_h == init_h) return;
+
+	summary_scaled_w = init_w;
+	summary_scaled_h = init_h;
+
+	SDL_Surface *raws[2] = { summary_won_raw, summary_lost_raw };
+	ZSDL_Surface *dests[2] = { &summary_won_img, &summary_lost_img };
+
+	for(int k=0;k<2;k++)
+	{
+		if(!raws[k]) continue;
+
+		double fit_w = (double)init_w / raws[k]->w;
+		double fit_h = (double)init_h / raws[k]->h;
+		double fit = (fit_w > fit_h) ? fit_w : fit_h;	//cover (fill, crop overflow)
+
+		SDL_Surface *scaled = SDL_ScaleSurface(raws[k],
+			(int)(raws[k]->w * fit), (int)(raws[k]->h * fit), SDL_SCALEMODE_LINEAR);
+
+		if(scaled)
+		{
+			dests[k]->LoadBaseImage(scaled);	//takes ownership; frees prior scale
+			dests[k]->UseDisplayFormat();
+		}
+	}
+}
+
 //#88: full-screen win/loss artwork with the stat block over a translucent strip,
 //drawn above everything during the server's end-of-game pause.
 void ZPlayer::RenderMatchSummary()
 {
-	//background art (cover-scaled at load), centered; overflow is clipped
+	EnsureSummaryScaled();
+
+	//background art (cover-scaled to the live resolution), centered; overflow clipped
 	ZSDL_Surface *bg = match_won ? &summary_won_img : &summary_lost_img;
 	if(bg->GetBaseSurface())
 	{
@@ -601,35 +640,12 @@ void ZPlayer::InitSDL()
 	}
 	splash_screen.UseDisplayFormat(); //Regular needs this to do fading
 
-	//#88: win/loss summary backgrounds (reporter art). Scale to COVER the screen
-	//(fill it, cropping overflow) so there are no letterbox bars on the result.
-	{
-		const char *files[2] = { "assets/summary_won.png", "assets/summary_lost.png" };
-		ZSDL_Surface *dests[2] = { &summary_won_img, &summary_lost_img };
-
-		for(int k=0;k<2;k++)
-		{
-			SDL_Surface *raw = ZSDL_DataIMG_Load(files[k]);
-			if(!raw) continue;
-
-			double fit_w = (double)init_w / raw->w;
-			double fit_h = (double)init_h / raw->h;
-			double fit = (fit_w > fit_h) ? fit_w : fit_h;	//cover
-
-			SDL_Surface *scaled = SDL_ScaleSurface(raw,
-				(int)(raw->w * fit), (int)(raw->h * fit), SDL_SCALEMODE_LINEAR);
-
-			if(scaled)
-			{
-				SDL_DestroySurface(raw);
-				dests[k]->LoadBaseImage(scaled);
-			}
-			else
-				dests[k]->LoadBaseImage(raw);
-
-			dests[k]->UseDisplayFormat();
-		}
-	}
+	//#88: win/loss summary backgrounds (reporter art). Loaded raw here; cover-
+	//scaling to the screen happens in EnsureSummaryScaled() so it tracks the live
+	//logical resolution (zoom changes it mid-game).
+	summary_won_raw = ZSDL_DataIMG_Load("assets/summary_won.png");
+	summary_lost_raw = ZSDL_DataIMG_Load("assets/summary_lost.png");
+	summary_scaled_w = summary_scaled_h = -1;
 
 //	if(splash_screen)
 //	{
