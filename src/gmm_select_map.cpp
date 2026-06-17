@@ -88,13 +88,26 @@ void GMMSelectMap::SetupList()
 {
 	if(!selectable_map_list) return;
 
-	//only update list if a change in size is detected
-	if(selectable_map_list->size() == map_list.GetEntryList().size()) return;
+	//rebuild the entries only when the list size changes
+	if(selectable_map_list->size() != map_list.GetEntryList().size())
+	{
+		map_list.GetEntryList().clear();
 
-	map_list.GetEntryList().clear();
+		for(int i=0;i<selectable_map_list->size();i++)
+			map_list.GetEntryList().push_back(mmlist_entry((*selectable_map_list)[i], i, i));
 
-	for(int i=0;i<selectable_map_list->size();i++)
-		map_list.GetEntryList().push_back(mmlist_entry((*selectable_map_list)[i], i, i));
+		map_list.CheckViewI();
+	}
 
-	map_list.CheckViewI();
+	//#77: (re)apply the campaign lock every frame so a watermark that arrives just
+	//after the list does still takes effect. Past the unlock index a map gets a
+	//"(locked)" marker and can't be picked (GMMWList::WithinEntry rejects it).
+	int unlocked = campaign_unlock ? *campaign_unlock : 0x7fffffff;
+	vector<mmlist_entry> &entries = map_list.GetEntryList();
+	for(int i=0;i<(int)entries.size() && i<(int)selectable_map_list->size();i++)
+	{
+		bool locked = (i > unlocked);
+		entries[i].disabled = locked;
+		entries[i].text = locked ? ((*selectable_map_list)[i] + "  (locked)") : (*selectable_map_list)[i];
+	}
 }

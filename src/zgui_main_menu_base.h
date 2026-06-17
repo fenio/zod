@@ -148,6 +148,7 @@ public:
 	bool IsOverHUD(int hud_left, int hud_top);
 	void SetPlayerInfoList(vector<p_info> *player_info_) { player_info = player_info_; }
 	void SetSelectableMapList(vector<string> *selectable_map_list_) { selectable_map_list = selectable_map_list_; }
+	void SetCampaignUnlock(int *campaign_unlock_) { campaign_unlock = campaign_unlock_; }   //#77
 	void SetPlayerTeam(int *player_team_) { player_team=player_team_; }
 	void SetSoundSetting(int *sound_setting_) { sound_setting = sound_setting_; }
 	void SetZTime(ZTime *ztime_) { ztime=ztime_; }
@@ -184,6 +185,7 @@ protected:
 	gmm_flag gmm_flags;
 	vector<p_info> *player_info;
 	vector<string> *selectable_map_list;
+	int *campaign_unlock = NULL;   //#77: points at the client's campaign_max_unlocked (NULL = no lock)
 	int *player_team;
 	int *sound_setting;
 	ZTime *ztime;

@@ -291,6 +291,9 @@ int GMMWList::WithinEntry(int x_, int y_)
 	if(entry_found < 0) return -1;
 	if(entry_found >= entry_list.size()) return -1;
 
+	//#77: a locked entry can't be picked (the click just does nothing)
+	if(entry_list[entry_found].disabled) return -1;
+
 	return entry_found;
 }
 
