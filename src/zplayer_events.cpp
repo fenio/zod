@@ -50,6 +50,7 @@ void ZPlayer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, GIVE_PLAYER_ID, set_player_id_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_SELECTABLE_MAP_LIST, set_selectable_map_list_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_CAMPAIGN_UNLOCK, set_campaign_unlock_event);
+	ehandler.AddFunction(TCP_EVENT, GIVE_MAP_NAME, set_map_name_event);
 	ehandler.AddFunction(TCP_EVENT, GIVE_LOGINOFF, display_login_event);
 	ehandler.AddFunction(TCP_EVENT, SET_GRENADE_AMOUNT, set_grenade_amount_event);
 	ehandler.AddFunction(TCP_EVENT, PICKUP_GRENADE_ANIM, pickup_grenade_event);
@@ -1335,6 +1336,14 @@ void ZPlayer::set_campaign_unlock_event(ZPlayer *p, char *data, int size, int du
 {
 	if(size < (int)sizeof(int)) return;
 	p->campaign_max_unlocked = PacketGetInt(data, 0);
+}
+
+//#93: the server's map filename, so an F12 dump names the exact map to reproduce on.
+void ZPlayer::set_map_name_event(ZPlayer *p, char *data, int size, int dummy)
+{
+	if(size <= 0 || !data) { p->game_map_name.clear(); return; }
+	data[size-1] = 0;   //ensure null-terminated
+	p->game_map_name = data;
 }
 
 void ZPlayer::display_login_event(ZPlayer *p, char *data, int size, int dummy)

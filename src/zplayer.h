@@ -330,6 +330,8 @@ class ZPlayer : public ZClient
 		static void set_player_id_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_selectable_map_list_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_campaign_unlock_event(ZPlayer *p, char *data, int size, int dummy);   //#77
+		static void set_map_name_event(ZPlayer *p, char *data, int size, int dummy);   //#93
+		string game_map_name;   //#93: the map filename the server is running, for the F12 dump
 		static void display_login_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_grenade_amount_event(ZPlayer *p, char *data, int size, int dummy);
 		static void pickup_grenade_event(ZPlayer *p, char *data, int size, int dummy);
