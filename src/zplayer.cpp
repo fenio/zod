@@ -192,6 +192,8 @@ ZPlayer::ZPlayer() : ZClient()
 	show_chat_history = false;
 	fort_ref_id = -1;
 
+	ResetMatchStats();	//#88
+
 	ClearAsciiStates();
 
 	select_info.SetZTime(&ztime);
@@ -223,10 +225,122 @@ ZPlayer::ZPlayer() : ZClient()
 	gui_factory_list->SetOList(&ols);
 }
 
+//#88: zero the post-match summary state (start of a match / next-map load)
+void ZPlayer::ResetMatchStats()
+{
+	show_match_summary = false;
+	match_won = false;
+	match_duration = 0;
+	match_enemies_killed = 0;
+	match_units_lost = 0;
+	summary_line_count = 0;
+}
+
+//#88: gap between stacked summary stat lines, shared by build + render
+#define SUMMARY_LINE_GAP 14
+
+//#88: render the tallied stats to ZSDL_Surfaces once, when the game ends, so
+//RenderMatchSummary just blits them each frame of the pause. The win/loss title
+//is baked into the background art, so only the stat lines are drawn here. Labels
+//mirror the original game's summary screen. A translucent backing strip sized to
+//the block keeps the text readable over the busy artwork.
+void ZPlayer::BuildMatchSummary()
+{
+	char buf[128];
+
+	summary_line_count = 0;
+
+	int secs = (int)match_duration;
+	if(secs < 0) secs = 0;
+	sprintf(buf, "BATTLE LASTED   %d:%02d:%02d", secs / 3600, (secs / 60) % 60, secs % 60);
+	summary_line_img[summary_line_count++] = ZFontEngine::GetFont(BIG_WHITE_FONT).Render(buf);
+
+	sprintf(buf, "UNITS KILLED   %d", match_enemies_killed);
+	summary_line_img[summary_line_count++] = ZFontEngine::GetFont(BIG_WHITE_FONT).Render(buf);
+
+	sprintf(buf, "UNITS LOST   %d", match_units_lost);
+	summary_line_img[summary_line_count++] = ZFontEngine::GetFont(BIG_WHITE_FONT).Render(buf);
+
+	//backing strip sized to the stat block
+	int max_w = 0, total_h = 0;
+	for(int i=0;i<summary_line_count;i++)
+	{
+		SDL_Surface *s = summary_line_img[i].GetBaseSurface();
+		if(s && s->w > max_w) max_w = s->w;
+		if(s) total_h += s->h;
+		if(i) total_h += SUMMARY_LINE_GAP;
+	}
+
+	int sw = max_w + 80;
+	int sh = total_h + 50;
+	summary_strip_img.LoadNewSurface(sw, sh);
+	SDL_Rect fr; fr.x = 0; fr.y = 0; fr.w = sw; fr.h = sh;
+	summary_strip_img.FillRectOnToMe(&fr, 0, 0, 0);
+	summary_strip_img.SetAlpha(140);
+}
+
+//#88: full-screen win/loss artwork with the stat block over a translucent strip,
+//drawn above everything during the server's end-of-game pause.
+void ZPlayer::RenderMatchSummary()
+{
+	//background art (cover-scaled at load), centered; overflow is clipped
+	ZSDL_Surface *bg = match_won ? &summary_won_img : &summary_lost_img;
+	if(bg->GetBaseSurface())
+	{
+		SDL_Rect to;
+		to.x = (init_w - bg->GetBaseSurface()->w) >> 1;
+		to.y = (init_h - bg->GetBaseSurface()->h) >> 1;
+		bg->BlitSurface(NULL, &to);
+	}
+	else
+	{
+		//art missing - fall back to a plain dark wash so the stats still read
+		SDL_Rect r; r.x = 0; r.y = 0; r.w = init_w; r.h = init_h;
+		ZSDL_FillSurfaceRect(&r, 18, 18, 34);
+	}
+
+	if(summary_line_count <= 0) return;
+
+	int max_w = 0, total_h = 0, lh[5];
+	for(int i=0;i<summary_line_count;i++)
+	{
+		SDL_Surface *s = summary_line_img[i].GetBaseSurface();
+		lh[i] = s ? s->h : 0;
+		if(s && s->w > max_w) max_w = s->w;
+		total_h += lh[i];
+		if(i) total_h += SUMMARY_LINE_GAP;
+	}
+
+	//block sits in the lower third so it clears the baked-in title art
+	int block_x = (init_w - max_w) / 2;
+	int block_y = (int)(init_h * 0.60);
+
+	//backing strip, centered on the block
+	if(summary_strip_img.GetBaseSurface())
+	{
+		int sw = summary_strip_img.GetBaseSurface()->w;
+		int sh = summary_strip_img.GetBaseSurface()->h;
+		summary_strip_img.BlitSurface(NULL, (init_w - sw) / 2, block_y - (sh - total_h) / 2);
+	}
+
+	int y = block_y;
+	for(int i=0;i<summary_line_count;i++)
+	{
+		SDL_Surface *s = summary_line_img[i].GetBaseSurface();
+		int w = s ? s->w : 0;
+		summary_line_img[i].BlitSurface(NULL, block_x + (max_w - w) / 2, y);
+		y += lh[i] + SUMMARY_LINE_GAP;
+	}
+}
+
 void ZPlayer::ProcessResetGame()
 {
 	//unset this
 	fort_ref_id = -1;
+
+	//#88: the next map is loading - drop the summary and zero the tally so the
+	//new match starts from a clean slate
+	ResetMatchStats();
 
 	//clear stuff out
 	zmap.ClearMap();
@@ -486,6 +600,36 @@ void ZPlayer::InitSDL()
 		}
 	}
 	splash_screen.UseDisplayFormat(); //Regular needs this to do fading
+
+	//#88: win/loss summary backgrounds (reporter art). Scale to COVER the screen
+	//(fill it, cropping overflow) so there are no letterbox bars on the result.
+	{
+		const char *files[2] = { "assets/summary_won.png", "assets/summary_lost.png" };
+		ZSDL_Surface *dests[2] = { &summary_won_img, &summary_lost_img };
+
+		for(int k=0;k<2;k++)
+		{
+			SDL_Surface *raw = ZSDL_DataIMG_Load(files[k]);
+			if(!raw) continue;
+
+			double fit_w = (double)init_w / raw->w;
+			double fit_h = (double)init_h / raw->h;
+			double fit = (fit_w > fit_h) ? fit_w : fit_h;	//cover
+
+			SDL_Surface *scaled = SDL_ScaleSurface(raw,
+				(int)(raw->w * fit), (int)(raw->h * fit), SDL_SCALEMODE_LINEAR);
+
+			if(scaled)
+			{
+				SDL_DestroySurface(raw);
+				dests[k]->LoadBaseImage(scaled);
+			}
+			else
+				dests[k]->LoadBaseImage(raw);
+
+			dests[k]->UseDisplayFormat();
+		}
+	}
 
 //	if(splash_screen)
 //	{
@@ -1461,6 +1605,9 @@ void ZPlayer::RenderScreen()
 
 		//main menus go over everything
 		RenderMainMenu();
+
+		//#88: post-match summary sits above the HUD/menus during the end pause
+		if(show_match_summary) RenderMatchSummary();
 
 		//render cursor
 		if(!disable_zcursor) 
