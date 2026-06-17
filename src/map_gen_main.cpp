@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 		else if(!strcmp(argv[i], "-t") && i + 1 < argc) terrain = atoi(argv[++i]);
 		else if(!strcmp(argv[i], "-L") && i + 1 < argc) tech = atoi(argv[++i]);
 		else if(!strcmp(argv[i], "-v") && i + 1 < argc) vehicles = atoi(argv[++i]);
-		else if(!strcmp(argv[i], "-s") && i + 1 < argc) seed = (unsigned)atoi(argv[++i]);
+		else if(!strcmp(argv[i], "-s") && i + 1 < argc) seed = (unsigned)strtoul(argv[++i], NULL, 10);   //#93: full unsigned range (atoi truncated big seeds, breaking repro)
 		else if(!strcmp(argv[i], "-o") && i + 1 < argc) out_path = argv[++i];
 		else { printf("usage: %s -e <enemies 1-3> [-w tiles] [-h tiles] [-t terrain 0-4] [-L tech 0-5] [-v neutral-vehicles] [-s seed] [-o out.map]\n", argv[0]); return 1; }
 	}

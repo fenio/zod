@@ -164,7 +164,7 @@ void ZServer::request_map_event(ZServer *p, char *data, int size, int player)
 	//#93: tell the client which map file this is, so the F12 dump is a complete
 	//reproduction (the client only has map DATA, not the filename). Sent with the
 	//map, so it tracks every map change (the client re-requests the map each time).
-	p->server_socket.SendMessage(player, GIVE_MAP_NAME, p->map_name.c_str(), p->map_name.length() + 1);
+	p->server_socket.SendMessage(player, GIVE_MAP_NAME, p->game_repro_desc.c_str(), p->game_repro_desc.length() + 1);
 
 	/*
 	//send the map file

@@ -155,6 +155,7 @@ class ZServer : public ZCore
 		void RelayVersion(int player = -1);
 		
 		string map_name;
+		string game_repro_desc;   //#93: how to recreate this map - a filename, or the zod_mapgen recipe for a generated one
 		string map_list_name;
 		string settings_filename;
 		string p_settings_filename;

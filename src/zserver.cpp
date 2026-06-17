@@ -398,6 +398,18 @@ void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrai
 	//load it and reset the game onto it (relays to all clients)
 	DoResetGame(out_path);
 
+	//#93: a generated map has no shareable file, but generation is deterministic
+	//from these params + seed - so record the exact zod_mapgen command that
+	//recreates it. Set AFTER DoResetGame (LoadNextMap just set it to the temp
+	//path); the client requests the map - and gets this - asynchronously after.
+	{
+		char recipe[256];
+		snprintf(recipe, sizeof(recipe),
+			"generated: ./build/zod_mapgen -e %d -w %d -h %d -t %d -L %d -v %d -s %u -o repro.map",
+			enemies, width, height, terrain, tech, vehicles, seed);
+		game_repro_desc = recipe;
+	}
+
 	//start a bot on each enemy team (human is red / team 1)
 	for(int t = RED_TEAM + 1; t <= RED_TEAM + enemies && t < MAX_TEAM_TYPES; t++)
 		if(!bot_thread[t]) StartBot(t);
@@ -556,6 +568,10 @@ void ZServer::LoadNextMap(string override_map_name)
 	}
 
 	reload_same_map = false;
+
+	//#93: default repro descriptor = the map file. GenerateAndStartMap overrides
+	//this with the zod_mapgen recipe after it resets onto a generated map.
+	game_repro_desc = map_name;
 
 	//load map
 	if(map_name.size())
