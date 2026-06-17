@@ -61,6 +61,7 @@ class ZServer : public ZCore
 		void CheckResetGame();
 		void DoResetGame(string map_name = "");
 		void GenerateAndStartMap(int enemies, int width, int height, int terrain, int tech, int vehicles = -1);
+		void LoadFallbackGeneratedMap();   //#93: error-path fallback - a real (seeded, reproducible) generated map
 		bool EndGameRequirementsMet();
 		//#91: before the round is kicked off (the start-screen pause) - and during
 		//any later pause - no in-game command should take effect OR play a
