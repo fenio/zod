@@ -24,7 +24,9 @@ const string gmm_main_menu_button_string[MAX_GMMMM_BUTTONS] =
 class GMMMainMenu : public ZGuiMainMenuBase
 {
 public:
-	GMMMainMenu();
+	//#79: compact = the start menu (no game loaded) - hides the in-game/lobby
+	//admin entries (Change Teams / Manage Bots / Player List) that don't apply yet.
+	GMMMainMenu(bool compact = false);
 private:
 	GMMWButton menu_button[MAX_GMMMM_BUTTONS];
 
