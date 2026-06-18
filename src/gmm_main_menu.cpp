@@ -9,18 +9,26 @@ GMMMainMenu::GMMMainMenu() : ZGuiMainMenuBase()
 	w = 112;
 	h = 118;
 
+	//#79: Play Campaign (button 0) is its own section at the top - a gap after it
+	//separates the primary action from the rest.
+	const int section_gap = 7;
+
 	//setup buttons
+	int y = GMM_TITLE_MARGIN;
 	for(i=0;i<MAX_GMMMM_BUTTONS;i++)
 	{
 		menu_button[i].SetType(MMGENERIC_BUTTON);
 		menu_button[i].SetText(gmm_main_menu_button_string[i]);
-		menu_button[i].SetCoords(GMM_SIDE_MARGIN, GMM_TITLE_MARGIN + i*(GMMWBUTTON_HEIGHT+1));
+		menu_button[i].SetCoords(GMM_SIDE_MARGIN, y);
 		menu_button[i].SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 		AddWidget(&menu_button[i]);
+
+		y += GMMWBUTTON_HEIGHT + 1;
+		if(i == GMMMM_SELECT_MAP_BUTTON) y += section_gap;   //section break after Play Campaign
 	}
 
 	//cheap hack for h
-	h = GMM_TITLE_MARGIN + i*(GMMWBUTTON_HEIGHT+1) + GMM_BOTTOM_MARGIN;
+	h = y + GMM_BOTTOM_MARGIN;
 
 	//needed if w is ever changed / set
 	UpdateDimensions();
