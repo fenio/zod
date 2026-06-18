@@ -199,6 +199,11 @@ ZPlayer::ZPlayer() : ZClient()
 	summary_scaled_w = summary_scaled_h = -1;
 	ResetMatchStats();	//#88
 
+	//#79: menu-first background, lazy-loaded on first menu render
+	menu_bg_loaded = false;
+	menu_bg_raw = NULL;
+	menu_bg_scaled_w = menu_bg_scaled_h = -1;
+
 	ClearAsciiStates();
 
 	select_info.SetZTime(&ztime);
@@ -328,6 +333,47 @@ void ZPlayer::EnsureSummaryScaled()
 			dests[k]->LoadBaseImage(scaled);	//takes ownership; frees prior scale
 			dests[k]->UseDisplayFormat();
 		}
+	}
+}
+
+//#79: background for the menu-first / idle screen - the banner art cover-scaled
+//to fill, so a fresh start isn't a black void. Loaded + scaled lazily (the menu
+//shows at a stable resolution, but re-scale if it ever changes). Falls back to a
+//dark fill if the image is missing.
+void ZPlayer::RenderMenuBackground()
+{
+	if(!menu_bg_loaded)
+	{
+		menu_bg_raw = ZSDL_DataIMG_Load("assets/splash.png");
+		menu_bg_loaded = true;
+		menu_bg_scaled_w = menu_bg_scaled_h = -1;
+	}
+
+	if(menu_bg_raw && (menu_bg_scaled_w != init_w || menu_bg_scaled_h != init_h))
+	{
+		menu_bg_scaled_w = init_w;
+		menu_bg_scaled_h = init_h;
+
+		double fw = (double)init_w / menu_bg_raw->w;
+		double fh = (double)init_h / menu_bg_raw->h;
+		double f = (fw > fh) ? fw : fh;	//cover (fill, crop overflow)
+
+		SDL_Surface *scaled = SDL_ScaleSurface(menu_bg_raw,
+			(int)(menu_bg_raw->w * f), (int)(menu_bg_raw->h * f), SDL_SCALEMODE_LINEAR);
+		if(scaled) { menu_bg_img.LoadBaseImage(scaled); menu_bg_img.UseDisplayFormat(); }
+	}
+
+	if(menu_bg_img.GetBaseSurface())
+	{
+		SDL_Rect to;
+		to.x = (init_w - menu_bg_img.GetBaseSurface()->w) >> 1;
+		to.y = (init_h - menu_bg_img.GetBaseSurface()->h) >> 1;
+		menu_bg_img.BlitSurface(NULL, &to);
+	}
+	else
+	{
+		SDL_Rect r; r.x = 0; r.y = 0; r.w = init_w; r.h = init_h;
+		ZSDL_FillSurfaceRect(&r, 20, 22, 28);
 	}
 }
 
@@ -1685,12 +1731,11 @@ void ZPlayer::RenderScreen()
 	}
 	else if(graphics_loaded)
 	{
-		//#79: menu-first / idle - no map is loaded yet. Draw a dark background and
-		//let the menus render over it so the player can pick a map or adjust
+		//#79: menu-first / idle - no map is loaded yet. Draw the banner background
+		//and let the menus render over it so the player can pick a map or adjust
 		//settings before anything loads. (Picking a map flips us into the game
 		//branch above once the server sends it.)
-		SDL_Rect r; r.x = 0; r.y = 0; r.w = init_w; r.h = init_h;
-		ZSDL_FillSurfaceRect(&r, 20, 22, 28);
+		RenderMenuBackground();
 
 		//a login prompt (multiplayer) and the main menu both live outside the map
 		if(active_menu) active_menu->DoRender(zmap, screen);

@@ -184,6 +184,7 @@ class ZPlayer : public ZClient
 		void RenderMatchSummary();	//#88
 		void BuildMatchSummary();	//#88
 		void EnsureSummaryScaled();	//#88
+		void RenderMenuBackground();	//#79
 		void ResetMatchStats();		//#88
 		void SendContinueAfterEnd();	//#120
 		void RenderGUI();
@@ -459,7 +460,13 @@ class ZPlayer : public ZClient
 		SDL_Surface *summary_won_raw;		//#88 unscaled source (zoom re-scales)
 		SDL_Surface *summary_lost_raw;		//#88 unscaled source
 		int summary_scaled_w, summary_scaled_h;	//res the art was last scaled to
-		
+
+		//#79: banner background for the menu-first / idle screen (lazy-loaded)
+		bool menu_bg_loaded;
+		SDL_Surface *menu_bg_raw;
+		ZSDL_Surface menu_bg_img;
+		int menu_bg_scaled_w, menu_bg_scaled_h;
+
 		ZSDL_Surface splash_screen;
 		ZAudio_Music *splash_music;
 		SDL_Surface *game_icon;
