@@ -4598,6 +4598,14 @@ void ZPlayer::ProcessUnicode(int key)
 			LoadMainMenu(GMM_PLAYER_LIST, true);
 			//DisplayPlayerList();
 		}
+		else if(key == 'z' || key == 'Z')
+		{
+			//#79 follow-up: toggle pause mid-game (P is the player list). Lets you
+			//freeze, F12-dump, write up a bug, then Z to continue. Server-authoritative.
+			bool will_pause = !ztime.IsPaused();
+			SendSetPaused(will_pause);
+			AddNewsEntry(will_pause ? "PAUSED - press Z to resume" : "resumed");
+		}
 		else if(key == 'h' || key == 'H')
 		{
 			//toggle on/off
