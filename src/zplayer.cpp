@@ -1738,15 +1738,23 @@ void ZPlayer::RenderScreen()
 		//and let the menus render over it so the player can pick a map or adjust
 		//settings before anything loads. (Picking a map flips us into the game
 		//branch above once the server sends it.)
-		RenderMenuBackground();
+		//
+		//Hold it back until the startup splash has finished fading - DoSplash draws
+		//the SAME art fit-scaled and centered, so showing the cover-scaled menu
+		//background underneath at the same time looked like a splash inside a splash.
+		bool splash_showing = splash_screen.GetBaseSurface() && splash_fade >= 5;
+		if(!splash_showing)
+		{
+			RenderMenuBackground();
 
-		//a login prompt (multiplayer) and the main menu both live outside the map
-		if(active_menu) active_menu->DoRender(zmap, screen);
-		RenderMainMenu();
-		RenderNews();
+			//a login prompt (multiplayer) and the main menu both live outside the map
+			if(active_menu) active_menu->DoRender(zmap, screen);
+			RenderMainMenu();
+			RenderNews();
 
-		if(!disable_zcursor)
-			cursor.Render(zmap, screen, mouse_x, mouse_y);
+			if(!disable_zcursor)
+				cursor.Render(zmap, screen, mouse_x, mouse_y);
+		}
 	}
 
 	DoSplash();
