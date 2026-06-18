@@ -3179,12 +3179,44 @@ void ZPlayer::DumpDiagnostics()
 	ZDiag("map: %s%s", game_map_name.empty() ? "(unknown - server didn't send it)" : game_map_name.c_str(),
 		ztime.IsPaused() ? "   [game PAUSED]" : "");
 
-	if(sel.empty())
+	ZDiag("our_team=%d   game_time=%.1f", our_team, ztime.ztime);
+
+	//#122: a full scene snapshot, so ANY report is debuggable from this dump alone
+	//- not just whatever unit happened to be selected. Every object's kind, owner,
+	//tile and health. This is what makes "cannons sitting in front of the fort", a
+	//stranded unit, a mis-zoned building, etc. visible without asking the reporter
+	//for more. tile = top-left in map tiles; cross-reference fort vs cannon tiles.
 	{
-		ZDiag("  (nothing selected - select the misbehaving unit, then press F12)");
-		AddNewsEntry("F12: select a unit first, then press F12");
-		return;
+		ZDiag("--- objects (%d)  [tile=top-left, T=team] ---", (int)object_list.size());
+		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
+		{
+			ZObject *o = *i;
+			if(!o) continue;
+
+			unsigned char ot, oid;
+			o->GetObjectID(ot, oid);
+
+			int ox, oy;
+			o->GetCords(ox, oy);
+
+			ZDiag("  ref#%d %s (ot=%d oid=%d) T=%d tile(%d,%d) hp=%d%s",
+				o->GetRefID(), o->GetObjectName().c_str(), (int)ot, (int)oid, o->GetOwner(),
+				ox / 16, oy / 16, o->GetHealth(), o->IsDestroyed() ? " DESTROYED" : "");
+		}
 	}
+
+	//#122: zones, because building/cannon placement is restricted to the owning
+	//team's zone - so a placement complaint needs the zone bounds too.
+	{
+		vector<map_zone_info> &zinfo = zmap.GetZoneInfoList();
+		ZDiag("--- zones (%d)  [tile bounds, T=team] ---", (int)zinfo.size());
+		for(vector<map_zone_info>::iterator z=zinfo.begin(); z!=zinfo.end(); z++)
+			ZDiag("  zone#%d T=%d tile(%d,%d) size(%dx%d)",
+				z->id, (int)z->owner, z->x / 16, z->y / 16, z->w / 16, z->h / 16);
+	}
+
+	if(sel.empty())
+		ZDiag("(no unit selected - the scene snapshot + census above/below stand alone; select a unit and press F12 again to add its orders/route)");
 
 	//gather the full movement group(s) of whatever is selected, de-duplicated, so
 	//pressing F12 on any member dumps the whole leader+minions picture (the grab
@@ -3352,7 +3384,7 @@ void ZPlayer::DumpDiagnostics()
 	ZDiag("to report: open an issue at https://github.com/fenio/zod/issues and attach this file");
 
 	char msg[200];
-	snprintf(msg, sizeof(msg), "dumped %d unit(s) to %s - attach it to an issue at github.com/fenio/zod/issues",
+	snprintf(msg, sizeof(msg), "dumped full game state (%d unit(s) selected) to %s - attach it to an issue at github.com/fenio/zod/issues",
 		(int)sel.size(), ZDiag_Path());
 	AddNewsEntry(msg);
 }
