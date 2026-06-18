@@ -93,8 +93,20 @@ void ZDiag_Init(const char *version)
 	for(int i = 0; i < 2 && !diag_file; i++)
 	{
 		if(!candidates[i]) continue;
-		diag_file = fopen(candidates[i], "w");
-		if(diag_file) diag_path = candidates[i];
+		// Append, don't truncate: a relaunch (or restarting the game) must not wipe
+		// a capture the player just made with F12. Cap growth - if the log has
+		// gotten large, start it fresh.
+		diag_file = fopen(candidates[i], "a");
+		if(diag_file)
+		{
+			fseek(diag_file, 0, SEEK_END);
+			if(ftell(diag_file) > 8L * 1024 * 1024)
+			{
+				fclose(diag_file);
+				diag_file = fopen(candidates[i], "w");
+			}
+			if(diag_file) diag_path = candidates[i];
+		}
 	}
 	if(!diag_file) return;
 
@@ -116,6 +128,8 @@ void ZDiag_Init(const char *version)
 	time_t now = time(NULL);
 	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
+	ZDiag("");
+	ZDiag("======================== new session ========================");
 	ZDiag("zod diagnostic log");
 	ZDiag("started %s | version %s | os %s", date, version ? version : "?", os);
 	ZDiag("(in-game: press F12 or '\\' to append a full game-state snapshot - map, every object's tile/owner/health, zones, census. Select a unit first to also include its orders/route.)");
