@@ -3259,6 +3259,9 @@ void ZPlayer::DumpDiagnostics()
 		ztime.IsPaused() ? "   [game PAUSED]" : "");
 
 	ZDiag("our_team=%d   game_time=%.1f", our_team, ztime.ztime);
+	//#difficulty: bot behaviour depends on it, so a "bot too passive/aggressive"
+	//report needs to know which level was active.
+	ZDiag("bot AI difficulty: %s", bot_difficulty_name[(zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL]);
 
 	//#122: a full scene snapshot, so ANY report is debuggable from this dump alone
 	//- not just whatever unit happened to be selected. Every object's kind, owner,
