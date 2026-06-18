@@ -14,6 +14,15 @@ extern bool zod_classic_mouse;
 extern int zod_volume_setting;
 extern double zod_game_speed;
 
+// Bot AI difficulty (an index into the profiles in zbot.cpp). NORMAL == the
+// original behavior, and is the default - so a regular campaign with no -D flag
+// and no Options change plays exactly as before. Steers *decision quality*
+// (think rate, how many units it orders, how fast, how aggressively), never unit
+// stats. Read live by the bot thread.
+enum bot_difficulty { BOT_DIFF_EASY, BOT_DIFF_NORMAL, BOT_DIFF_HARD, BOT_DIFF_EXPERT, MAX_BOT_DIFFICULTY };
+extern int zod_bot_difficulty;
+extern const char *bot_difficulty_name[MAX_BOT_DIFFICULTY];
+
 void ZPrefs_Load();
 void ZPrefs_Save();
 

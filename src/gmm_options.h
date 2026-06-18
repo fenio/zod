@@ -24,6 +24,7 @@ private:
 	GMMWButton speed_button;
 	GMMWButton mouse_button;
 	GMMWButton smooth_button;
+	GMMWButton difficulty_button;	//#difficulty: cycles the bot AI difficulty
 	GMMWButton reshuffle_button;
 	GMMWButton reset_button;
 	GMMWButton pause_button;

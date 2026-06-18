@@ -1,4 +1,5 @@
 #include "gmm_generate_map.h"
+#include "zprefs.h"	//#difficulty: bot AI difficulty (global, read live by the bot)
 
 GMMGenerateMap::GMMGenerateMap() : ZGuiMainMenuBase()
 {
@@ -50,6 +51,12 @@ void GMMGenerateMap::SetupLayout1()
 	vehicles_button.SetCoords(GMM_SIDE_MARGIN, next_y);
 	vehicles_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 	AddWidget(&vehicles_button);
+	next_y += GMMWBUTTON_HEIGHT + 2;
+
+	difficulty_button.SetType(MMGENERIC_BUTTON);
+	difficulty_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	difficulty_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&difficulty_button);
 	next_y += GMMWBUTTON_HEIGHT + 7;
 
 	generate_button.SetType(MMGENERIC_BUTTON);
@@ -83,6 +90,13 @@ void GMMGenerateMap::UpdateButtonText()
 
 	sprintf(buf, "Vehicles: %s", gmmgen_vehicle_name[vehicles_i]);
 	vehicles_button.SetText(buf);
+
+	{
+		int d = (zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL;
+		sprintf(buf, "Difficulty: %s", bot_difficulty_name[d]);
+		difficulty_button.SetText(buf);
+		difficulty_button.SetGreen(d != BOT_DIFF_NORMAL);
+	}
 }
 
 void GMMGenerateMap::Process()
@@ -122,6 +136,13 @@ void GMMGenerateMap::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 	else if(w_ref_id == vehicles_button.GetRefID())
 	{
 		vehicles_i = (vehicles_i + 1) % MAX_GMMGEN_VEHICLES;
+		UpdateButtonText();
+	}
+	else if(w_ref_id == difficulty_button.GetRefID())
+	{
+		//#difficulty: cycle the (global) bot difficulty; the bot reads it live
+		zod_bot_difficulty = (zod_bot_difficulty + 1) % MAX_BOT_DIFFICULTY;
+		ZPrefs_Save();
 		UpdateButtonText();
 	}
 	else if(w_ref_id == generate_button.GetRefID())
