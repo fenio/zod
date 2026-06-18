@@ -638,6 +638,15 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 			//diagnostics: append selected units' state to zod_diag.log (bug reports)
 			p->DumpDiagnostics();
 			break;
+		case SDLK_PAUSE:
+			//toggle pause mid-game (the dedicated Pause/Break key; keyboards without
+			//one use Z, handled in ProcessUnicode). #79 follow-up.
+			{
+				bool will_pause = !p->ztime.IsPaused();
+				p->SendSetPaused(will_pause);
+				p->AddNewsEntry(will_pause ? "PAUSED - press Z to resume" : "resumed");
+			}
+			break;
 	}
 }
 
