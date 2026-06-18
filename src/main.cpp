@@ -336,6 +336,7 @@ void display_help(char *shell_command)
 	printf("-i login_password    - your login password\n");
 	printf("-t team              - your team\n");
 	printf("-b team              - connect a bot player\n");
+	printf("-D difficulty        - bot AI difficulty: easy|normal|hard|expert (default normal)\n");
 	printf("-w                   - run game in windowed mode\n");
 	printf("-r resolution        - resolution to run the game at\n");
 	printf("-d                   - run a dedicated server\n");
@@ -460,13 +461,25 @@ int input_options::getoptions(int argc, char **argv)
 	extern char *optarg;
 	extern int optind;
 
-	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoaM")) != -1)
+	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoaMD:")) != -1)
 	{
 		switch(c)
 		{
 			case 'M':	//#79: start on the menu, no map auto-loaded
 				menu_first = true;
 				break;
+			case 'D':	//#difficulty: optional bot AI difficulty (default stays Normal)
+			{
+				if(!optarg) return 0;
+				std::string s = optarg;
+				for(size_t k=0;k<s.size();k++) s[k] = tolower((unsigned char)s[k]);
+				if(s == "easy") zod_bot_difficulty = BOT_DIFF_EASY;
+				else if(s == "normal") zod_bot_difficulty = BOT_DIFF_NORMAL;
+				else if(s == "hard") zod_bot_difficulty = BOT_DIFF_HARD;
+				else if(s == "expert") zod_bot_difficulty = BOT_DIFF_EXPERT;
+				else { int d = atoi(optarg); if(d >= 0 && d < MAX_BOT_DIFFICULTY) zod_bot_difficulty = d; }
+				break;
+			}
 			case 'c':
 				if(!optarg) return 0;
 				read_connect_address = true;

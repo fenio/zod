@@ -51,6 +51,14 @@ void GMMOptions::SetupLayout1()
 	AddWidget(&smooth_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
+	//#difficulty: cycles the bot AI difficulty (persisted, read live by the bot)
+	difficulty_button.SetType(MMGENERIC_BUTTON);
+	difficulty_button.SetText("Difficulty: Normal");
+	difficulty_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	difficulty_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&difficulty_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
 	pause_button.SetType(MMGENERIC_BUTTON);
 	pause_button.SetText("Pause Game");
 	pause_button.SetCoords(GMM_SIDE_MARGIN, next_y);
@@ -88,6 +96,12 @@ void GMMOptions::Process()
 	mouse_button.SetGreen(zod_classic_mouse);
 	smooth_button.SetText(zod_render_smoothing ? "Smoothing: On" : "Smoothing: Off");
 	smooth_button.SetGreen(zod_render_smoothing);
+
+	{
+		int d = (zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL;
+		difficulty_button.SetText(string("Difficulty: ") + bot_difficulty_name[d]);
+		difficulty_button.SetGreen(d != BOT_DIFF_NORMAL);
+	}
 
 	ProcessWidgets();
 }
@@ -148,6 +162,12 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		else if(w_ref_id == mouse_button.GetRefID())
 		{
 			zod_classic_mouse = !zod_classic_mouse;
+			ZPrefs_Save();
+		}
+		else if(w_ref_id == difficulty_button.GetRefID())
+		{
+			//#difficulty: cycle Easy->Normal->Hard->Expert; the bot reads it live
+			zod_bot_difficulty = (zod_bot_difficulty + 1) % MAX_BOT_DIFFICULTY;
 			ZPrefs_Save();
 		}
 		else if(w_ref_id == smooth_button.GetRefID())

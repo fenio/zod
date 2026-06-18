@@ -11,6 +11,7 @@ public:
 	void Process();
 private:
 	GMMWList map_list;
+	GMMWButton difficulty_button;	//#difficulty: bot AI difficulty for the campaign
 	GMMWButton select_button;
 	GMMWButton reset_button;
 

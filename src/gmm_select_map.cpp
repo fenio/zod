@@ -1,4 +1,5 @@
 #include "gmm_select_map.h"
+#include "zprefs.h"	//#difficulty
 
 GMMSelectMap::GMMSelectMap() : ZGuiMainMenuBase()
 {
@@ -22,6 +23,12 @@ void GMMSelectMap::SetupLayout1()
 	next_y += map_list.GetHeight();
 
 	next_y += 2;
+	difficulty_button.SetType(MMGENERIC_BUTTON);
+	difficulty_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	difficulty_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&difficulty_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
 	select_button.SetType(MMGENERIC_BUTTON);
 	select_button.SetText("Play");	//#77: was "Select Map"; title now carries the name
 	select_button.SetCoords(GMM_SIDE_MARGIN, next_y);
@@ -47,6 +54,12 @@ void GMMSelectMap::Process()
 {
 	SetupList();
 
+	{
+		int d = (zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL;
+		difficulty_button.SetText(string("Difficulty: ") + bot_difficulty_name[d]);
+		difficulty_button.SetGreen(d != BOT_DIFF_NORMAL);
+	}
+
 	ProcessWidgets();
 }
 
@@ -70,7 +83,13 @@ void GMMSelectMap::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		}
 		break;
 	case GMM_UNCLICK_EVENT:
-		if(w_ref_id == select_button.GetRefID())
+		if(w_ref_id == difficulty_button.GetRefID())
+		{
+			//#difficulty: cycle the (global) bot difficulty; the bot reads it live
+			zod_bot_difficulty = (zod_bot_difficulty + 1) % MAX_BOT_DIFFICULTY;
+			ZPrefs_Save();
+		}
+		else if(w_ref_id == select_button.GetRefID())
 		{
 			int selected_map = map_list.GetFirstSelected();
 

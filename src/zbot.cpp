@@ -1,6 +1,34 @@
 #include "zbot.h"
+#include "zprefs.h"   // zod_bot_difficulty (read live each AI cycle)
 
 using namespace COMMON;
+
+// #difficulty: per-level multipliers on the bot's *existing* decision levers.
+// Indexed by zod_bot_difficulty (BOT_DIFF_*). NORMAL is all-neutral (interval 1,
+// scales 1), so an unchanged campaign behaves exactly as before - difficulty is
+// purely opt-in. We never touch unit stats, only how the bot decides.
+struct bot_diff_profile
+{
+	double think_interval;	// seconds between AI cycles (original = 1.0)
+	double order_scale;	// x percent_to_order  (more units commanded per cycle)
+	double delay_scale;	// x order_delay       (lower = issues orders more often)
+	double aggro_scale;	// x the all-out flag threshold (lower = attacks units sooner)
+};
+
+static const bot_diff_profile g_bot_diff[MAX_BOT_DIFFICULTY] =
+{
+	{ 2.0, 0.5, 1.6, 1.6 },	// Easy:   thinks slowly, orders few units, rarely turns aggressive
+	{ 1.0, 1.0, 1.0, 1.0 },	// Normal: EXACTLY the original behavior
+	{ 0.7, 1.5, 0.6, 0.7 },	// Hard:   thinks faster, orders more, turns aggressive sooner
+	{ 0.5, 2.0, 0.4, 0.5 },	// Expert: fastest, commands most units, very aggressive
+};
+
+static const bot_diff_profile &CurDiff()
+{
+	int d = zod_bot_difficulty;
+	if(d < 0 || d >= MAX_BOT_DIFFICULTY) d = BOT_DIFF_NORMAL;
+	return g_bot_diff[d];
+}
 
 ZBot::ZBot() : ZClient()
 {
@@ -119,7 +147,8 @@ void ZBot::ProcessAI()
 
 	if(the_time < next_ai_time) return;
 
-	next_ai_time = the_time + 1;
+	//#difficulty: how often the bot thinks (Normal = +1s, the original)
+	next_ai_time = the_time + CurDiff().think_interval;
 
 	//are we ignored?
 	if(OurPInfo().ignored) return;
@@ -682,7 +711,9 @@ bool ZBot::GoAllOut_3(double &percent_to_order, double &order_delay)
 		percent_owned = 1.0 * our_flags / ols.flag_olist.size();
 		percent_half = 1.0 / teams_existing;
 
-		if(percent_owned >= percent_half)
+		//#difficulty: scale the "fair share of flags before going all-out (attacking
+		//enemy units)" threshold - lower = turns aggressive sooner. Normal = x1.0.
+		if(percent_owned >= percent_half * CurDiff().aggro_scale)
 		{
 			all_out = true;
 			percent_to_order = 0.15;
@@ -699,6 +730,12 @@ bool ZBot::GoAllOut_3(double &percent_to_order, double &order_delay)
 			order_delay = 5;
 		}
 	}
+
+	//#difficulty: scale how many units it commands per cycle and how often.
+	//Normal = x1.0 (unchanged); higher difficulty orders more, more often.
+	percent_to_order *= CurDiff().order_scale;
+	if(percent_to_order > 1.0) percent_to_order = 1.0;
+	order_delay *= CurDiff().delay_scale;
 
 	return all_out;
 }

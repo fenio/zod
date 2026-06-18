@@ -37,6 +37,7 @@ private:
 	GMMWButton terrain_button;
 	GMMWButton tech_button;
 	GMMWButton vehicles_button;
+	GMMWButton difficulty_button;	//#difficulty: bot AI difficulty for this game
 	GMMWButton generate_button;
 
 	int enemies_i;   //0-2 -> 1-3 enemies
