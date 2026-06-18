@@ -118,7 +118,7 @@ void ZDiag_Init(const char *version)
 
 	ZDiag("zod diagnostic log");
 	ZDiag("started %s | version %s | os %s", date, version ? version : "?", os);
-	ZDiag("(in-game: select a misbehaving unit and press F12 or '\\' to append its state)");
+	ZDiag("(in-game: press F12 or '\\' to append a full game-state snapshot - map, every object's tile/owner/health, zones, census. Select a unit first to also include its orders/route.)");
 	ZDiag("to report: open an issue at https://github.com/fenio/zod/issues and attach this file");
 
 	printf("diagnostic log -> %s\n", diag_path.c_str());
