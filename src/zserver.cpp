@@ -42,6 +42,7 @@ ZServer::ZServer() : ZCore()
 	reload_same_map = false;
 	next_ref_id = 0;
 	game_on = false;
+	menu_first = false;	//#79
 	next_end_game_check_time = 0;
 	next_stalemate_diag_time = 0;
 	next_reset_game_time = 0;
@@ -116,7 +117,11 @@ void ZServer::Setup()
 	//resume the single-player campaign where we left off
 	LoadCampaignProgress();
 
-	LoadNextMap();
+	//#79: in menu-first mode, stay idle (game_on=false, no map) until the player
+	//picks one from the menu. The map list is already read above, so the picker /
+	//Play Campaign work; select_map / generate_map load the first map on demand.
+	if(!menu_first)
+		LoadNextMap();
 
 	//start listen socket
 	if(!server_socket.Start())
@@ -474,6 +479,9 @@ void ZServer::DoResetGame(string map_name)
 void ZServer::CheckResetGame()
 {
 	if(game_on) return;
+	//#79: while idling on the menu, don't auto-load the first map - wait for the
+	//player to pick one (which calls DoResetGame directly, bypassing this).
+	if(menu_first) return;
 	if(!map_list.size()) return;
 	if(current_time() < next_reset_game_time) return;
 
@@ -590,6 +598,10 @@ void ZServer::ResetGame()
 
 void ZServer::LoadNextMap(string override_map_name)
 {
+	//#79: a map is loading, so we're no longer idling on the menu - from here on
+	//campaign auto-advance (CheckResetGame) works normally.
+	menu_first = false;
+
 	//clear stuff
 	ResetGame();
 

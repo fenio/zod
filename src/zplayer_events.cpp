@@ -706,10 +706,14 @@ void ZPlayer::disconnect_event(ZPlayer *p, char *data, int size, int dummy)
 
 void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 {
-	p->ProcessMapDownload(data, size);
+	int done = p->ProcessMapDownload(data, size);
 
 	if(p->zmap.Loaded())
 	{
+		//#79: a map just loaded - drop any menu-first / map-picker overlay so we
+		//land cleanly in the game.
+		p->CloseMainMenus();
+
 		p->zmap.SetViewingDimensions(p->init_w - 100, p->init_h - 36);
 		p->zhud.SetTerrainType((planet_type)p->zmap.GetMapBasics().terrain_type);
 		p->zhud.GetMiniMap().Setup_Boundaries();
@@ -720,6 +724,13 @@ void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 
 		if(p->graphics_loaded)
 			ZMusicEngine::PlayPlanetMusic(p->zmap.GetMapBasics().terrain_type);
+	}
+	else if(done)
+	{
+		//#79: the map download finished but the server sent no map - it's idling
+		//in menu-first mode. Open the main menu so the player can pick a map or
+		//adjust settings; RenderScreen draws it over the idle background.
+		p->LoadMainMenu(GMM_MAIN_MAIN);
 	}
 }
 

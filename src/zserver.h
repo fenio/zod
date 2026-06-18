@@ -16,6 +16,7 @@ class ZServer : public ZCore
 		
 		void SetMapName(string map_name_);
 		void SetMapList(string map_list_name_);
+		void SetMenuFirst(bool b) { menu_first = b; }	//#79
 		void SetSettingsFilename(string settings_filename_);
 		void SetPerpetualSettingsFilename(string p_settings_filename_);
 		void InitBot(int bot_team, bool do_init = true);
@@ -185,6 +186,7 @@ class ZServer : public ZCore
 		//variable used to let you know that the map etc is loaded
 		//and the game is being played normally
 		bool game_on;
+		bool menu_first;	//#79: idle without a map until the player picks one
 		
 		EventHandler<ZServer> ehandler;
 		
