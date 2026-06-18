@@ -80,6 +80,14 @@ target_link_libraries(zod PRIVATE
   m)
 
 # Windows: the engine's client/server code uses Winsock (WSAStartup, socket, …)
+# macOS: set the Dock icon at runtime (SDL can't on macOS). A tiny Objective-C++
+# file using Cocoa - the *.cpp glob doesn't pick up .mm, so add it explicitly.
+if(APPLE)
+  enable_language(OBJCXX)
+  target_sources(zod PRIVATE src/mac_dock_icon.mm)
+  target_link_libraries(zod PRIVATE "-framework Cocoa")
+endif()
+
 # and the IP Helper API (GetAdaptersInfo).
 if(WIN32)
   target_link_libraries(zod PRIVATE ws2_32 iphlpapi)

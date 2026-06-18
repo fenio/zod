@@ -1,4 +1,5 @@
 #include "zplayer.h"
+#include "mac_dock_icon.h"
 #include "zprefs.h"
 #include "zpath_debug.h"
 #include <math.h>
@@ -613,6 +614,11 @@ void ZPlayer::InitSDL()
 	//ffuts
 
 	if(game_icon) ZVideo_SetIcon(game_icon);
+#ifdef __APPLE__
+	//SDL_SetWindowIcon (above) doesn't touch the macOS Dock, so a bare executable
+	//shows the generic "exec" icon. Set the Dock icon directly via Cocoa.
+	MacSetDockIcon(ZSDL_DataPath("assets/icon_mac.png").c_str());
+#endif
 	ZVideo_SetCaption("Zod Engine " ZOD_VERSION);
 	atexit(ZSDL_Quit);//SDL_Quit);
 
@@ -4837,7 +4843,7 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 	//load it
 	switch(menu_type)
 	{
-	case GMM_MAIN_MAIN: new_menu = new GMMMainMenu(); break;
+	case GMM_MAIN_MAIN: new_menu = new GMMMainMenu(!zmap.Loaded()); break;	//#79: compact start menu when no game is loaded
 	case GMM_CHANGE_TEAMS: new_menu = new GMMChangeTeams(); break;
 	case GMM_MANAGE_BOTS: new_menu = new GMMManageBots(); break;
 	case GMM_PLAYER_LIST: new_menu = new GMMPlayerList(); break;

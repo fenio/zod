@@ -1,6 +1,6 @@
 #include "gmm_main_menu.h"
 
-GMMMainMenu::GMMMainMenu() : ZGuiMainMenuBase()
+GMMMainMenu::GMMMainMenu(bool compact) : ZGuiMainMenuBase()
 {
 	int i;
 
@@ -17,6 +17,10 @@ GMMMainMenu::GMMMainMenu() : ZGuiMainMenuBase()
 	int y = GMM_TITLE_MARGIN;
 	for(i=0;i<MAX_GMMMM_BUTTONS;i++)
 	{
+		//#79: on the start menu (no game yet) hide the in-game/lobby admin entries
+		if(compact && (i == GMMMM_CHANGE_TEAMS_BUTTON || i == GMMMM_MANAGE_BOTS_BUTTON || i == GMMMM_PLAYER_LIST_BUTTON))
+			continue;
+
 		menu_button[i].SetType(MMGENERIC_BUTTON);
 		menu_button[i].SetText(gmm_main_menu_button_string[i]);
 		menu_button[i].SetCoords(GMM_SIDE_MARGIN, y);
