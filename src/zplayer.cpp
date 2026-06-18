@@ -1683,6 +1683,23 @@ void ZPlayer::RenderScreen()
 		//place some sounds
 		PlayBuildingSounds();
 	}
+	else if(graphics_loaded)
+	{
+		//#79: menu-first / idle - no map is loaded yet. Draw a dark background and
+		//let the menus render over it so the player can pick a map or adjust
+		//settings before anything loads. (Picking a map flips us into the game
+		//branch above once the server sends it.)
+		SDL_Rect r; r.x = 0; r.y = 0; r.w = init_w; r.h = init_h;
+		ZSDL_FillSurfaceRect(&r, 20, 22, 28);
+
+		//a login prompt (multiplayer) and the main menu both live outside the map
+		if(active_menu) active_menu->DoRender(zmap, screen);
+		RenderMainMenu();
+		RenderNews();
+
+		if(!disable_zcursor)
+			cursor.Render(zmap, screen, mouse_x, mouse_y);
+	}
 
 	DoSplash();
 
@@ -4681,6 +4698,15 @@ void ZPlayer::InitMenus()
 
 	login_menu = new GWLogin(&ztime);
 	create_user_menu = new GWCreateUser(&ztime);
+}
+
+//#79: tear down every open GMM menu (used when a map loads and we drop into the
+//game, so the menu-first / map-picker overlay doesn't linger over gameplay).
+void ZPlayer::CloseMainMenus()
+{
+	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)
+		delete *i;
+	gui_menu_list.clear();
 }
 
 void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag warning_flags)

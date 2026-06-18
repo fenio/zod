@@ -30,7 +30,8 @@ class input_options
 		bool read_run_tray;
 		bool read_loginname;
 		bool read_password;
-		
+		bool menu_first;	//#79: start on the menu with no map loaded
+
 		string connect_address;
 		string map_name;
 		string map_list;
@@ -64,6 +65,7 @@ class input_options
 			read_run_tray = false;
 			read_loginname = false;
 			read_password = false;
+			menu_first = false;	//#79
 			team = 0;
 
 			for(int i=0;i<MAX_TEAM_TYPES;i++)

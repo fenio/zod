@@ -180,6 +180,7 @@ class ZPlayer : public ZClient
 		void RenderPreviousCursor();
 		void RenderMouse();
 		void RenderNews();
+		void CloseMainMenus();		//#79
 		void RenderMatchSummary();	//#88
 		void BuildMatchSummary();	//#88
 		void EnsureSummaryScaled();	//#88

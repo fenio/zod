@@ -223,6 +223,11 @@ int run_server_thread(void *nothing)
 	else if(starting_conditions.read_map_list)
 		zserver.SetMapList(starting_conditions.map_list);
 
+	//#79: idle on the menu instead of auto-loading the first map (the map list is
+	//still read, so Play Campaign / the map picker work from the menu)
+	if(starting_conditions.menu_first)
+		zserver.SetMenuFirst(true);
+
 	if(starting_conditions.read_settings)
 		zserver.SetSettingsFilename(starting_conditions.settings_filename);
 	if(starting_conditions.read_p_settings)
@@ -362,9 +367,9 @@ void display_version()
 void input_options::setdefaults()
 {
 	//No args (e.g. double-clicked / installed launch): start a local
-	//single-player campaign vs a bot, instead of the old default of dialing
-	//the long-dead nighsoft online server.
-	printf("no arguments set: starting local campaign (red vs blue bot, map_list.txt, windowed 800x600)\n");
+	//single-player vs a bot, instead of the old default of dialing the long-dead
+	//nighsoft online server.
+	printf("no arguments set: starting on the menu (red vs blue bot, map_list.txt, windowed 800x600)\n");
 
 	//local game — no connect address, so main() runs a server + connects us
 	read_player_name = true;
@@ -374,11 +379,13 @@ void input_options::setdefaults()
 	player_team_str = "red";
 	team = RED_TEAM;
 
-	//play the campaign map list in order
+	//#79: land on the menu with no map loaded; the campaign list is still read so
+	//Play Campaign works, the game just doesn't auto-start a map.
 	read_map_list = true;
 	map_list = "map_list.txt";
+	menu_first = true;
 
-	//give us an opponent
+	//give us an opponent (idles until the player picks a map)
 	read_start_bot[BLUE_TEAM] = true;
 
 	resolution = "800x600";
@@ -453,10 +460,13 @@ int input_options::getoptions(int argc, char **argv)
 	extern char *optarg;
 	extern int optind;
 
-	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoa")) != -1) 
+	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoaM")) != -1)
 	{
-		switch(c) 
+		switch(c)
 		{
+			case 'M':	//#79: start on the menu, no map auto-loaded
+				menu_first = true;
+				break;
 			case 'c':
 				if(!optarg) return 0;
 				read_connect_address = true;
