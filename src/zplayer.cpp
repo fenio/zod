@@ -344,7 +344,10 @@ void ZPlayer::RenderMenuBackground()
 {
 	if(!menu_bg_loaded)
 	{
-		menu_bg_raw = ZSDL_DataIMG_Load("assets/splash.png");
+		//#79: the splash the issue mocked up the menu over - the "Zod Engine /
+		//SDL3-port by fenio / VICTORY THROUGH BARBECUE" art (same image as the
+		//startup splash). It's a BMP, loaded like the splash screen is.
+		menu_bg_raw = SDL_LoadBMP(ZSDL_DataPath("assets/splash.bmp").c_str());
 		menu_bg_loaded = true;
 		menu_bg_scaled_w = menu_bg_scaled_h = -1;
 	}
