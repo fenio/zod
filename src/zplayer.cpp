@@ -913,17 +913,29 @@ int ZPlayer::Load_Graphics(void *p)
 }
 void ZPlayer::InitAnimals()
 {
-	const int sq_tile_per_bird = 650;
-	int birds;
-
 	ClearAnimals();
 
-	birds = (zmap.GetMapBasics().height * zmap.GetMapBasics().width) / sq_tile_per_bird;
-	//birds = 1;
+	//#98: birds are scattered across the whole map, so the number visible at once
+	//is roughly total * (viewport area / map area). The old count was map-area
+	//based (one per 650 tiles), which at high resolution - where the viewport
+	//covers much more of the map - showed a whole flock. Instead pick the total so
+	//that on average only ~1-2 are on screen, regardless of resolution or map size.
+	const double target_on_screen = 1.5;
+
+	double map_px = (double)(zmap.GetMapBasics().width * 16) * (double)(zmap.GetMapBasics().height * 16);
+
+	double view_w = (double)(init_w - HUD_WIDTH);
+	double view_h = (double)(init_h - HUD_HEIGHT);
+	if(view_w < 1) view_w = 1;
+	if(view_h < 1) view_h = 1;
+	double view_px = view_w * view_h;
+
+	int birds = (int)lround(target_on_screen * map_px / view_px);
+	if(birds < 1) birds = 1;		//always at least a lone bird
+	if(birds > 30) birds = 30;		//safety cap (tiny viewport / huge map)
 
 	for(int i=0;i<birds;i++)
 		bird_list.push_back(new ABird(&ztime, &zsettings, (planet_type)zmap.GetMapBasics().terrain_type, zmap.GetMapBasics().width * 16, zmap.GetMapBasics().height * 16));
-
 }
 
 void ZPlayer::ClearAnimals()
