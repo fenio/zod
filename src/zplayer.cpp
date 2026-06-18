@@ -550,6 +550,8 @@ void ZPlayer::InitSDL()
 	//mouse events from touch, or every tap would fire twice.
 	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 	touch_count = 0;
+	pinch_pending_zoom = 0;		//#111
+	pinch_zoom_dirty = false;	//#111
 
 	//remember the startup resolution as the zoom==1.0 baseline
 	base_w = init_w;
@@ -1333,6 +1335,14 @@ void ZPlayer::ProcessGame()
 	{
 		summary_pending = false;
 		show_match_summary = true;
+	}
+
+	//#111: apply a pinch-zoom at most once per frame (the heavy RebuildView), so a
+	//burst of finger-motion events can't stack dozens of rebuilds into one frame.
+	if(pinch_zoom_dirty)
+	{
+		pinch_zoom_dirty = false;
+		ApplyZoom(pinch_pending_zoom);
 	}
 
 	//zmap.DoEffects(the_time);
@@ -2746,7 +2756,11 @@ void ZPlayer::HandleFingerMotion(const SDL_TouchFingerEvent &t)
 		float dx = touch_x2 - touch_x1, dy = touch_y2 - touch_y1;
 		float dist = SDL_sqrtf(dx * dx + dy * dy);
 		if(dist < 1.0f) dist = 1.0f;
-		ApplyZoom(touch_zoom0 * (dist / touch_pinch0));
+		//#111: don't RebuildView here (ProcessSDL drains the whole queue in one
+		//frame, so a pinch would do dozens of rebuilds and freeze). Just record the
+		//latest target; ProcessGame applies it once per frame.
+		pinch_pending_zoom = touch_zoom0 * (dist / touch_pinch0);
+		pinch_zoom_dirty = true;
 	}
 }
 
