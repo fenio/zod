@@ -638,6 +638,17 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 			//diagnostics: append selected units' state to zod_diag.log (bug reports)
 			p->DumpDiagnostics();
 			break;
+		case 'p':
+		case SDLK_PAUSE:
+			//toggle pause mid-game - e.g. stop to write up a bug, then resume. The
+			//server is authoritative on pause; this just flips it. F12 still dumps
+			//while paused, so the loop is: spot issue -> P -> F12 -> report -> P.
+			{
+				bool will_pause = !p->ztime.IsPaused();
+				p->SendSetPaused(will_pause);
+				p->AddNewsEntry(will_pause ? "PAUSED - press P to resume" : "resumed");
+			}
+			break;
 	}
 }
 
