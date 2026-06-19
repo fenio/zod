@@ -622,6 +622,25 @@ void ZPlayer::keydown_event(ZPlayer *p, char *data, int size, int dummy)
 				p->last_horz_scroll_time = current_time();
 			}
 			break;
+		//#138: WASD pans the view like the arrow keys (W=up, A=left, S=down,
+		//D=right). Skip while typing chat, and when Ctrl/Alt is held so the
+		//letter shortcuts (Ctrl+A select-all, Alt+V fullscreen, ...) still work.
+		case SDLK_W:
+		case SDLK_A:
+		case SDLK_S:
+		case SDLK_D:
+			if(!p->collect_chat_message && !p->CtrlDown() && !p->AltDown())
+			{
+				if(the_key == SDLK_W && !p->up_down)
+					{ p->up_down = true; p->vert_scroll_over = 0; p->last_vert_scroll_time = current_time(); }
+				else if(the_key == SDLK_S && !p->down_down)
+					{ p->down_down = true; p->vert_scroll_over = 0; p->last_vert_scroll_time = current_time(); }
+				else if(the_key == SDLK_D && !p->right_down)
+					{ p->right_down = true; p->horz_scroll_over = 0; p->last_horz_scroll_time = current_time(); }
+				else if(the_key == SDLK_A && !p->left_down)
+					{ p->left_down = true; p->horz_scroll_over = 0; p->last_horz_scroll_time = current_time(); }
+			}
+			break;
 		case SDLK_LSHIFT: //left shift
 			p->lshift_down = true;
 			break;
@@ -688,6 +707,11 @@ void ZPlayer::keyup_event(ZPlayer *p, char *data, int size, int dummy)
 		case SDLK_LEFT: //left
 			p->left_down = false;
 			break;
+		//#138: WASD release clears the same scroll flags as the arrow keys
+		case SDLK_W: p->up_down = false; break;
+		case SDLK_S: p->down_down = false; break;
+		case SDLK_D: p->right_down = false; break;
+		case SDLK_A: p->left_down = false; break;
 		case SDLK_LSHIFT: //left shift
 			p->lshift_down = false;
 			if(!p->ShiftDown()) p->SendDevWayPointsOfSelected();

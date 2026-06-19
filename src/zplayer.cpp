@@ -2993,7 +2993,10 @@ void ZPlayer::ProcessSDL()
 				//ehandler.AddEvent(new Event(SDL_EVENT, RCLICK_EVENT, 0, NULL, 0));
 				ehandler.ProcessEvent(SDL_EVENT, RCLICK_EVENT, NULL, 0, 0);
 				break;
+			//#138: the side buttons (mouse 4/5) drag-pan the view like the middle button
 			case SDL_BUTTON_MIDDLE:
+			case SDL_BUTTON_X1:
+			case SDL_BUTTON_X2:
 				mbutton.x = event.button.x;
 				mbutton.y = event.button.y;
 				mbutton.map_x = ((init_w - HUD_WIDTH) >> 1) + shift_x;
@@ -3016,6 +3019,8 @@ void ZPlayer::ProcessSDL()
 				ehandler.ProcessEvent(SDL_EVENT, RUNCLICK_EVENT, NULL, 0, 0);
 				break;
 			case SDL_BUTTON_MIDDLE:
+			case SDL_BUTTON_X1:	//#138
+			case SDL_BUTTON_X2:	//#138
 				//ehandler.AddEvent(new Event(SDL_EVENT, MUNCLICK_EVENT, 0, NULL, 0));
 				ehandler.ProcessEvent(SDL_EVENT, MUNCLICK_EVENT, NULL, 0, 0);
 				break;
