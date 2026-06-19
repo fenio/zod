@@ -133,7 +133,9 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 		for(i=p->object_list.begin(); i!=p->object_list.end(); i++)
 			if((*i)->UnderCursor(map_x, map_y))
 		{
-			p->hover_object_can_attack = (*i)->UnderCursorCanAttack(map_x, map_y);
+			//#133: a destroyed bridge/building (or any dead object) is not a valid
+			//attack target - don't show the attack cursor or let an order be issued.
+			p->hover_object_can_attack = !(*i)->IsDestroyed() && (*i)->UnderCursorCanAttack(map_x, map_y);
 			p->hover_object_can_enter_fort = (*i)->UnderCursorFortCanEnter(map_x, map_y);
 
 			//if we can not attack or enter

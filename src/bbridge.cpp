@@ -236,7 +236,8 @@ bool BBridge::UnderCursorCanAttack(int &map_x, int &map_y)
 	int rx = map_x - loc.x;
 	int ry = map_y - loc.y;
 
-	if(IsDestroyed()) return true;
+	//#133: a destroyed bridge is rubble - it can't be attacked
+	if(IsDestroyed()) return false;
 
 	if(is_vertical)
 	{
