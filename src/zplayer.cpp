@@ -786,6 +786,15 @@ void ZPlayer::AdaptViewAspect(bool startup)
 	if(!ZVideo_GetOutputSize(ow, oh)) return;
 	if(oh <= 0) return;
 
+#ifdef __ANDROID__
+	//#140: the activity is locked landscape, but SDL can still report the render
+	//output in the device's natural (portrait) orientation. Taken as-is that makes
+	//the view 4:3-clamped and pillarboxed on the landscape screen. Use landscape
+	//dims. (This is the authoritative aspect path - it runs after the window exists
+	//and overrides the pre-window guess in main.cpp.)
+	if(oh > ow) { int t = ow; ow = oh; oh = t; }
+#endif
+
 	int new_base_w = ((int)lround((double)base_h * ow / oh)) & ~1;
 
 	if(new_base_w < (base_h * 4) / 3) new_base_w = (base_h * 4) / 3;
