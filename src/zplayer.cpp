@@ -2939,7 +2939,10 @@ void ZPlayer::ProcessSDL()
 			// Otherwise, two-finger / wheel scrolling pans the map in both axes.
 			// NB: gui_factory_list is always allocated, so test IsVisible(), not
 			// just the pointer — otherwise the pan branch is never reached.
-			if (active_menu || gui_window || (gui_factory_list && gui_factory_list->IsVisible()))
+			// #101: gui_menu_list holds the open GMM menus (Options, etc.). Without
+			// it here the wheel fell through to map-pan while the Options menu was
+			// up, so it never adjusted the hovered volume / game-speed control.
+			if (active_menu || gui_window || (gui_factory_list && gui_factory_list->IsVisible()) || gui_menu_list.size())
 			{
 				if (event.wheel.y > 0)
 					ehandler.ProcessEvent(SDL_EVENT, WHEELUP_EVENT, NULL, 0, 0);
