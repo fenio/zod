@@ -1748,6 +1748,11 @@ void ZObject::CheckPassiveEngage(double &the_time, ZOLists &ols, ZMap &tmap)
 			//do not auto attack buildings
 			if(!(ot == CANNON_OBJECT || ot == VEHICLE_OBJECT || ot == ROBOT_OBJECT)) continue;
 
+			//#132: a crane is a passive (non-combat) vehicle. Don't break off a
+			//current order to shoot one - the command should take priority. An idle
+			//unit (no waypoints) may still engage it.
+			if(ot == VEHICLE_OBJECT && oid == CRANE && waypoint_list.size()) continue;
+
 			//if(WithinAttackRadius(ox, oy))
 			if(WithinAttackRadius(*obj))
 			{
