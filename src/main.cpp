@@ -293,6 +293,13 @@ void run_player_thread()
 
 			if(ZVideo_GetDesktopSize(dw, dh))
 			{
+#ifdef __ANDROID__
+				//#140: the activity is locked landscape, but SDL reports the display
+				//in its natural (portrait) orientation, so the aspect math came out
+				//tall/narrow and clamped to 4:3 - pillarboxing the landscape screen
+				//with black bars left and right. Use the landscape dimensions.
+				if(dh > dw) { int t = dw; dw = dh; dh = t; }
+#endif
 				int aw = (int)(((long)rh * dw) / dh);
 
 				if(aw < rw) aw = rw;                  //never narrower than the classic 4:3
