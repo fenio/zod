@@ -187,6 +187,7 @@ class ZPlayer : public ZClient
 		void RenderMenuBackground();	//#79
 		void ResetMatchStats();		//#88
 		void SendContinueAfterEnd();	//#120
+		void ReturnToMenu();	//#136
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();
@@ -310,6 +311,7 @@ class ZPlayer : public ZClient
 		static void delete_object_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_object_health_event(ZPlayer *p, char *data, int size, int dummy);
 		static void end_game_event(ZPlayer *p, char *data, int size, int dummy);
+		static void return_to_menu_event(ZPlayer *p, char *data, int size, int dummy);	//#136
 		static void reset_game_event(ZPlayer *p, char *data, int size, int dummy);
 		static void fire_object_missile_event(ZPlayer *p, char *data, int size, int dummy);
 		static void destroy_object_event(ZPlayer *p, char *data, int size, int dummy);
