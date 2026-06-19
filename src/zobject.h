@@ -657,6 +657,10 @@ class ZObject
 		string object_name;
 		int mode;
 		int direction;
+		//#141: spin-in-place watchdog - tracks heading changes that happen while
+		//the unit isn't actually moving (blocked / oscillating re-path).
+		int spin_ref_cx, spin_ref_cy;
+		int spin_dir_changes;
 		unsigned char object_type;
 		unsigned char object_id;
 		bool selectable;
