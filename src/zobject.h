@@ -541,6 +541,12 @@ class ZObject
 		ZObject* ClosestGrabMember(ZObject *target, ZOLists &ols);
 		void GiveGrabWaypoint(ZObject *grabber, ZObject *target, int mode);
 		bool IsMoving();
+		//#134: periodic position re-sync. The server re-relays a moving unit's
+		//true loc every loc_update_int so client dead-reckoning can't drift far
+		//(the teleport bug). Reuses the existing "update location in intervals"
+		//timer; MarkLocResynced schedules the next sync after each relay.
+		double GetNextLocUpdateTime() { return next_loc_update_time; }
+		void MarkLocResynced(double t) { next_loc_update_time = t + loc_update_int; }
 		int GetEnteredTargetRefID() { return sflags.entered_target_ref_id; }   //-1 unless mid vehicle/fort entry
 		bool DiagThrottleReady();   //rate-limit a unit's auto-diagnostic events (zod_diag.log)
 		//virtual bool ServerFireTurrentMissile(int &x_, int &y_, int &damage, int &radius, double &offset_time);

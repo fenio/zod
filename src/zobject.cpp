@@ -6,6 +6,12 @@
 
 using namespace COMMON;
 
+//#134: ceiling (game-seconds) on client-side dead-reckoning past the last
+//authoritative position update. The server re-syncs moving units every
+//loc_update_int (~0.3s), so this never clips a live prediction - it only stops a
+//unit with a lost stop/turn update from extrapolating across the whole map.
+static const double MAX_EXTRAP_TIME = 1.0;
+
 // Render-only movement smoothing toggle (set from ZOD_SMOOTH env at startup,
 // flipped live with 'Y'). Default on.
 bool zod_render_smoothing = true;
@@ -113,7 +119,10 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	driver_type = GRUNT;
 
 	//to make sure loc updates from the server are not over frequent
-	loc_update_int = 0.8 + (0.001 * (rand() % 25));
+	//#134: re-sync interval for a moving unit's position (game-seconds). Small so
+	//client dead-reckoning drift stays sub-tile; the jitter staggers units so they
+	//don't all relay on the same frame.
+	loc_update_int = 0.3 + (0.001 * (rand() % 25));
 	next_loc_update_time = 0;
 
 	//attack stuff
@@ -1007,6 +1016,17 @@ void ZObject::SetCords(int x_, int y_)
 {
 	int &x = loc.x;
 	int &y = loc.y;
+
+	//#134: teleport detector. A position jump far bigger than any normal move
+	//(>6 tiles in a single update) for an already-placed unit is almost certainly
+	//a "teleporting unit" bug. Log it to zod_diag.log so the transient event is
+	//captured even if F12 is pressed afterward (a snapshot alone misses it).
+	//Skips initial placement (old position 0,0 = not on the map yet).
+	if((x || y) && (abs(x_ - x) + abs(y_ - y) > 96))
+		ZDiag("TELEPORT? %s ref#%d jumped tile(%d,%d) -> tile(%d,%d)  [%d px]",
+			GetObjectName().c_str(), GetRefID(), x / 16, y / 16, x_ / 16, y_ / 16,
+			abs(x_ - x) + abs(y_ - y));
+
 	x = x_;
 	y = y_;
 
@@ -1622,15 +1642,11 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 	//let them do their damage
 	ProcessAttackDamage(tmap, attack_player_given);
 
-	//update location only happens in intervals
-	//update velocity always happens
-	if(sflags.updated_location)
-	{
-		if(the_time >= next_loc_update_time)
-			next_loc_update_time = the_time + loc_update_int;
-		else
-			sflags.updated_location = false;
-	}
+	//#134: the old "update location in intervals" throttle on the updated_location
+	//flag was dead (the flag was never set) - the server relayed only on velocity
+	//change, so a unit blocked/re-pathed near terrain never got a correction and
+	//clients dead-reckoned it across the map. ZServer::ProcessObjects now drives
+	//next_loc_update_time directly to re-sync moving units every loc_update_int.
 
 	return 1;
 }
@@ -4376,6 +4392,20 @@ void ZObject::SetLoc(object_location new_loc)
 	int &x = loc.x;
 	int &y = loc.y;
 
+	//#134: teleport detector. Movement is client-side dead-reckoning: SmoothMove
+	//extrapolates last_loc + velocity*elapsed every frame, and this authoritative
+	//update corrects it. Normally the prediction tracks reality so the correction
+	//is tiny. A correction that snaps the unit >6 tiles means the extrapolation had
+	//run far off (e.g. a delayed "stop" let it fly at the enemy) - the visible
+	//"teleport there and back". Log the snap with the timing that caused it.
+	//Skips initial placement (old position 0,0 = not on the map yet).
+	if((x || y) && (abs(new_loc.x - x) + abs(new_loc.y - y) > 96))
+		ZDiag("TELEPORT? %s ref#%d correction snapped tile(%d,%d) -> tile(%d,%d)  [%d px]  dt=%.2f old_vel(%.1f,%.1f)",
+			GetObjectName().c_str(), GetRefID(), x / 16, y / 16,
+			new_loc.x / 16, new_loc.y / 16,
+			abs(new_loc.x - x) + abs(new_loc.y - y),
+			the_time - last_loc_set_time, loc.dx, loc.dy);
+
 	if(new_loc.dx != loc.dx || new_loc.dy != loc.dy)
 	{
 		loc = new_loc;
@@ -4400,9 +4430,17 @@ void ZObject::SmoothMove(double &the_time)
 	float &dx = loc.dx;
 	float &dy = loc.dy;
 
+	//#134: client-side dead-reckoning. Cap how far past the last authoritative
+	//update we extrapolate: the server re-syncs moving units ~4x/second, so a
+	//live prediction never nears MAX_EXTRAP_TIME. It only bites a unit whose
+	//stop/turn update never arrived - freezing it a hair ahead instead of
+	//flinging it across the map (and through water) and snapping back later.
+	double elapsed = the_time - last_loc_set_time;
+	if(elapsed > MAX_EXTRAP_TIME) elapsed = MAX_EXTRAP_TIME;
+
 	//move if it is moving
-	if(!isz(dx)) loc.x = last_loc.x + floor(dx * (the_time - last_loc_set_time));
-	if(!isz(dy)) loc.y = last_loc.y + floor(dy * (the_time - last_loc_set_time));
+	if(!isz(dx)) loc.x = last_loc.x + floor(dx * elapsed);
+	if(!isz(dy)) loc.y = last_loc.y + floor(dy * elapsed);
 
 	//set centers
 	center_x = x + (width_pix >> 1);

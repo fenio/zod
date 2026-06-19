@@ -90,6 +90,11 @@ void ZDiag_Init(const char *version)
 	const char *home = getenv("HOME");
 	if(home && home[0]) { home_path = std::string(home) + "/zod_diag.log"; candidates[1] = home_path.c_str(); }
 
+	//#134: ZOD_DIAG_FILE redirects the log so parallel headless bot battles can
+	//each write their own file when hunting a bug.
+	const char *diag_override = getenv("ZOD_DIAG_FILE");
+	if(diag_override && diag_override[0]) { candidates[0] = diag_override; candidates[1] = NULL; }
+
 	for(int i = 0; i < 2 && !diag_file; i++)
 	{
 		if(!candidates[i]) continue;

@@ -123,8 +123,10 @@ void ZServer::Setup()
 	if(!menu_first)
 		LoadNextMap();
 
-	//start listen socket
-	if(!server_socket.Start())
+	//start listen socket. #134: ZOD_PORT lets several instances run side by side
+	//(e.g. a fleet of headless bot battles) without colliding on the default port.
+	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 8000;
+	if(!server_socket.Start(net_port))
 		printf("ZServer::Setup:socket not setup\n");
 
 	//init bots
@@ -216,6 +218,10 @@ void ZServer::InitPerpetualServerSettings()
 	//maps within a session, and ChangeGameSpeed re-saves it whenever it changes.
 	if(psettings.allow_game_speed_change)
 		ztime.SetGameSpeed(zod_game_speed);
+
+	//#134: ZOD_GAMESPEED overrides the sim speed for headless testing - lets a
+	//bot-battle cover more game-time per wall-second when hunting timing bugs.
+	if(getenv("ZOD_GAMESPEED")) ztime.SetGameSpeed(atof(getenv("ZOD_GAMESPEED")));
 
 	if(psettings.use_database && psettings.use_mysql)
 	{
@@ -653,7 +659,9 @@ void ZServer::LoadNextMap(string override_map_name)
 	InitObjects();
 	InitZones();
 
-	if(psettings.start_map_paused) PauseGame();
+	//#134: ZOD_AUTOSTART skips the start-screen pause - lets a headless bot-vs-bot
+	//battle (no human to click "start") run on its own, e.g. to hunt teleport bugs.
+	if(psettings.start_map_paused && !getenv("ZOD_AUTOSTART")) PauseGame();
 
 	game_on = true;
 }
@@ -1497,7 +1505,15 @@ void ZServer::ProcessObjects()
 			UpdateObjectHealth((*obj));
 		}
 
-		if(/*(*obj)->GetSFlags().updated_location ||*/ (*obj)->GetSFlags().updated_velocity)
+		//#134: relay on velocity change, OR periodically while a unit is moving.
+		//Clients dead-reckon (SmoothMove: last_loc + velocity*elapsed) with no
+		//terrain awareness, so when the server slides/blocks/re-paths a unit near
+		//water without a velocity change there's no correction and the client
+		//predicts it straight across impassable terrain - the "teleport across
+		//water and snap back" bug. The periodic re-sync caps that drift to sub-tile.
+		if((*obj)->GetSFlags().updated_velocity)
+			RelayObjectLoc(*obj);
+		else if((*obj)->IsMoving() && ztime.ztime >= (*obj)->GetNextLocUpdateTime())
 			RelayObjectLoc(*obj);
 
 		if((*obj)->GetSFlags().updated_waypoints)
@@ -1770,6 +1786,9 @@ void ZServer::RelayObjectLoc(ZObject *obj)
 	server_socket.SendMessageAll(SEND_LOC, data, size);
 
 	free(data);
+
+	//#134: schedule the next periodic re-sync for this unit (loc_update_int away)
+	obj->MarkLocResynced(ztime.ztime);
 }
 
 void ZServer::BuildingCreateCannon(ZObject *obj, unsigned char oid)
