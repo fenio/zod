@@ -206,6 +206,20 @@ int run_server_thread(void *nothing)
 	vector<SDL_Thread*> bot_thread;
 	ZServer zserver;
 
+	//#79 follow-up: keep the default single-player opponent (a BLUE bot) unless the
+	//user set up bots themselves (-b) or this is a network/dedicated launch. Like
+	//menu-first, this default was only applied with zero arguments, so any flag -
+	//even just -r/-w - left you with no AI opponent (campaign maps rely on it;
+	//generated maps spawn their own bots in GenerateAndStartMap).
+	{
+		bool any_bot = false;
+		for(i=0;i<MAX_TEAM_TYPES;i++)
+			if(starting_conditions.read_start_bot[i]) any_bot = true;
+		if(!any_bot && !starting_conditions.read_is_dedicated
+			&& !starting_conditions.read_connect_address)
+			starting_conditions.read_start_bot[BLUE_TEAM] = true;
+	}
+
 	for(i=0;i<MAX_TEAM_TYPES;i++)
 		if(starting_conditions.read_start_bot[i])
 		{
@@ -222,6 +236,15 @@ int run_server_thread(void *nothing)
 		zserver.SetMapName(starting_conditions.map_name);
 	else if(starting_conditions.read_map_list)
 		zserver.SetMapList(starting_conditions.map_list);
+
+	//#79 follow-up: start on the menu by default for a normal launch. Only skip it
+	//when the user asked for something specific to load - a map (-m), a map list
+	//(-l), a dedicated server (-d), or a multiplayer connection (-c). Previously the
+	//menu default was only applied with zero arguments, so any flag - even just -r
+	//or -w - dropped you straight into the campaign.
+	if(!starting_conditions.read_map_name && !starting_conditions.read_map_list
+		&& !starting_conditions.read_is_dedicated && !starting_conditions.read_connect_address)
+		starting_conditions.menu_first = true;
 
 	//#79: idle on the menu instead of auto-loading the first map (the map list is
 	//still read, so Play Campaign / the map picker work from the menu)
