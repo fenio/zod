@@ -688,9 +688,10 @@ void ZPlayer::InitSDL()
 
 	//splash sound best loaded here
 	//splash_music = ZSDL_LoadMusic("assets/sounds/ABATTLE.mp3");
-	//the splash art is wider than the screen; scale it at load to FIT the
-	//logical resolution (whole image visible, letterboxed by the centered
-	//blit) rather than cropping its sides
+	//#137: scale the splash to COVER the logical resolution (fill, crop the
+	//overflow via the centered blit) - the same cover-scale RenderMenuBackground
+	//uses - so the loading splash fills the screen instead of sitting letterboxed
+	//with black bars top/bottom, matching how it looks once the menu is up.
 	{
 		SDL_Surface *raw = SDL_LoadBMP(ZSDL_DataPath("assets/splash.bmp").c_str());
 
@@ -698,7 +699,7 @@ void ZPlayer::InitSDL()
 		{
 			double fit_w = (double)init_w / raw->w;
 			double fit_h = (double)init_h / raw->h;
-			double fit = (fit_w < fit_h) ? fit_w : fit_h;
+			double fit = (fit_w > fit_h) ? fit_w : fit_h;	//cover (fill, crop)
 
 			SDL_Surface *scaled = SDL_ScaleSurface(raw,
 				(int)(raw->w * fit), (int)(raw->h * fit), SDL_SCALEMODE_LINEAR);
