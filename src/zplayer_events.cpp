@@ -22,6 +22,7 @@ void ZPlayer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, DELETE_OBJECT, delete_object_event);
 	ehandler.AddFunction(TCP_EVENT, UPDATE_HEALTH, set_object_health_event);
 	ehandler.AddFunction(TCP_EVENT, END_GAME, end_game_event);
+	ehandler.AddFunction(TCP_EVENT, RETURN_TO_MENU, return_to_menu_event);	//#136
 	ehandler.AddFunction(TCP_EVENT, RESET_GAME, reset_game_event);
 	ehandler.AddFunction(TCP_EVENT, FIRE_MISSILE, fire_object_missile_event);
 	ehandler.AddFunction(TCP_EVENT, DESTROY_OBJECT, destroy_object_event);
@@ -992,6 +993,13 @@ void ZPlayer::set_object_health_event(ZPlayer *p, char *data, int size, int dumm
 	if(!obj) return;
 
 	obj->DoHitEffect();
+}
+
+//#136: server says the match is over and we should go back to the main menu
+//(menu-driven session) rather than auto-load the next map.
+void ZPlayer::return_to_menu_event(ZPlayer *p, char *data, int size, int dummy)
+{
+	p->ReturnToMenu();
 }
 
 void ZPlayer::end_game_event(ZPlayer *p, char *data, int size, int dummy)

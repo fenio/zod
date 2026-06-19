@@ -273,6 +273,7 @@ enum tcp_event
 	RESHUFFLE_TEAMS, START_BOT_EVENT, STOP_BOT_EVENT, SELECT_MAP, RESET_MAP, REQUEST_VERSION,
 	GIVE_VERSION, SEND_UNIT_ROUTE, GENERATE_MAP, GIVE_CAMPAIGN_UNLOCK, GIVE_MAP_NAME,
 	CONTINUE_AFTER_END,	//#120: client tells the server the player dismissed the summary
+	RETURN_TO_MENU,		//#136: server tells clients to drop back to the main menu after a match
 	MAX_TCP_EVENTS
 };
 

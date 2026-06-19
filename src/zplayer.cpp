@@ -262,6 +262,27 @@ void ZPlayer::SendContinueAfterEnd()
 	client_socket.SendMessage(CONTINUE_AFTER_END, NULL, 0);
 }
 
+//#136: drop back to the main menu after a match (server sends RETURN_TO_MENU in a
+//menu-driven session). Tear the game down like ProcessResetGame but, instead of
+//asking for a new map, open the main menu and idle - the player picks/generates
+//the next one. With no map loaded the render falls back to the menu background.
+void ZPlayer::ReturnToMenu()
+{
+	fort_ref_id = -1;
+	ResetMatchStats();
+	zmap.ClearMap();
+	ols.DeleteAllObjects();
+	select_info.ClearAll();
+	effect_list.clear();
+	space_event_list.clear();
+	ClearAnimals();
+	hover_object = NULL;
+	zhud.ResetGame();
+	if(gui_window) DeleteCurrentGuiWindow();
+
+	LoadMainMenu(GMM_MAIN_MAIN);
+}
+
 //#88: gap between stacked summary stat lines, shared by build + render
 #define SUMMARY_LINE_GAP 14
 

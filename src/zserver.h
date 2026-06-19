@@ -16,7 +16,10 @@ class ZServer : public ZCore
 		
 		void SetMapName(string map_name_);
 		void SetMapList(string map_list_name_);
-		void SetMenuFirst(bool b) { menu_first = b; }	//#79
+		//#79 / #136: menu_first is cleared once a map loads; menu_mode_session stays
+		//set for the whole session so we know to return to the menu after a match
+		//(vs a direct-map / multiplayer launch, which keeps auto-advancing).
+		void SetMenuFirst(bool b) { menu_first = b; if(b) menu_mode_session = true; }
 		void SetSettingsFilename(string settings_filename_);
 		void SetPerpetualSettingsFilename(string p_settings_filename_);
 		void InitBot(int bot_team, bool do_init = true);
@@ -187,6 +190,8 @@ class ZServer : public ZCore
 		//and the game is being played normally
 		bool game_on;
 		bool menu_first;	//#79: idle without a map until the player picks one
+		bool menu_mode_session;	//#136: this session is menu-driven (return to menu after a match)
+		bool playing_generated_map;	//#136: current map is a generated/one-off (not campaign)
 		
 		EventHandler<ZServer> ehandler;
 		

@@ -43,6 +43,8 @@ ZServer::ZServer() : ZCore()
 	next_ref_id = 0;
 	game_on = false;
 	menu_first = false;	//#79
+	menu_mode_session = false;	//#136
+	playing_generated_map = false;	//#136
 	next_end_game_check_time = 0;
 	next_stalemate_diag_time = 0;
 	next_reset_game_time = 0;
@@ -413,6 +415,10 @@ void ZServer::GenerateAndStartMap(int enemies, int width, int height, int terrai
 	//load it and reset the game onto it (relays to all clients)
 	DoResetGame(out_path);
 
+	//#136: this is a generated/one-off map (LoadNextMap just cleared the flag) -
+	//mark it so it returns to the menu when it ends instead of advancing a list.
+	playing_generated_map = true;
+
 	//#93: a generated map has no shareable file, but generation is deterministic
 	//from these params + seed - so record the exact zod_mapgen command that
 	//recreates it. Set AFTER DoResetGame (LoadNextMap just set it to the temp
@@ -490,6 +496,16 @@ void ZServer::CheckResetGame()
 	if(menu_first) return;
 	if(!map_list.size()) return;
 	if(current_time() < next_reset_game_time) return;
+
+	//#136: after a generated/one-off map (in a menu-driven session) return to the
+	//main menu instead of loading a map. Campaign maps still advance/replay as
+	//before; direct-map / multiplayer launches are unaffected.
+	if(menu_mode_session && playing_generated_map)
+	{
+		server_socket.SendMessageAll(RETURN_TO_MENU, NULL, 0);
+		menu_first = true;
+		return;
+	}
 
 	DoResetGame();
 }
@@ -607,6 +623,9 @@ void ZServer::LoadNextMap(string override_map_name)
 	//#79: a map is loading, so we're no longer idling on the menu - from here on
 	//campaign auto-advance (CheckResetGame) works normally.
 	menu_first = false;
+	//#136: assume a campaign/list map; GenerateAndStartMap re-sets this true after
+	//its reset so only generated/one-off maps return to the menu when they end.
+	playing_generated_map = false;
 
 	//clear stuff
 	ResetGame();
