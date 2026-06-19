@@ -80,6 +80,8 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	last_process_server_time = last_process_time;
 	last_radius_time = last_process_time;
 	last_loc_set_time = last_process_time;
+	spin_ref_cx = spin_ref_cy = 0;
+	spin_dir_changes = 0;
 	waypoint_cursor.SetTeam(NULL_TEAM);
 	group_num = -1;
 	//hover_name_img = NULL;
@@ -2740,6 +2742,22 @@ void ZObject::ProcessAttackWP(vector<waypoint>::iterator &wp, double time_dif, b
 			else
 				SetTarget();
 
+			//#141: the attack position is in a different region (e.g. across water)
+			//- this unit can't reach it. Pathing there returns a degenerate route
+			//and the unit spins in place re-aiming forever. Drop the order, exactly
+			//like the unreachable-move guard in ProcessMoveWP does.
+			if(!tmap.GetPathFinder().InSameRegion(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT)))
+			{
+				if(wp->player_given && DiagThrottleReady())
+					ZDiag("attack dropped: %s can't reach target ref#%d at t(%d,%d) (different region - e.g. across water)",
+						ZPathLog_UnitDesc(this).c_str(), wp->ref_id,
+						cur_wp_info.x / 16, cur_wp_info.y / 16);
+
+				StopMove();
+				KillWP(wp);
+				return;
+			}
+
 			//needed to check if we should recalc a path
 			cur_wp_info.init_attack_x = cur_wp_info.x;
 			cur_wp_info.init_attack_y = cur_wp_info.y;
@@ -3095,6 +3113,15 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 			ZPathLog("MOVE   %s: new %s order to (%d,%d)t(%d,%d)",
 				ZPathLog_UnitDesc(this).c_str(), ZPathLog_WPModeName(wp->mode),
 				wp->x, wp->y, wp->x / 16, wp->y / 16);
+
+		//#141: always-on order-lifecycle trace (player orders only - infrequent).
+		//"move order:" = the unit received it. The matching "move dropped:",
+		//"order rejected:" or "route found:" line says what happened next. If you
+		//order a unit and NO "move order:" line appears, the order never reached it.
+		if(wp->player_given)
+			ZDiag("move order: %s received %s order to t(%d,%d) [%s]",
+				ZPathLog_UnitDesc(this).c_str(), ZPathLog_WPModeName(wp->mode),
+				wp->x / 16, wp->y / 16, stoppable ? "stoppable" : "force");
 
 		//force move waypoints are expected to always go
 		//straight to their targets
@@ -3858,7 +3885,7 @@ bool ZObject::ReachedTarget()
 	float &dy = loc.dy;
 	
 	//we at the target?
-	if(cx == cur_wp_info.x && cy == cur_wp_info.y) 
+	if(cx == cur_wp_info.x && cy == cur_wp_info.y)
 	{
 		xover = yover = 0;
 		return true;
@@ -4256,6 +4283,59 @@ void ZObject::SetVelocity(ZObject *target_object)
 	{
 		sflags.updated_velocity = true;
 		//yover = xover = 0;
+
+		//#141: spin-in-place watchdog. A unit that keeps re-aiming (heading
+		//changes) without actually moving is stuck oscillating its path - the
+		//"tank spins in place" bug. Count heading changes while the centre stays
+		//put; if a move happens, reset. Past a threshold, log it (throttled).
+		int new_dir = DirectionFromLoc(dx, dy);
+		int old_dir = DirectionFromLoc(old_dx, old_dy);
+		if(new_dir != -1 && old_dir != -1 && new_dir != old_dir)
+		{
+			if(abs(center_x - spin_ref_cx) + abs(center_y - spin_ref_cy) <= 16)
+			{
+				spin_dir_changes++;
+				if(spin_dir_changes >= 8 && DiagThrottleReady())
+				{
+					static const char *wp_mode_name[MAX_WAYPOINT_MODES] = {
+						"move", "enter", "attack", "force-move", "crane-repair",
+						"unit-repair", "agro", "enter-fort", "dodge", "pickup-grenades" };
+
+					//what it is, where it's stuck, which two headings it flips between
+					ZDiag("SPIN? %s spun %dx in place at tile(%d,%d)  heading %d<->%d  vel(%.1f,%.1f)",
+						ZPathLog_UnitDesc(this).c_str(), spin_dir_changes,
+						center_x / 16, center_y / 16, old_dir, new_dir, dx, dy);
+
+					//the immediate goal it's aiming at + whether it has a real A* route
+					ZDiag("   aiming at tile(%d,%d)  route: %d A* legs (0=direct beeline)  waypoints: %d",
+						cur_wp_info.x / 16, cur_wp_info.y / 16,
+						(int)cur_wp_info.pf_point_list.size(), (int)waypoint_list.size());
+
+					//the order driving it (mode / target / who issued it)
+					if(waypoint_list.size())
+					{
+						const waypoint &w = waypoint_list.front();
+						const char *mn = (w.mode >= 0 && w.mode < MAX_WAYPOINT_MODES) ? wp_mode_name[(int)w.mode] : "?";
+						ZDiag("   order: %s -> tile(%d,%d) ref#%d %s",
+							mn, w.x / 16, w.y / 16, w.ref_id,
+							w.player_given ? "(player-given)" : "(AI)");
+					}
+
+					//who it's trying to attack, if anyone
+					if(attack_object)
+					{
+						int ax, ay; attack_object->GetCenterCords(ax, ay);
+						ZDiag("   attack target ref#%d at tile(%d,%d)", attack_object->GetRefID(), ax / 16, ay / 16);
+					}
+				}
+			}
+			else
+			{
+				spin_ref_cx = center_x;
+				spin_ref_cy = center_y;
+				spin_dir_changes = 0;
+			}
+		}
 	}
 }
 
@@ -5521,6 +5601,23 @@ void ZObject::PostPathFindingResult(ZPath_Finding_Response* response)
 			else
 				ZPathLog("ROUTE  %s: id:%d EMPTY - no path was found, unit will not move",
 					ZPathLog_UnitDesc(this).c_str(), response->thread_id);
+		}
+
+		//#141: always-on order-lifecycle trace - what the pathfinder came back with
+		//for a player order (pairs with the "move order:" receipt line). Either it
+		//found a route (unit will move) or it found nothing (order silently ignored
+		//- the "won't take my order" bug). Player orders only, so not spammy.
+		if(waypoint_list.size() && waypoint_list.front().player_given)
+		{
+			const waypoint &w = waypoint_list.front();
+			if(response->pf_point_list.empty())
+				ZDiag("order rejected: %s found NO path for its %s order to t(%d,%d) - target unreachable from here (center t(%d,%d))",
+					ZPathLog_UnitDesc(this).c_str(), ZPathLog_WPModeName(w.mode),
+					w.x / 16, w.y / 16, center_x / 16, center_y / 16);
+			else
+				ZDiag("route found: %s got a %d-leg path for its %s order to t(%d,%d) - will move",
+					ZPathLog_UnitDesc(this).c_str(), (int)response->pf_point_list.size(),
+					ZPathLog_WPModeName(w.mode), w.x / 16, w.y / 16);
 		}
 
 		if(cur_wp_info.pf_point_list.size())
