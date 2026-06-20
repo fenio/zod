@@ -627,6 +627,10 @@ void ZServer::LoadNextMap(string override_map_name)
 	//its reset so only generated/one-off maps return to the menu when they end.
 	playing_generated_map = false;
 
+	//#75: apply the chosen max-units-per-team for this game (read fresh each game,
+	//so an Options change takes effect from the next game, not the running one).
+	max_units_per_team = zod_max_units_per_team;
+
 	//clear stuff
 	ResetGame();
 

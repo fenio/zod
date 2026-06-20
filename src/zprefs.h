@@ -23,6 +23,10 @@ enum bot_difficulty { BOT_DIFF_EASY, BOT_DIFF_NORMAL, BOT_DIFF_HARD, BOT_DIFF_EX
 extern int zod_bot_difficulty;
 extern const char *bot_difficulty_name[MAX_BOT_DIFFICULTY];
 
+//#75: max combat units per team. Adjustable in Options (UNIT_LIMIT_MIN..MAX);
+//read at the start of each game, so a change takes effect from the next game.
+extern int zod_max_units_per_team;
+
 void ZPrefs_Load();
 void ZPrefs_Save();
 

@@ -19,7 +19,12 @@ using namespace std;
 #define HUD_HEIGHT 36
 
 #define MAX_STORED_CANNONS 4
-#define DEFAULT_MAX_UNITS_PER_TEAM 70
+//#75: max combat units (robots+vehicles+cannons) a team can have. Was 70 (a
+//1996-era performance limit); now 100 by default and adjustable in Options.
+#define DEFAULT_MAX_UNITS_PER_TEAM 100
+#define UNIT_LIMIT_MIN 20
+#define UNIT_LIMIT_MAX 200
+#define UNIT_LIMIT_STEP 20
 
 #define ROAD_SPEED 1.689
 #define WATER_SPEED 0.7

@@ -1,5 +1,6 @@
 #include "gmm_options.h"
 #include "zprefs.h"
+#include "constants.h"	//#75: DEFAULT_MAX_UNITS_PER_TEAM + UNIT_LIMIT bounds
 
 //defined in zobject.cpp
 extern bool zod_render_smoothing;
@@ -59,6 +60,13 @@ void GMMOptions::SetupLayout1()
 	AddWidget(&difficulty_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
+	max_units_button.SetType(MMGENERIC_BUTTON);	//#75
+	max_units_button.SetText("Max Units: 100");
+	max_units_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	max_units_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&max_units_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
 	pause_button.SetType(MMGENERIC_BUTTON);
 	pause_button.SetText("Pause Game");
 	pause_button.SetCoords(GMM_SIDE_MARGIN, next_y);
@@ -101,6 +109,13 @@ void GMMOptions::Process()
 		int d = (zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL;
 		difficulty_button.SetText(string("Difficulty: ") + bot_difficulty_name[d]);
 		difficulty_button.SetGreen(d != BOT_DIFF_NORMAL);
+	}
+
+	{
+		char buf[32];
+		snprintf(buf, sizeof(buf), "Max Units: %d", zod_max_units_per_team);	//#75
+		max_units_button.SetText(buf);
+		max_units_button.SetGreen(zod_max_units_per_team != DEFAULT_MAX_UNITS_PER_TEAM);
 	}
 
 	ProcessWidgets();
@@ -170,6 +185,13 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 			zod_bot_difficulty = (zod_bot_difficulty + 1) % MAX_BOT_DIFFICULTY;
 			ZPrefs_Save();
 		}
+		else if(w_ref_id == max_units_button.GetRefID())
+		{
+			//#75: cycle the max units per team (wraps at the top); takes effect next game
+			zod_max_units_per_team += UNIT_LIMIT_STEP;
+			if(zod_max_units_per_team > UNIT_LIMIT_MAX) zod_max_units_per_team = UNIT_LIMIT_MIN;
+			ZPrefs_Save();
+		}
 		else if(w_ref_id == smooth_button.GetRefID())
 		{
 			zod_render_smoothing = !zod_render_smoothing;
@@ -224,6 +246,14 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 				if(next >= MAX_GMMOPTIONS_SPEED_SETTINGS) next = MAX_GMMOPTIONS_SPEED_SETTINGS - 1;
 				gmm_flags.set_game_speed = true;
 				gmm_flags.set_game_speed_value = gmmoption_speed_setting_value[next];
+			}
+			else if(w_ref_id == max_units_button.GetRefID())
+			{
+				//#75: wheel adjusts max units up/down, clamped at the ends
+				zod_max_units_per_team += dir * UNIT_LIMIT_STEP;
+				if(zod_max_units_per_team < UNIT_LIMIT_MIN) zod_max_units_per_team = UNIT_LIMIT_MIN;
+				if(zod_max_units_per_team > UNIT_LIMIT_MAX) zod_max_units_per_team = UNIT_LIMIT_MAX;
+				ZPrefs_Save();
 			}
 		}
 		break;
