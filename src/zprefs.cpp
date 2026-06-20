@@ -1,4 +1,5 @@
 #include "zprefs.h"
+#include "constants.h"	//#75: DEFAULT_MAX_UNITS_PER_TEAM + UNIT_LIMIT bounds
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@ double zod_game_speed = 1.0;
 //bot AI difficulty - default NORMAL keeps the original behavior (opt-in)
 int zod_bot_difficulty = BOT_DIFF_NORMAL;
 const char *bot_difficulty_name[MAX_BOT_DIFFICULTY] = { "Easy", "Normal", "Hard", "Expert" };
+int zod_max_units_per_team = DEFAULT_MAX_UNITS_PER_TEAM;	//#75
 
 //defined in zobject.cpp (the render-smoothing master toggle)
 extern bool zod_render_smoothing;
@@ -57,6 +59,12 @@ void ZPrefs_Load()
 				if(zod_bot_difficulty < 0 || zod_bot_difficulty >= MAX_BOT_DIFFICULTY)
 					zod_bot_difficulty = BOT_DIFF_NORMAL;
 			}
+			else if(!strcmp(key, "max_units_per_team"))
+			{
+				zod_max_units_per_team = atoi(eq + 1);
+				if(zod_max_units_per_team < UNIT_LIMIT_MIN) zod_max_units_per_team = UNIT_LIMIT_MIN;
+				if(zod_max_units_per_team > UNIT_LIMIT_MAX) zod_max_units_per_team = UNIT_LIMIT_MAX;
+			}
 		}
 
 		fclose(fp);
@@ -84,5 +92,6 @@ void ZPrefs_Save()
 	fprintf(fp, "volume=%d\n", zod_volume_setting);
 	fprintf(fp, "game_speed=%g\n", zod_game_speed);
 	fprintf(fp, "bot_difficulty=%d\n", zod_bot_difficulty);
+	fprintf(fp, "max_units_per_team=%d\n", zod_max_units_per_team);
 	fclose(fp);
 }

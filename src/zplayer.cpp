@@ -499,6 +499,12 @@ void ZPlayer::ProcessResetGame()
 	//hud
 	zhud.ResetGame();
 
+	//#75: pick up the chosen max-units-per-team for this game - drives the local
+	//unit-limit-reached check and the HUD's "units N/max" readout. (Single-player:
+	//the in-process server reads the same pref, so they match.)
+	max_units_per_team = zod_max_units_per_team;
+	zhud.SetMaxUnits(zod_max_units_per_team);
+
 	//gui window ie production
 	if(gui_window) DeleteCurrentGuiWindow();
 
