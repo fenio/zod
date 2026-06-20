@@ -4356,6 +4356,13 @@ bool ZObject::DodgeMissile(int tx, int ty, double time_till_explode)
 	if(object_type == ROBOT_OBJECT && attack_object) return false;
 	if(owner == NULL_TEAM) return false;
 
+	//#103: only idle units flinch from fire. If the unit is executing an order
+	//(a move, attack, enter, etc.) don't abandon it to dodge - otherwise units
+	//ordered toward the enemy fort just flee instead of advancing, making them
+	//nearly impossible to command under fire. A unit already mid-dodge (front
+	//DODGE_WP) still updates its dodge.
+	if(waypoint_list.size() && waypoint_list.begin()->mode != DODGE_WP) return false;
+
 	double dist; 
 	if(time_till_explode > stamina) dist = time_till_explode * real_move_speed;
 	else dist = time_till_explode * real_move_speed * zsettings->run_unit_speed;
