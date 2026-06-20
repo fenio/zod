@@ -3310,6 +3310,65 @@ void ZPlayer::DumpDiagnostics()
 	//report needs to know which level was active.
 	ZDiag("bot AI difficulty: %s", bot_difficulty_name[(zod_bot_difficulty >= 0 && zod_bot_difficulty < MAX_BOT_DIFFICULTY) ? zod_bot_difficulty : BOT_DIFF_NORMAL]);
 
+	//interface/cursor context, so a "no grab cursor / wrong cursor" report is
+	//debuggable from the dump alone. The cursor is a CLIENT decision made in
+	//DetermineCursor() from hover_object + the selected unit's capabilities -
+	//none of which the server-side census below captures. Log the exact inputs
+	//and the cursor actually shown at the moment the dump was taken, so e.g. a
+	//missing grab cursor reads as "hover=NULL" or "flag but can_move=no".
+	{
+		static const char *cursor_name[MAX_CURSOR_TYPES] = {
+			"CURSOR", "PLACE", "PLACED", "ATTACK", "ATTACKED", "GRAB", "GRABBED",
+			"GRENADE", "GRENADED", "REPAIR", "REPAIRED", "NONO", "CANNON", "CANNONED",
+			"ENTER", "ENTERED", "EXIT", "EXITED" };
+
+		int wx = 0, wy = 0;
+		zmap.GetMapCoords(mouse_x, mouse_y, wx, wy);
+		int mmx = 0, mmy = 0;
+		bool over_mini = zhud.OverMiniMap(mouse_x, mouse_y, init_w, init_h, mmx, mmy);
+		cursor_type cc = cursor.GetCursor();
+
+		ZDiag("--- cursor/interface context (why the cursor was what it was) ---");
+		ZDiag("  mouse: screen(%d,%d) world tile(%d,%d)%s", mouse_x, mouse_y,
+			wx / 16, wy / 16, over_mini ? "   [over minimap]" : "");
+		ZDiag("  cursor shown: %s", (cc >= 0 && cc < MAX_CURSOR_TYPES) ? cursor_name[cc] : "?");
+
+		unsigned char hot = 0, hoid = 0;
+		bool is_flag = false, is_gren = false;
+		if(hover_object)
+		{
+			hover_object->GetObjectID(hot, hoid);
+			is_flag = (hot == MAP_ITEM_OBJECT && hoid == FLAG_ITEM);
+			is_gren = (hot == MAP_ITEM_OBJECT && hoid == GRENADES_ITEM);
+			ZDiag("  hover: ref#%d %s (ot=%d oid=%d) T=%d   can_enter_fort=%s",
+				hover_object->GetRefID(), hover_object->GetObjectName().c_str(),
+				(int)hot, (int)hoid, hover_object->GetOwner(),
+				hover_object_can_enter_fort ? "yes" : "no");
+		}
+		else
+			ZDiag("  hover: NULL (nothing detected under the cursor - this alone yields a move/PLACE cursor, never GRAB)");
+
+		ZDiag("  selection caps: can_move=%s can_pickup_grenades=%s can_equip=%s can_attack=%s can_repair=%s can_be_repaired=%s have_explosives=%s",
+			select_info.can_move ? "y" : "n", select_info.can_pickup_grenades ? "y" : "n",
+			select_info.can_equip ? "y" : "n", select_info.can_attack ? "y" : "n",
+			select_info.can_repair ? "y" : "n", select_info.can_be_repaired ? "y" : "n",
+			select_info.have_explosives ? "y" : "n");
+
+		//focused grab diagnosis: the cursor only becomes GRAB over a flag/grenades
+		//item with a movable selection. Spell out which precondition failed, since
+		//"sometimes no grab" is exactly this decision going the other way.
+		if(!hover_object)
+			ZDiag("  grab-check: no hover_object -> grab impossible; if you expected one, the flag wasn't detected under the cursor (hover-pick miss)");
+		else if(!is_flag && !is_gren)
+			ZDiag("  grab-check: hover is not a flag/grenades item -> grab not expected here");
+		else if(!select_info.can_move)
+			ZDiag("  grab-check: over a %s but selection can_move=no -> no grab (only movable units capture)", is_flag ? "flag" : "grenades");
+		else if(is_gren && !select_info.can_pickup_grenades)
+			ZDiag("  grab-check: over grenades but can_pickup_grenades=no -> no grab");
+		else
+			ZDiag("  grab-check: over a %s with a movable selection -> grab SHOULD show", is_flag ? "flag" : "grenades");
+	}
+
 	//#122: a full scene snapshot, so ANY report is debuggable from this dump alone
 	//- not just whatever unit happened to be selected. Every object's kind, owner,
 	//tile and health. This is what makes "cannons sitting in front of the fort", a
