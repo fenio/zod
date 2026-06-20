@@ -638,6 +638,18 @@ void ZServer::LoadNextMap(string override_map_name)
 	if(override_map_name.size())
 	{
 		map_name = override_map_name;
+
+		//#154: keep the campaign index in sync with the map actually loaded.
+		//Selecting a campaign level from the menu loads it by name (override),
+		//but used to leave current_map_i pointing at the resumed position. So
+		//after a win NextInMapList() advanced from the STALE index - e.g. you
+		//win level 3, it steps off the old index and never reaches level 4, so
+		//level 4 stays locked no matter how many times you win. Re-point the
+		//index at the loaded map. A generated/one-off map isn't in map_list, so
+		//no match leaves the index alone.
+		if(!load_maps_randomly)
+			for(int i=0;i<(int)map_list.size();i++)
+				if(map_list[i] == override_map_name) { current_map_i = i; break; }
 	}
 	else if(map_list.size())
 	{
