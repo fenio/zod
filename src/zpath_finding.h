@@ -48,6 +48,10 @@ public:
 	Uint64 request_ticks; //SDL_GetTicks() when the request was made (pathlog timing)
 	map_pathfinding_info_tile **tile_info;
 	vector<ZPath_Finding_AStar::pf_point> pf_point_list;
+
+	//benchmark/diagnostic outputs (Do_Astar fills these in)
+	int explored_nodes;	//A* node expansions for this query
+	int path_cost;		//g-cost to the goal (-1 if unreachable)
 };
 
 class ZPath_Finding_Thread_Entry
@@ -134,6 +138,7 @@ public:
 	inline vector<ZPath_Finding_Response*> &GetList() { return respone_list; }
 	
 	int Find_Path(int sx, int sy, int ex, int ey, bool is_robot, bool has_explosives, int obj_ref_id );
+	void RunBenchmark(int num_queries);	//deterministic A* benchmark (ZOD_PFBENCH)
 	bool Direct_Path_Possible(int sx, int sy, int ex, int ey, bool is_robot, bool has_explosives);
 	
 	void SetImpassable(int x, int y, bool impassable = true, bool destroyable = false);

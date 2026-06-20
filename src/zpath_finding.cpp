@@ -296,6 +296,8 @@ ZPath_Finding_Response::ZPath_Finding_Response()
 	end_x = end_y = 0;
 	kill_thread = false;
 	request_ticks = 0;
+	explored_nodes = 0;
+	path_cost = -1;
 
 	existing_responses++;
 }
@@ -312,6 +314,57 @@ ZPath_Finding_Response::~ZPath_Finding_Response()
 	*/
 
 	existing_responses--;
+}
+
+//Deterministic A* benchmark (ZOD_PFBENCH). Picks the same reachable start/end
+//tile pairs every run (a fixed LCG, independent of the algorithm), runs each
+//through Do_Astar, and prints per-query path cost + node expansions. A dev tool
+//for measuring pathfinding changes: same pairs before/after => cost shows if a
+//change kept paths optimal, node counts show its effect on search effort.
+void ZPath_Finding_Engine::RunBenchmark(int num_queries)
+{
+	if(!path_vehicle_tile) { printf("PFBENCH: no map loaded\n"); return; }
+
+	unsigned int seed = 1234567u;
+#define PFB_RND() (seed = seed * 1103515245u + 12345u, (int)((seed >> 16) & 0x7fff))
+
+	long total_nodes = 0;
+	long total_cost = 0;
+	int done = 0;
+
+	printf("PFBENCH start: %dx%d map, target %d queries (vehicle)\n", w, h, num_queries);
+
+	for(int attempt = 0; done < num_queries && attempt < num_queries * 200; attempt++)
+	{
+		int sx = PFB_RND() % w, sy = PFB_RND() % h;
+		int ex = PFB_RND() % w, ey = PFB_RND() % h;
+
+		if(!path_vehicle_tile[sx][sy].passable) continue;
+		if(!path_vehicle_tile[ex][ey].passable) continue;
+		if(sx == ex && sy == ey) continue;
+		if(!InSameRegion(sx * 16 + 8, sy * 16 + 8, ex * 16 + 8, ey * 16 + 8, false)) continue;
+
+		ZPath_Finding_Response resp;
+		resp.path_finder = this;
+		resp.start_x = sx * 16; resp.start_y = sy * 16;
+		resp.end_x = ex * 16;   resp.end_y = ey * 16;
+		resp.is_robot = false;
+		resp.kill_thread = false;
+		resp.w = w; resp.h = h;
+		resp.tile_info = path_vehicle_tile;
+
+		ZPath_Finding_AStar::Do_Astar(&resp);
+
+		printf("PFBENCH q%-4d (%3d,%3d)->(%3d,%3d) cost=%-7d nodes=%-6d legs=%d\n",
+			done, sx, sy, ex, ey, resp.path_cost, resp.explored_nodes, (int)resp.pf_point_list.size());
+
+		total_nodes += resp.explored_nodes;
+		total_cost += resp.path_cost;
+		done++;
+	}
+
+	printf("PFBENCH done: queries=%d total_nodes=%ld total_cost=%ld\n", done, total_nodes, total_cost);
+#undef PFB_RND
 }
 
 ZPath_Finding_Engine::ZPath_Finding_Engine()
