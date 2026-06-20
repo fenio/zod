@@ -3136,28 +3136,49 @@ void ZObject::ProcessMoveWP(vector<waypoint>::iterator &wp, double time_dif, boo
 			//cur_wp_info.y = wp->y;
 			SetTarget(wp->x, wp->y);
 
-			//target in a different region = unreachable for THIS unit type
-			//(robots wade water so their regions include islands; vehicles
-			//don't). Beelining there just drove the unit into the shore and
-			//ground on a re-issue loop, with a path line drawn over water.
-			//Drop the order instead - the original game doesn't try.
-			if(!tmap.GetPathFinder().InSameRegion(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT)))
+			//can this unit actually occupy the exact target tile? Two ways it can't:
+			//a different region (robots wade water so their regions include islands;
+			//vehicles don't), OR the target tile doesn't fit the unit's footprint -
+			//e.g. a 2x2 vehicle aimed at a bridge DECK tile, which is single-tile
+			//passable (so the region map says "reachable") but flanked by impassable
+			//rails, so the 2x2 won't fit. Either way A* returns a degenerate 1-leg
+			//route and the unit beelines straight at it, over water. ShouldBeAbleToMoveTo
+			//checks BOTH (region + the full target footprint).
+			if(!tmap.GetPathFinder().ShouldBeAbleToMoveTo(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT)))
 			{
-				if(ZPATH_LOG_ON)
-					ZPathLog("DROP   %s: target (%d,%d)t(%d,%d) unreachable (different region), dropping move",
-						ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x, cur_wp_info.y,
-						cur_wp_info.x / 16, cur_wp_info.y / 16);
+				//the exact tile won't work - but the player still wants the unit to
+				//GO there (e.g. "send the jeep to the bridge"). Snap to the nearest
+				//tile the unit can reach+stand on (the bridge's lane-aligned deck
+				//tile, say) and head there over a real route, instead of beelining
+				//over water. Only if nothing reachable is nearby (the click was on
+				//the far side of a river with no crossing) do we drop the order.
+				int snap_x, snap_y;
+				if(tmap.GetPathFinder().NearestReachableTile(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT), snap_x, snap_y))
+				{
+					if(ZPATH_LOG_ON)
+						ZPathLog("SNAP   %s: target t(%d,%d) won't fit, snapped to reachable t(%d,%d)",
+							ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x / 16, cur_wp_info.y / 16,
+							snap_x / 16, snap_y / 16);
+					SetTarget(snap_x, snap_y);
+				}
+				else
+				{
+					if(ZPATH_LOG_ON)
+						ZPathLog("DROP   %s: target (%d,%d)t(%d,%d) unreachable, dropping move",
+							ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x, cur_wp_info.y,
+							cur_wp_info.x / 16, cur_wp_info.y / 16);
 
-				//release diagnostic: a player ordered this unit somewhere it can't
-				//reach (e.g. a vehicle to the far side of water). Surfaces the
-				//otherwise-silent drop in bug-report logs (#54-style "won't move").
-				if(wp->player_given && DiagThrottleReady())
-					ZDiag("move dropped: %s ordered to t(%d,%d) but can't path there (different region - e.g. across water)",
-						ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x / 16, cur_wp_info.y / 16);
+					//release diagnostic: a player ordered this unit somewhere it can't
+					//reach (e.g. a vehicle to the far side of water). Surfaces the
+					//otherwise-silent drop in bug-report logs (#54-style "won't move").
+					if(wp->player_given && DiagThrottleReady())
+						ZDiag("move dropped: %s ordered to t(%d,%d) but can't path there (unreachable - e.g. across water with no crossing in range)",
+							ZPathLog_UnitDesc(this).c_str(), cur_wp_info.x / 16, cur_wp_info.y / 16);
 
-				StopMove();
-				KillWP(wp);
-				return;
+					StopMove();
+					KillWP(wp);
+					return;
+				}
 			}
 
 			//cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(x + (width_pix >> 1), y + (height_pix >> 1), wp->x, wp->y, (object_type == ROBOT_OBJECT), ref_id);

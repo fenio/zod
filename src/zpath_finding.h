@@ -149,6 +149,7 @@ public:
 	bool InSameRegion(int sx, int sy, int ex, int ey, bool is_robot);
 
 	bool ShouldBeAbleToMoveTo(int sx, int sy, int ex, int ey, bool is_robot);
+	bool NearestReachableTile(int sx, int sy, int ex, int ey, bool is_robot, int &out_x, int &out_y);
 
 	bool TileOnMap(int tx, int ty);
 	bool TilePassable(int tx, int ty, bool is_robot);
