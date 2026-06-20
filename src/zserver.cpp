@@ -687,6 +687,15 @@ void ZServer::LoadNextMap(string override_map_name)
 	if(psettings.start_map_paused && !getenv("ZOD_AUTOSTART")) PauseGame();
 
 	game_on = true;
+
+	//dev: ZOD_PFBENCH=N runs the deterministic A* benchmark on this map and exits.
+	if(getenv("ZOD_PFBENCH"))
+	{
+		int n = atoi(getenv("ZOD_PFBENCH"));
+		if(n <= 0) n = 200;
+		zmap.GetPathFinder().RunBenchmark(n);
+		exit(0);
+	}
 }
 
 int ZServer::NextInMapList()

@@ -286,6 +286,9 @@ namespace ZPath_Finding_AStar
 		//check
 		if(!response) return;
 
+		response->explored_nodes = 0;
+		response->path_cost = -1;
+
 		int start_x = response->start_x / 16;
 		int start_y = response->start_y / 16;
 		int end_x = response->end_x / 16;
@@ -340,6 +343,7 @@ namespace ZPath_Finding_AStar
 			if(cp.x == end_x && cp.y == end_y)
 			{
 				//printf("end found\n");
+				response->path_cost = cp.g;
 				break;
 			}
 
@@ -459,6 +463,7 @@ namespace ZPath_Finding_AStar
 		final_path.push_back(pf_point(response->end_x, response->end_y));
 		
 		response->pf_point_list = final_path;
+		response->explored_nodes = total_ticks;
 		//return final_path;
 
 		//printf("Do_Astar::finished, ticks:%d time:%lf ... [%d,%d] to [%d,%d]\n", total_ticks, end_time - start_time, response->start_x, response->start_y, response->end_x, response->end_y);
