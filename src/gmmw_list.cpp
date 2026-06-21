@@ -463,6 +463,12 @@ void GMMWList::RenderEntries(ZMap &the_map, SDL_Surface *dest, int tx, int ty)
 
 			text_img.LoadBaseImage(ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(entry_list[j].text.c_str()));
 
+			//#156: a disabled entry (e.g. a locked campaign map you haven't reached)
+			//renders dimmed/greyed, so you can tell at a glance which maps you've
+			//unlocked vs which are still locked. The font is white-only, so we fade
+			//it via alpha - over the dark menu it reads as grey.
+			text_img.SetAlpha(entry_list[j].disabled ? 100 : 255);
+
 			RenderEntry(the_map, dest, ix, iy + (i*MMLIST_ENTRY_HEIGHT), iw, &text_img, entry_list[j].state);
 		}
 		else
