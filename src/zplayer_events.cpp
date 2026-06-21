@@ -139,9 +139,18 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 			p->hover_object_can_attack = !(*i)->IsDestroyed() && (*i)->UnderCursorCanAttack(map_x, map_y);
 			p->hover_object_can_enter_fort = (*i)->UnderCursorFortCanEnter(map_x, map_y);
 
-			//if we can not attack or enter
+			//#160: a destroyed building (e.g. a bridge) isn't attackable (#133), but
+			//a CRANE can repair it - so when the current selection can repair, still
+			//treat the destroyed-but-repairable structure as the hover object.
+			//Otherwise the repair cursor never shows and the crane can't be ordered
+			//to fix the bridge. Combat-only selections see nothing here (can_repair
+			//is false), so #133 stays intact; the server also still refuses attacks
+			//on dead objects (CanAttackObject checks IsDestroyed).
+			bool hover_can_repair = p->select_info.can_repair && (*i)->CanBeRepairedByCrane(p->our_team);
+
+			//if we can not attack, enter, or repair it
 			//then we aren't hovering over this object
-			if(!p->hover_object_can_attack && !p->hover_object_can_enter_fort) continue;
+			if(!p->hover_object_can_attack && !p->hover_object_can_enter_fort && !hover_can_repair) continue;
 
 			p->hover_object = (*i);
 			//printf("object under cursor:%s\n", p->hover_object->GetObjectName().c_str());
