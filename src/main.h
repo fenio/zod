@@ -16,6 +16,7 @@ class input_options
 		bool read_resolution;
 		bool resolution_explicit;
 		bool read_is_dedicated;
+		bool read_allow_remote;	//#158: -L, let LAN/remote clients connect to a normal (host-and-play) launch
 		bool read_display_help;
 		bool read_display_version;
 		bool read_player_name;
@@ -55,6 +56,7 @@ class input_options
 			read_resolution = false;
 			resolution_explicit = false;
 			read_is_dedicated = false;
+		read_allow_remote = false;	//#158
 			read_display_help = false;
 			read_display_version = false;
 			read_sound_off = false;

@@ -42,6 +42,7 @@ ZServer::ZServer() : ZCore()
 	reload_same_map = false;
 	next_ref_id = 0;
 	game_on = false;
+	allow_remote_clients = false;	//#158: loopback-only by default (no exposed port in singleplayer)
 	menu_first = false;	//#79
 	menu_mode_session = false;	//#136
 	playing_generated_map = false;	//#136
@@ -127,9 +128,14 @@ void ZServer::Setup()
 
 	//start listen socket. #134: ZOD_PORT lets several instances run side by side
 	//(e.g. a fleet of headless bot battles) without colliding on the default port.
+	//#158: bind 127.0.0.1 only unless this is an explicit host (dedicated / -L), so a
+	//normal singleplayer game opens no network-reachable port.
 	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 8000;
-	if(!server_socket.Start(net_port))
+	if(!server_socket.Start(net_port, !allow_remote_clients))
 		printf("ZServer::Setup:socket not setup\n");
+	else
+		printf("ZServer::Setup:listening on %s:%d\n",
+			allow_remote_clients ? "0.0.0.0 (all interfaces - hosting)" : "127.0.0.1 (localhost only)", net_port);
 
 	//init bots
 	InitBots();

@@ -20,6 +20,10 @@ class ZServer : public ZCore
 		//set for the whole session so we know to return to the menu after a match
 		//(vs a direct-map / multiplayer launch, which keeps auto-advancing).
 		void SetMenuFirst(bool b) { menu_first = b; if(b) menu_mode_session = true; }
+		//#158: when false (the default) the listen socket binds 127.0.0.1 only, so a
+		//normal singleplayer game exposes no network-reachable port. Set true to host
+		//(dedicated server, or a normal launch with -L) and bind all interfaces.
+		void SetAllowRemoteClients(bool b) { allow_remote_clients = b; }
 		void SetSettingsFilename(string settings_filename_);
 		void SetPerpetualSettingsFilename(string p_settings_filename_);
 		void InitBot(int bot_team, bool do_init = true);
@@ -189,6 +193,7 @@ class ZServer : public ZCore
 		//variable used to let you know that the map etc is loaded
 		//and the game is being played normally
 		bool game_on;
+		bool allow_remote_clients;	//#158: bind the listen socket to all interfaces (host) vs 127.0.0.1 only
 		bool menu_first;	//#79: idle without a map until the player picks one
 		bool menu_mode_session;	//#136: this session is menu-driven (return to menu after a match)
 		bool playing_generated_map;	//#136: current map is a generated/one-off (not campaign)

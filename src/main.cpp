@@ -258,6 +258,11 @@ int run_server_thread(void *nothing)
 
 	zserver.SetBotBypassData(bot_bypass_data, bot_bypass_size);
 
+	//#158: only an explicit host exposes a network port. A dedicated server (-d) is
+	//inherently for remote clients; a normal host-and-play launch opts in with -L.
+	//Everything else (plain singleplayer) binds 127.0.0.1 only.
+	zserver.SetAllowRemoteClients(starting_conditions.read_is_dedicated || starting_conditions.read_allow_remote);
+
 	zserver.Setup();
 	zserver.Run();
 
@@ -370,6 +375,8 @@ void display_help(char *shell_command)
 	printf("-w                   - run game in windowed mode\n");
 	printf("-r resolution        - resolution to run the game at\n");
 	printf("-d                   - run a dedicated server\n");
+	printf("-L                   - allow LAN/remote clients to connect (host a network game while you play;\n");
+	printf("                       without it a normal game binds 127.0.0.1 only and opens no network port)\n");
 	printf("-h                   - display command help\n");
 	printf("-s                   - no sound\n");
 	printf("-u                   - no music\n");
@@ -491,7 +498,7 @@ int input_options::getoptions(int argc, char **argv)
 	extern char *optarg;
 	extern int optind;
 
-	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoaMD:")) != -1)
+	while ((c = getopt(argc, argv, "c:m:l:n:t:b:z:e:g:i:wr:dhvksuoaMD:L")) != -1)
 	{
 		switch(c)
 		{
@@ -613,7 +620,11 @@ int input_options::getoptions(int argc, char **argv)
 			case 'd':
 				read_is_dedicated = true;
 				break;
-				
+
+			case 'L':	//#158: opt in to LAN/remote clients on a normal host-and-play launch
+				read_allow_remote = true;
+				break;
+
 			case 'h':
 				read_display_help = true;
 				break;
