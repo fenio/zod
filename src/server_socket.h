@@ -36,7 +36,7 @@ class ServerSocket
 {
 	public:
 		ServerSocket();
-		int Start(int port = 8000);
+		int Start(int port = 8000, bool localhost_only = true);	//#158: loopback-only unless explicitly hosting
 		void SetEventList(list<Event*> *event_list_);
 		void SetEventHandler(EventHandler<ZServer> *ehandler_) { ehandler = ehandler_; }
 		int Process();
@@ -49,7 +49,7 @@ class ServerSocket
 		
 		SocketHandler* GetHandler(int id);
 	private:
-		int Bind();
+		int Bind(bool localhost_only = true);
 		int Listen();
 		int CreateSocket();
 		int CheckConnects();

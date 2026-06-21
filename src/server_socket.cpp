@@ -149,18 +149,18 @@ int ServerSocket::CheckConnects()
 	return 1;
 }
 
-int ServerSocket::Start(int port_)
+int ServerSocket::Start(int port_, bool localhost_only)
 {
 	port = port_;
-	
+
 	if(!CreateSocket()) return 0;
-	
-	if(!Bind()) return 0;
-	
+
+	if(!Bind(localhost_only)) return 0;
+
 	if(!Listen()) return 0;
-	
+
 	started = 1;
-	
+
 	return 1;
 }
 
@@ -190,18 +190,22 @@ int ServerSocket::CreateSocket()
 	return 1;
 }
 
-int ServerSocket::Bind()
+int ServerSocket::Bind(bool localhost_only)
 {
 	struct sockaddr_in si_me;
 	int &s = listen_socket;
-	
+
 	if(bound) return 1;
 
 	// (was memset(&si_me, sizeof(si_me), 0) - args swapped, so it zeroed nothing)
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(port);
-	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+	//#158: bind loopback only by default, so a normal singleplayer game (which
+	//still talks to its in-process server over 127.0.0.1) opens NO port reachable
+	//from the network. Only an explicit host (dedicated server, or -L) binds
+	//INADDR_ANY so remote/LAN clients can actually connect.
+	si_me.sin_addr.s_addr = htonl(localhost_only ? INADDR_LOOPBACK : INADDR_ANY);
 	
 	while(::bind(s, (struct sockaddr *) &si_me, sizeof(si_me))==-1)
 	{
