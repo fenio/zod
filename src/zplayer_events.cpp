@@ -148,9 +148,21 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 			//on dead objects (CanAttackObject checks IsDestroyed).
 			bool hover_can_repair = p->select_info.can_repair && (*i)->CanBeRepairedByCrane(p->our_team);
 
-			//if we can not attack, enter, or repair it
+			//a flag/grenades pickup is GRABBED, not attacked, so the #133 destroyed
+			//gate (about not attacking rubble) must not hide it either. A contested
+			//flag reads as IsDestroyed (health 0) yet is still a valid grab target -
+			//bots grab it - so without this the player gets no grab cursor over it
+			//and can't order the capture. Owner is irrelevant here (you grab your
+			//own/neutral/enemy flags); DetermineCursor sorts out the exact cursor.
+			unsigned char hov_ot, hov_oid;
+			(*i)->GetObjectID(hov_ot, hov_oid);
+			bool hover_can_grab = hov_ot == MAP_ITEM_OBJECT &&
+				((hov_oid == FLAG_ITEM && p->select_info.can_move) ||
+				 (hov_oid == GRENADES_ITEM && p->select_info.can_pickup_grenades));
+
+			//if we can not attack, enter, repair, or grab it
 			//then we aren't hovering over this object
-			if(!p->hover_object_can_attack && !p->hover_object_can_enter_fort && !hover_can_repair) continue;
+			if(!p->hover_object_can_attack && !p->hover_object_can_enter_fort && !hover_can_repair && !hover_can_grab) continue;
 
 			p->hover_object = (*i);
 			//printf("object under cursor:%s\n", p->hover_object->GetObjectName().c_str());
