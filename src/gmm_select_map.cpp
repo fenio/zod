@@ -119,14 +119,15 @@ void GMMSelectMap::SetupList()
 	}
 
 	//#77: (re)apply the campaign lock every frame so a watermark that arrives just
-	//after the list does still takes effect. Past the unlock index a map gets a
-	//"(locked)" marker and can't be picked (GMMWList::WithinEntry rejects it).
+	//after the list does still takes effect. Past the unlock index a map is disabled
+	//and can't be picked (GMMWList::WithinEntry rejects it).
+	//#156: a disabled map renders dimmed/greyed (see GMMWList), which reads as
+	//"locked" on its own - so no "(locked)" text suffix is needed.
 	int unlocked = campaign_unlock ? *campaign_unlock : 0x7fffffff;
 	vector<mmlist_entry> &entries = map_list.GetEntryList();
 	for(int i=0;i<(int)entries.size() && i<(int)selectable_map_list->size();i++)
 	{
-		bool locked = (i > unlocked);
-		entries[i].disabled = locked;
-		entries[i].text = locked ? ((*selectable_map_list)[i] + "  (locked)") : (*selectable_map_list)[i];
+		entries[i].disabled = (i > unlocked);
+		entries[i].text = (*selectable_map_list)[i];
 	}
 }
