@@ -3404,7 +3404,7 @@ void ZPlayer::DumpDiagnostics()
 	}
 
 	if(sel.empty())
-		ZDiag("(no unit selected - the scene snapshot + census above/below stand alone; select a unit and press F12 again to add its orders/route)");
+		ZDiag("(no unit selected - dumping the unit nearest the cursor instead; select a unit OR point at it and press F12 to get its orders/route)");
 
 	//gather the full movement group(s) of whatever is selected, de-duplicated, so
 	//pressing F12 on any member dumps the whole leader+minions picture (the grab
@@ -3428,6 +3428,43 @@ void ZPlayer::DumpDiagnostics()
 			for(vector<ZObject*>::iterator d=dump.begin(); d!=dump.end(); d++)
 				if(*d == *g) { dup = true; break; }
 			if(!dup) dump.push_back(*g);
+		}
+	}
+
+	//also dump the unit nearest the mouse cursor, so a unit you can't (or didn't)
+	//select is still diagnosable: point at it and press F12. This is the path for
+	//"this unit won't move / can't be selected" - its order, route and movement
+	//flags get logged the same as a selected unit's.
+	{
+		int wx = 0, wy = 0;
+		zmap.GetMapCoords(mouse_x, mouse_y, wx, wy);
+
+		ZObject *nearest = NULL;
+		int best_d2 = 64 * 64;	//within ~4 tiles of the cursor
+		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
+		{
+			ZObject *o = *i;
+			if(!o) continue;
+			unsigned char ot, oid;
+			o->GetObjectID(ot, oid);
+			if(!(ot == ROBOT_OBJECT || ot == VEHICLE_OBJECT || ot == CANNON_OBJECT)) continue;
+
+			int cx, cy;
+			o->GetCenterCords(cx, cy);
+			int d2 = (cx - wx)*(cx - wx) + (cy - wy)*(cy - wy);
+			if(d2 < best_d2) { best_d2 = d2; nearest = o; }
+		}
+
+		if(nearest)
+		{
+			bool dup = false;
+			for(vector<ZObject*>::iterator d=dump.begin(); d!=dump.end(); d++)
+				if(*d == nearest) { dup = true; break; }
+			if(!dup)
+			{
+				ZDiag("--- unit nearest cursor (world tile %d,%d), dumped regardless of selection ---", wx / 16, wy / 16);
+				dump.push_back(nearest);
+			}
 		}
 	}
 
