@@ -87,12 +87,20 @@ namespace ZPath_Finding_AStar
 
 			if(i != -1)
 			{
-				point_index[x][y] = -1;
-
+				//move the last element into the freed slot and fix ITS index...
 				size--;
 				list[i] = list[size];
-
 				point_index[list[i].x][list[i].y] = i;
+
+				//...then mark the removed tile absent LAST. This order matters when
+				//the removed element WAS the last one (i == size): the line above is
+				//then a self-copy that re-points (x,y) at the now-invalid slot, so
+				//clearing it here is what actually removes it. The old order cleared
+				//first and the self-copy re-validated the stale index, so the tile
+				//still looked "in the open list" - and a later relax wrote through
+				//that bad index, corrupting another node's parent and producing
+				//broken, non-adjacent routes (units cutting straight over water).
+				point_index[x][y] = -1;
 			}
 		}
 
