@@ -65,6 +65,13 @@ jobs:
           cp -r repo/android/jni/zodapp             proj/app/jni/zodapp
           cp -r repo/src                            proj/app/jni/zodapp/zod
 
+          # stamp the real build version (git describe) into the APK, replacing the
+          # "android-spike" placeholder, so the engine reports the same ZOD_VERSION /
+          # "server version is X" as desktop instead of a dev placeholder.
+          VER=$(cd repo && git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")
+          sed -i "s/android-spike/${VER}/" proj/app/jni/zodapp/CMakeLists.txt
+          echo "stamped Android ZOD_VERSION = ${VER}"
+
           # our activity (keep SDL's org.libsdl.app.* java in place) + manifest
           mkdir -p proj/app/src/main/java/io/github/fenio/zod
           cp repo/android/ZodActivity.java          proj/app/src/main/java/io/github/fenio/zod/ZodActivity.java

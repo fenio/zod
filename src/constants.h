@@ -7,7 +7,16 @@
 
 using namespace std;
 
-#define GAME_VERSION "2011-09-06"
+// The client/server version string: checked for a match between the two, and
+// shown to the player as "the server version is X". Tie it to the build version
+// (ZOD_VERSION = git describe, set per target) so it tracks our releases instead
+// of the original engine's 2011-09-06 date. The fallback only applies to the few
+// targets that don't define ZOD_VERSION (the tests / mapgen), which never network.
+#ifdef ZOD_VERSION
+#define GAME_VERSION ZOD_VERSION
+#else
+#define GAME_VERSION "0.0.0-unknown"
+#endif
 
 #define MAX_PLAYER_NAME_SIZE 30
 #define MAX_BUILDING_LEVELS 6
