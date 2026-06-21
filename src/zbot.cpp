@@ -935,9 +935,15 @@ bool ZBot::Stage1AI_2()
 	GiveOutOrders_2(our_vehicle_list, target_list, repair_building_list, grenade_box_list);
 
 	//our_crane_list
-	target_list = enemy_flag_list;
+	//#161: cranes always repair bridges (destroyed buildings). Capturing flags is a
+	//Hard+ behaviour, and driving a crane into the enemy fort - a strong "pro" trick
+	//that's no fun to lose to - is Expert-only (and still only when all-out). So Easy
+	//and Normal cranes just repair bridges; Hard adds flags; Expert adds the fort.
+	target_list.clear();
+	if(zod_bot_difficulty >= BOT_DIFF_HARD)
+		target_list = enemy_flag_list;
 	target_list.insert(target_list.begin(), destroyed_building_list.begin(), destroyed_building_list.end());
-	if(all_out)
+	if(all_out && zod_bot_difficulty >= BOT_DIFF_EXPERT)
 	{
 		target_list.insert(target_list.begin(), enemy_fort_list.begin(), enemy_fort_list.end());
 	}
