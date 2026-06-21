@@ -658,6 +658,40 @@ bool ZPath_Finding_Engine::ShouldBeAbleToMoveTo(int sx, int sy, int ex, int ey, 
 	return true;
 }
 
+//Find the nearest tile to (ex,ey) that this unit type can actually reach AND
+//stand on (ShouldBeAbleToMoveTo passes: same region + the full footprint fits).
+//Used to snap a move order that landed on a tile the unit can't occupy - e.g. a
+//2x2 vehicle clicked onto a bridge DECK tile flanked by impassable rails - to the
+//nearest valid spot, so the unit walks onto the bridge instead of refusing the
+//order or beelining over water. Coords are pixels; out_x/out_y get the pixel
+//centre of the chosen tile. Returns false if nothing reachable is within range
+//(e.g. the click was on the far side of a river with no crossing).
+bool ZPath_Finding_Engine::NearestReachableTile(int sx, int sy, int ex, int ey, bool is_robot, int &out_x, int &out_y)
+{
+	int tex = ex >> 4, tey = ey >> 4;
+	const int max_r = 6;
+
+	for(int r = 0; r <= max_r; r++)
+		for(int dx = -r; dx <= r; dx++)
+			for(int dy = -r; dy <= r; dy++)
+			{
+				//ring perimeter only, so closer tiles are tried first
+				if(r > 0 && abs(dx) != r && abs(dy) != r) continue;
+
+				int tx = tex + dx, ty = tey + dy;
+				if(tx < 0 || ty < 0 || tx >= w || ty >= h) continue;
+
+				int px = tx * 16 + 8, py = ty * 16 + 8;
+				if(ShouldBeAbleToMoveTo(sx, sy, px, py, is_robot))
+				{
+					out_x = px; out_y = py;
+					return true;
+				}
+			}
+
+	return false;
+}
+
 bool ZPath_Finding_Engine::InSameRegion(int sx, int sy, int ex, int ey, bool is_robot)
 {
 	return region_info.InSameRegion(sx, sy, ex, ey, is_robot);
