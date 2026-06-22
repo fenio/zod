@@ -138,8 +138,10 @@ bool ZBuilding::SetBuildingProduction(unsigned char ot, unsigned char oid)
 	RecalcBuildTime();
 	//bfinal_time = binit_time + buildlist->UnitBuildTime(bot, boid);
 
-	//add to queue list?
-	if(!queue_list.size()) AddBuildingQueue(ot, oid);
+	//#NNN: the current unit is NOT stored in queue_list anymore - bot/boid alone
+	//track it. The queue is purely the upcoming (player-added) units, and when it
+	//drains the building keeps making the last one (see ResetProduction). This is
+	//what makes "what you queue becomes the new default" instead of reverting.
 
 	return true;
 }
@@ -497,7 +499,14 @@ void ZBuilding::ResetProduction()
 	}
 	else
 	{
-		StopBuildingProduction();
+		//#NNN: queue drained - keep building the unit that just finished, so the
+		//last unit you queued sticks as the factory's default (instead of stopping
+		//and reverting to the first build-list unit). bot/boid still hold it, so
+		//capture them before StopBuildingProduction clears them.
+		unsigned char ot = bot, oid = boid;
+		StopBuildingProduction(false);
+		if(ot != (unsigned char)-1 && oid != (unsigned char)-1)
+			SetBuildingProduction(ot, oid);
 	}
 
 
