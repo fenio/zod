@@ -1118,7 +1118,10 @@ void ZServer::add_building_queue_event(ZServer *p, char *data, int size, int pla
 	}
 	else
 	{
-		if(obj->AddBuildingQueue(pi->ot, pi->oid)) p->RelayObjectBuildingQueue(obj);
+		//#NNN: append (FIFO) so units build in the order queued and the LAST one
+		//queued ends up as the looping default (push_to_front=false overrides the
+		//declaration default of true).
+		if(obj->AddBuildingQueue(pi->ot, pi->oid, false)) p->RelayObjectBuildingQueue(obj);
 	}
 }
 
