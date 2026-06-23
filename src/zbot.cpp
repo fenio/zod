@@ -71,7 +71,7 @@ void ZBot::Setup()
 	SetupRandomizer();
 
 	//#134: match ZOD_PORT so in-process bots reach a non-default server port
-	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 8000;
+	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 2137;
 	if(!client_socket.Start(remote_address.c_str(), net_port))
 		printf("ZBot::Setup:socket not setup\n");
 }
