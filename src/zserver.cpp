@@ -752,10 +752,11 @@ int ZServer::NextInMapList()
 string ZServer::CampaignProgressPath()
 {
 	const char *home = getenv("HOME");
-#ifdef _WIN32
-	if(!home || !*home) home = getenv("USERPROFILE");
-#endif
-	if(!home || !*home) return "";
+	if(!home || !*home) home = getenv("USERPROFILE"); //Windows
+	//No home dir (e.g. Android, where HOME is unset and the cwd is the app's
+	//writable internal storage) - fall back to the cwd, matching prefs_path() in
+	//zprefs.cpp so campaign progress persists like the other settings do. #178.
+	if(!home || !*home) return ".zod_campaign_progress";
 	return string(home) + "/.zod_campaign_progress";
 }
 
