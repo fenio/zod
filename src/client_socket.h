@@ -34,7 +34,7 @@ class ClientSocket
 	public:
 		ClientSocket();
 		
-		int Start(const char *address_ = "localhost", int port_ = 8000);
+		int Start(const char *address_ = "localhost", int port_ = 2137);
 		void SetEventList(list<Event*> *event_list_);
 		int Process();
 		

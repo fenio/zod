@@ -6,8 +6,46 @@
 
 #include <time.h>
 #include <stdlib.h>
+#ifndef _WIN32
+#include <unistd.h>		//close() for the LAN-IP probe socket
+#endif
 
 using namespace COMMON;
+
+// Best-effort LAN address other machines would use to reach this host. Opens a
+// UDP socket "connected" to an off-machine address - no packets are actually
+// sent; this just makes the kernel pick the outbound interface, which we read
+// back with getsockname(). Returns "" if it can't be determined (e.g. no route).
+static string GetLocalIP()
+{
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if(sock < 0) return "";
+
+	struct sockaddr_in dest;
+	memset(&dest, 0, sizeof(dest));
+	dest.sin_family = AF_INET;
+	dest.sin_port = htons(53);
+	dest.sin_addr.s_addr = inet_addr("8.8.8.8");	//routed-to, never contacted
+
+	string ip;
+	if(connect(sock, (struct sockaddr*)&dest, sizeof(dest)) == 0)
+	{
+		struct sockaddr_in local;
+		socklen_t len = sizeof(local);
+		if(getsockname(sock, (struct sockaddr*)&local, &len) == 0)
+		{
+			const char *s = inet_ntoa(local.sin_addr);
+			if(s) ip = s;
+		}
+	}
+
+#ifdef _WIN32
+	closesocket(sock);
+#else
+	close(sock);
+#endif
+	return ip;
+}
 
 // A writable path for the server's transient map files (random/generated maps
 // are round-tripped through disk so their bytes can be sent to clients). The
@@ -130,12 +168,23 @@ void ZServer::Setup()
 	//(e.g. a fleet of headless bot battles) without colliding on the default port.
 	//#158: bind 127.0.0.1 only unless this is an explicit host (dedicated / -L), so a
 	//normal singleplayer game opens no network-reachable port.
-	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 8000;
+	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 2137;
 	if(!server_socket.Start(net_port, !allow_remote_clients))
 		printf("ZServer::Setup:socket not setup\n");
+	else if(allow_remote_clients)
+	{
+		//Hosting for remote players: tell the host the LAN address others must
+		//point `zod -c <ip>` at. Useful no matter how host/join is eventually
+		//surfaced (CLI flags today, an in-menu Multiplayer screen later).
+		std::string ip = GetLocalIP();
+		printf("ZServer::Setup:listening on 0.0.0.0 (all interfaces - hosting):%d\n", net_port);
+		if(ip.empty())
+			printf("ZServer::Setup:could not determine LAN IP; others join with  zod -c <your-ip>\n");
+		else
+			printf("ZServer::Setup:others on your LAN join with  zod -c %s\n", ip.c_str());
+	}
 	else
-		printf("ZServer::Setup:listening on %s:%d\n",
-			allow_remote_clients ? "0.0.0.0 (all interfaces - hosting)" : "127.0.0.1 (localhost only)", net_port);
+		printf("ZServer::Setup:listening on 127.0.0.1 (localhost only):%d\n", net_port);
 
 	//init bots
 	InitBots();
