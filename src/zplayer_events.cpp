@@ -767,6 +767,10 @@ void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 
 	if(p->zmap.Loaded())
 	{
+		//#183: the map's object descriptors are now loaded - gate cranes out of the
+		//production GUI on maps with no bridges (matches the server's validation).
+		p->buildlist.SetMapHasBridges(p->MapHasBridges());
+
 		//#79: a map just loaded - drop any menu-first / map-picker overlay so we
 		//land cleanly in the game.
 		p->CloseMainMenus();

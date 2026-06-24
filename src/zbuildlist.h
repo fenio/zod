@@ -30,6 +30,10 @@ public:
 	ZBuildList();
 
 	void LoadDefaults();
+	//#183: cranes are only offered on maps that have bridges (otherwise they have
+	//no real use and just let you cheese the enemy fort). Rebuilds the list and,
+	//when the map has no bridges, strips every crane entry. Call on each map load.
+	void SetMapHasBridges(bool has_bridges);
 	void SetZSettings(ZSettings *zsettings_);
 	vector<buildlist_object> &GetBuildList(int building_type, int level);
 	bool UnitInBuildList(int building_type, int level, unsigned char ot, unsigned char oid);

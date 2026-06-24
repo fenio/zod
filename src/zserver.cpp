@@ -1257,6 +1257,10 @@ void ZServer::InitObjects()
 	//make sure you can not eject fort turret cannons
 	MakeAllFortTurretsUnEjectable();
 
+	//#183: offer cranes only on maps that have bridges (server-authoritative
+	//production validation). Runs per map load, so it refreshes on map changes.
+	buildlist.SetMapHasBridges(MapHasBridges());
+
 	////as with all creation / deletions
 	//ProcessChangeObjectAmount();
 }
