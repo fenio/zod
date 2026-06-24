@@ -406,6 +406,7 @@ class ZObject
 		virtual bool CanHaveGrenades() { return false; }
 		virtual void SetGrenadeAmount(int grenade_amount_) { return; }
 		virtual int GetGrenadeAmount() { return 0; }
+		int GroupGrenadeAmount();   //#182: total grenades held across the squad (leader + minions)
 		virtual bool CanThrowGrenades() { return false; }
 		virtual void DoPickupGrenadeAnim() { }
 		bool CanAttackObject(ZObject *obj);

@@ -2568,6 +2568,15 @@ void ZServer::RemoveObjectFromGroup(ZObject *obj)
 			for(vector<ZObject*>::iterator i=obj->GetMinionList().begin(); i!=obj->GetMinionList().end(); i++)
 				if(*i) new_leader->AddGroupMinion(*i);
 
+			//#182: squad grenades are carried by the leader - hand them to the new
+			//leader so the squad doesn't lose its grenades when the leader dies.
+			if(obj->GetGrenadeAmount())
+			{
+				new_leader->SetGrenadeAmount(new_leader->GetGrenadeAmount() + obj->GetGrenadeAmount());
+				obj->SetGrenadeAmount(0);
+				RelayObjectGrenadeAmount(new_leader);
+			}
+
 			//send out new leaders info
 			RelayObjectGroupInfo(new_leader);
 			//new_leader->CreateGroupInfoData(data, size);

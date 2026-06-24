@@ -806,11 +806,13 @@ void ZHud::DoRender(SDL_Surface *dest, int screen_w, int screen_h)
 			static int last_grenade_amount = -1;
 			static ZSDL_Surface grenade_amount_surface;
 
-			if(last_grenade_amount != selected_object->GetGrenadeAmount())
+			//#182: show the SQUAD's grenade total (they're shared and carried by the
+			//leader), so clicking any group member reads the real count, not 0.
+			if(last_grenade_amount != selected_object->GroupGrenadeAmount())
 			{
 				char grenade_c[50];
 
-				last_grenade_amount = selected_object->GetGrenadeAmount();
+				last_grenade_amount = selected_object->GroupGrenadeAmount();
 
 				sprintf(grenade_c, "%02d", last_grenade_amount);
 
