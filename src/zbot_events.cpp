@@ -93,6 +93,11 @@ void ZBot::disconnect_event(ZBot *p, char *data, int size, int dummy)
 void ZBot::store_map_event(ZBot *p, char *data, int size, int dummy)
 {
 	p->ProcessMapDownload(data, size);
+
+	//#183: keep the bot's build list in step - no cranes on bridge-less maps, so
+	//the bot doesn't waste production requests the server would just reject.
+	if(p->zmap.Loaded())
+		p->buildlist.SetMapHasBridges(p->MapHasBridges());
 }
 
 void ZBot::add_new_object_event(ZBot *p, char *data, int size, int dummy)

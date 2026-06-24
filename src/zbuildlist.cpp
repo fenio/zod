@@ -10,6 +10,30 @@ void ZBuildList::SetZSettings(ZSettings *zsettings_)
 	zsettings = zsettings_;
 }
 
+void ZBuildList::SetMapHasBridges(bool has_bridges)
+{
+	//rebuild the full default list (cranes included), then - if the map has no
+	//bridges - strip every crane entry. #183: without bridges a crane has no real
+	//purpose and just lets you drive into / capture the enemy fort.
+	ClearData();
+	LoadDefaults();
+
+	if(has_bridges) return;
+
+	for(int bt=0; bt<MAX_BUILDING_TYPES; bt++)
+		for(int lv=0; lv<MAX_BUILDING_LEVELS; lv++)
+		{
+			vector<buildlist_object> &v = buildlist_data[bt][lv];
+			for(vector<buildlist_object>::iterator it=v.begin(); it!=v.end();)
+			{
+				if(it->ot == VEHICLE_OBJECT && it->oid == CRANE)
+					it = v.erase(it);
+				else
+					++it;
+			}
+		}
+}
+
 void ZBuildList::ClearData()
 {
 	int i, j;

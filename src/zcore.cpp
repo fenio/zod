@@ -28,6 +28,16 @@ void ZCore::Setup()
 	SetupRandomizer();
 }
 
+//#183: bridges are BUILDING_OBJECT map objects with a BRIDGE_VERT/BRIDGE_HORZ id.
+bool ZCore::MapHasBridges()
+{
+	vector<map_object> &ol = zmap.GetObjectList();
+	for(vector<map_object>::iterator i=ol.begin(); i!=ol.end(); i++)
+		if(i->object_type == BUILDING_OBJECT && (i->object_id == BRIDGE_VERT || i->object_id == BRIDGE_HORZ))
+			return true;
+	return false;
+}
+
 void ZCore::Run()
 {
 	

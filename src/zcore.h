@@ -164,6 +164,11 @@ class ZCore
 		bool CheckRallypoint(ZObject *obj, waypoint *wp);
 		static bool UnitRequiresActivation(unsigned char ot, unsigned char oid);
 		bool CreateObjectOk(unsigned char ot, unsigned char oid, int x, int y, int owner, int blevel, unsigned short extra_links);
+		//#183: does the current map contain any bridges? Reads the map's object
+		//descriptors (which the server has from zmap.Read and the client has from
+		//the downloaded map), so it works identically on both sides. Cranes are
+		//only offered on bridge maps.
+		bool MapHasBridges();
 
 		//voting stuff
 		int VotesNeeded();
