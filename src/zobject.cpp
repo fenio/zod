@@ -94,6 +94,8 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	next_check_passive_attack_time = 0;
 	next_opportunistic_grab_time = 0;
 	next_trail_time = 0;
+	trail_issued = false;
+	trail_tx = trail_ty = 0;
 	buildlist = NULL;
 	connected_zone = NULL;
 	unit_limit_reached = NULL;
@@ -2264,9 +2266,33 @@ void ZObject::CheckMinionTrail(double &the_time)
 		outer = (e ? atof(e) : 1.5) * 16.0;   //tiles -> pixels
 		if(outer < 8.0) outer = 8.0;
 	}
-	if(dist < outer) return;
+	if(dist < outer) { trail_issued = false; return; }   //home: clear any block state
 
 	if(the_time < next_trail_time) return;
+
+	//Anti-thrash: our last follow move is gone (killed) but we're still far from
+	//the slot. If we never reached what we aimed at, ProcessMove walked us into a
+	//non-destroyable tile and aborted the move (the old behaviour re-issued the
+	//same doomed move every 0.25s forever). Distinguish that from a move that
+	//SUCCEEDED - reached its target, the leader has since moved on - and only back
+	//off on a real abort. The leader is normally moving, so a short wait lets it
+	//reach a spot from which our slot is actually reachable, then we catch up.
+	if(trail_issued && waypoint_list.empty())
+	{
+		int dtx = trail_tx - sx, dty = trail_ty - sy;
+		bool reached = (double)(dtx*dtx + dty*dty) < outer*outer;
+		trail_issued = false;
+		if(!reached)
+		{
+			next_trail_time = the_time + 1.5;   //blocked - stop hammering, wait it out
+			if(ZPATH_LOG_ON)
+				ZPathLog("TRAIL  %s blocked reaching slot of %s - backing off 1.5s",
+					ZPathLog_UnitDesc(this).c_str(), ZPathLog_UnitDesc(leader).c_str());
+			return;
+		}
+		//reached it; fall through to re-issue toward the leader's new position
+	}
+
 	next_trail_time = the_time + 0.25;
 
 	//already heading to essentially this spot (leader barely moved)? don't reset
@@ -2289,6 +2315,10 @@ void ZObject::CheckMinionTrail(double &the_time)
 	w.player_given = false;
 	waypoint_list.clear();
 	waypoint_list.push_back(w);
+
+	trail_issued = true;
+	trail_tx = tx;
+	trail_ty = ty;
 
 	if(ZPATH_LOG_ON)
 		ZPathLog("TRAIL  %s -> slot %d of leader %s (%.1f tiles)",

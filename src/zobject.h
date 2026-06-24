@@ -631,6 +631,8 @@ class ZObject
 		double next_check_passive_attack_time;
 		double next_opportunistic_grab_time;   //#60: throttle for grab-while-moving scan
 		double next_trail_time;   //throttle for the minion-trail follow scan
+		bool trail_issued;        //a trail follow-move is outstanding (to detect aborts)
+		int trail_tx, trail_ty;   //the slot we last sent a trail move toward
 		double next_loc_update_time;
 		double loc_update_int;
 		object_location loc;
