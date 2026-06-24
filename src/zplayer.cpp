@@ -3060,6 +3060,12 @@ void ZPlayer::ProcessSDL()
 			}
 			the_key.the_key = event.key.key;
 			the_key.the_unicode = (event.key.key < 128) ? event.key.key : 0;
+			//Shift+\ -> '|' for the screenshot key. Shift doesn't change the keycode
+			//(it stays SDLK_BACKSLASH), and the real '|' only arrives via TEXT_INPUT,
+			//which isn't active during gameplay - so without this, Shift+\ delivered
+			//'\' and just re-triggered the dump. Derive '|' from the modifier here.
+			if(event.key.key == SDLK_BACKSLASH && (SDL_GetModState() & SDL_KMOD_SHIFT))
+				the_key.the_unicode = '|';
 			ehandler.ProcessEvent(SDL_EVENT, KEYDOWN_EVENT_, (char*)&the_key, sizeof(key_event), 0);
 			break;
 		case SDL_EVENT_KEY_UP:
@@ -4831,6 +4837,28 @@ void ZPlayer::ProcessUnicode(int key)
 			//diagnostics dump - macOS-friendly alternative to F12 (which the OS
 			//grabs). Appends the selected unit's group state to zod_diag.log.
 			DumpDiagnostics();
+		}
+		else if(key == '|')
+		{
+			//screenshot - sister to '\\' (dump). Saves the current frame as a PNG
+			//in the game dir (next to zod_diag.log) so a bug report can pair a
+			//picture with the dump, no OS screenshot tool / key combos needed.
+			char path[64];
+			int n;
+			for(n=1; n<1000; n++)
+			{
+				snprintf(path, sizeof(path), "zod_screenshot_%03d.png", n);
+				FILE *fp = fopen(path, "rb");
+				if(!fp) break;   //first free name
+				fclose(fp);
+			}
+			if(ZVideo_SaveScreenshot(path))
+			{
+				printf("screenshot saved: %s\n", path);
+				AddNewsEntry(string("screenshot saved: ") + path);
+			}
+			else
+				AddNewsEntry("screenshot failed (see console)");
 		}
 		//(zoom +/- now handled by keycode in ProcessSDL, so numpad works too)
 		else if(key == 'm' || key == 'M')

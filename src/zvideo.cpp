@@ -1,4 +1,5 @@
 #include "zvideo.h"
+#include <SDL3_image/SDL_image.h>   // IMG_SavePNG for screenshots
 #include <stdlib.h>   // getenv/atoi, for the look-tuning env vars
 
 // Modern scaled-framebuffer rendering: the game draws to an off-screen surface
@@ -144,6 +145,16 @@ void ZVideo_Present()
     }
 
     SDL_RenderPresent(g_renderer);
+}
+
+// Save the current game frame to a PNG. g_frame_surface is the CPU surface the
+// game blits into (the exact image being shown, at the logical resolution), so
+// this captures the game view without the OS-level scaling/scanlines. Returns
+// true on success.
+bool ZVideo_SaveScreenshot(const char *path)
+{
+    if (!g_frame_surface || !path) return false;
+    return IMG_SavePNG(g_frame_surface, path);
 }
 
 void ZVideo_ConvertEventCoords(SDL_Event *ev)

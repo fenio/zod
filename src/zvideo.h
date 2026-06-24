@@ -18,6 +18,9 @@ SDL_Surface *ZVideo_SetMode(int w, int h, bool fullscreen);
 // Upload the framebuffer, GPU-upscale it into the window, and swap.
 void ZVideo_Present();
 
+// Save the current game frame to a PNG file. Returns true on success.
+bool ZVideo_SaveScreenshot(const char *path);
+
 // Window-manager bits.
 void ZVideo_SetCaption(const char *title);
 // Borderless desktop fullscreen on/off at runtime (Alt+Enter).
