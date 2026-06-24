@@ -725,8 +725,22 @@ void ZPath_Finding_Engine::SetImpassable(int x, int y, bool impassable, bool des
 	//through only wins when the detour is huge - matching the original Z.
 	if(destroyable)
 	{
-		int m = impassable ? 8 : 1;
-		int d = impassable ? 1 : 8;
+		//Cost multiplier for blasting through a destroyable barrier on the norocks
+		//maps. It must not be FREE (else A* plows grenade squads through whole rock
+		//fields) but the original-Z feel is to blow up an obstacle that's directly
+		//in the way rather than take a long detour - so keep it low. Tunable via
+		//ZOD_ROCK_BLAST_COST (default 2; was a too-cautious hardcoded 8). Applied on
+		//set, reversed on unset, so it stays exactly reversible (a*F/F == a).
+		static int F = -1;
+		if(F < 0)
+		{
+			const char *e = getenv("ZOD_ROCK_BLAST_COST");
+			F = e ? atoi(e) : 2;
+			if(F < 1) F = 1;
+		}
+
+		int m = impassable ? F : 1;
+		int d = impassable ? 1 : F;
 
 		path_robot_norocks_tile[x][y].side_weight = path_robot_norocks_tile[x][y].side_weight * m / d;
 		path_robot_norocks_tile[x][y].diag_weight = path_robot_norocks_tile[x][y].diag_weight * m / d;
