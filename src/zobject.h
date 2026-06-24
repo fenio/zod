@@ -357,6 +357,7 @@ class ZObject
 		virtual void CloneMinionWayPoints();
 		virtual bool IsMinion();
 		virtual bool IsApartOfAGroup();
+		int GetMyFormationSlot();   //this minion's index in its leader's minion_list (-1 if none)
 		virtual bool CanAttack();
 		virtual bool HasExplosives();
 		virtual bool AttackedOnlyByExplosives();
@@ -534,6 +535,7 @@ class ZObject
 		bool Disengage();
 		void CheckPassiveEngage(double &the_time, ZOLists &ols, ZMap &tmap);
 		void CheckOpportunisticGrab(double &the_time, ZOLists &ols);   //#60: grab objects while moving
+		void CheckMinionTrail(double &the_time);   //squad cohesion: a minion trails its leader instead of pathing to the goal itself
 		//#48/#60: peel a single group member off to grab, instead of the whole group
 		bool IsOnGrabDetour();
 		bool TargetAlreadyClaimed(int target_ref, ZOLists &ols);
@@ -628,6 +630,9 @@ class ZObject
 		double last_loc_set_time;
 		double next_check_passive_attack_time;
 		double next_opportunistic_grab_time;   //#60: throttle for grab-while-moving scan
+		double next_trail_time;   //throttle for the minion-trail follow scan
+		bool trail_issued;        //a trail follow-move is outstanding (to detect aborts)
+		int trail_tx, trail_ty;   //the slot we last sent a trail move toward
 		double next_loc_update_time;
 		double loc_update_int;
 		object_location loc;

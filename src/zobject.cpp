@@ -93,6 +93,9 @@ ZObject::ZObject(ZTime *ztime_, ZSettings *zsettings_)
 	last_wp.mode = -1;
 	next_check_passive_attack_time = 0;
 	next_opportunistic_grab_time = 0;
+	next_trail_time = 0;
+	trail_issued = false;
+	trail_tx = trail_ty = 0;
 	buildlist = NULL;
 	connected_zone = NULL;
 	unit_limit_reached = NULL;
@@ -1641,6 +1644,10 @@ int ZObject::ProcessServer(ZMap &tmap, ZOLists &ols)
 	//#60: while moving on a player order, grab capturable objects passed close to
 	CheckOpportunisticGrab(the_time, ols);
 
+	//squad cohesion: a minion trails its leader (column) instead of pathing to the
+	//order's destination on its own - keeps the group together, rejoins stragglers
+	CheckMinionTrail(the_time);
+
 	//let them do their damage
 	ProcessAttackDamage(tmap, attack_player_given);
 
@@ -2216,6 +2223,107 @@ void ZObject::CheckOpportunisticGrab(double &the_time, ZOLists &ols)
 	if(!grabber) return;
 
 	GiveGrabWaypoint(grabber, best, best_mode);
+}
+
+//defined with CloneMinionWayPoints below
+static void FormationSlotOffset(int slot, int &ox, int &oy);
+static bool minion_trail_on();
+
+// Squad cohesion: a minion trails its leader rather than pathing to the order's
+// destination itself. Only the leader navigates to the goal; each minion keeps a
+// short, terrain-aware path toward its formation slot beside the leader and so
+// follows him as a column. Because the target is always next to the leader the
+// path is a short hop that can't diverge across the map - that was the whole bug.
+// Also handles rejoin: a unit that fell behind or finished a grab walks back.
+void ZObject::CheckMinionTrail(double &the_time)
+{
+	if(!minion_trail_on()) return;
+	if(object_type != ROBOT_OBJECT) return;
+	if(!IsMinion()) return;
+	if(!CanMove()) return;
+
+	ZObject *leader = GetGroupLeader();
+	if(!leader) return;
+	if(leader->IsDestroyed()) return;   //a dead leader is handled by promotion elsewhere
+	if(IsOnGrabDetour()) return;        //let the grab finish, then trailing resumes
+	if(attack_object) return;           //don't yank a minion out of a fight
+
+	//my slot beside the leader's current centre
+	int lx, ly; leader->GetCenterCords(lx, ly);
+	int slot = GetMyFormationSlot();
+	int ox, oy; FormationSlotOffset(slot, ox, oy);
+	int tx = lx + ox, ty = ly + oy;
+
+	int sx, sy; GetCenterCords(sx, sy);
+	double dist = sqrt((double)((tx-sx)*(tx-sx) + (ty-sy)*(ty-sy)));
+
+	//in formation already: leave it be (any in-flight follow move settles us in).
+	//ZOD_TRAIL_RADIUS (tiles) is how far it may drift before catching up.
+	static double outer = -1;
+	if(outer < 0)
+	{
+		const char *e = getenv("ZOD_TRAIL_RADIUS");
+		outer = (e ? atof(e) : 1.5) * 16.0;   //tiles -> pixels
+		if(outer < 8.0) outer = 8.0;
+	}
+	if(dist < outer) { trail_issued = false; return; }   //home: clear any block state
+
+	if(the_time < next_trail_time) return;
+
+	//Anti-thrash: our last follow move is gone (killed) but we're still far from
+	//the slot. If we never reached what we aimed at, ProcessMove walked us into a
+	//non-destroyable tile and aborted the move (the old behaviour re-issued the
+	//same doomed move every 0.25s forever). Distinguish that from a move that
+	//SUCCEEDED - reached its target, the leader has since moved on - and only back
+	//off on a real abort. The leader is normally moving, so a short wait lets it
+	//reach a spot from which our slot is actually reachable, then we catch up.
+	if(trail_issued && waypoint_list.empty())
+	{
+		int dtx = trail_tx - sx, dty = trail_ty - sy;
+		bool reached = (double)(dtx*dtx + dty*dty) < outer*outer;
+		trail_issued = false;
+		if(!reached)
+		{
+			next_trail_time = the_time + 1.5;   //blocked - stop hammering, wait it out
+			if(ZPATH_LOG_ON)
+				ZPathLog("TRAIL  %s blocked reaching slot of %s - backing off 1.5s",
+					ZPathLog_UnitDesc(this).c_str(), ZPathLog_UnitDesc(leader).c_str());
+			return;
+		}
+		//reached it; fall through to re-issue toward the leader's new position
+	}
+
+	next_trail_time = the_time + 0.25;
+
+	//already heading to essentially this spot (leader barely moved)? don't reset
+	//the path every tick - keep a steady heading while trailing smoothly.
+	if(!waypoint_list.empty())
+	{
+		waypoint &f = waypoint_list.front();
+		if(f.mode == MOVE_WP && !f.player_given && abs(f.x - tx) <= 8 && abs(f.y - ty) <= 8)
+			return;
+	}
+
+	//silent terrain-aware move toward the slot (ProcessMoveWP paths it next tick).
+	//Not player_given, no updated_waypoints flag - movement relays via velocity/
+	//location like the auto-grab, so no path line flashes.
+	waypoint w;
+	w.clear();
+	w.mode = MOVE_WP;
+	w.x = tx;
+	w.y = ty;
+	w.player_given = false;
+	waypoint_list.clear();
+	waypoint_list.push_back(w);
+
+	trail_issued = true;
+	trail_tx = tx;
+	trail_ty = ty;
+
+	if(ZPATH_LOG_ON)
+		ZPathLog("TRAIL  %s -> slot %d of leader %s (%.1f tiles)",
+			ZPathLog_UnitDesc(this).c_str(), slot,
+			ZPathLog_UnitDesc(leader).c_str(), dist / 16.0);
 }
 
 bool ZObject::EstimateMissileTarget(ZObject *target, int &tx, int &ty)
@@ -5132,6 +5240,15 @@ ZObject* ZObject::GetGroupLeader()
 	return leader_obj;
 }
 
+int ZObject::GetMyFormationSlot()
+{
+	if(!leader_obj) return -1;
+	vector<ZObject*> &ml = leader_obj->GetMinionList();
+	for(int i=0;i<(int)ml.size();i++)
+		if(ml[i] == this) return i;
+	return -1;
+}
+
 void ZObject::SetGroupLeader(ZObject *obj)
 {
 	//cant be your own leader
@@ -5158,8 +5275,58 @@ bool ZObject::IsApartOfAGroup()
 	return leader_obj || minion_list.size();
 }
 
+// Squad cohesion toggle. ON (default): minions trail the leader (CheckMinionTrail)
+// instead of each running its own A* to the destination, which is what made a
+// group fan out across the map on different routes. ZOD_MINION_TRAIL=0 restores
+// the old every-minion-paths-independently behaviour for a side-by-side compare.
+static bool minion_trail_on()
+{
+	static int on = -1;
+	if(on < 0)
+	{
+		const char *e = getenv("ZOD_MINION_TRAIL");
+		on = (e && (e[0]=='0' || e[0]=='n' || e[0]=='N')) ? 0 : 1;
+	}
+	return on != 0;
+}
+
+// Squad formation: fixed slot offsets (in whole "cells") clustered around the
+// leader, ordered so the smallest groups fill the tightest ring first. Scaled by
+// ZOD_FORM_SPACING pixels (default 14, just under a 16px tile). Used only for the
+// trail target (always a short hop next to the leader), never as a far A* goal -
+// offsetting a far goal is what diverged routes, this never does.
+static void FormationSlotOffset(int slot, int &ox, int &oy)
+{
+	static const int cell[][2] = {
+		{-1, 0}, { 1, 0}, { 0, 1}, { 0,-1},
+		{-1, 1}, { 1, 1}, {-1,-1}, { 1,-1},
+		{-2, 0}, { 2, 0}, { 0, 2}, { 0,-2},
+	};
+	const int n = sizeof(cell) / sizeof(cell[0]);
+
+	if(slot < 0) { ox = oy = 0; return; }
+
+	static int spacing = -1;
+	if(spacing < 0)
+	{
+		const char *e = getenv("ZOD_FORM_SPACING");
+		spacing = e ? atoi(e) : 14;
+		if(spacing < 0) spacing = 0;
+	}
+
+	ox = cell[slot % n][0] * spacing;
+	oy = cell[slot % n][1] * spacing;
+}
+
 void ZObject::CloneMinionWayPoints()
 {
+	//A plain player move order is handled by trailing (the minion follows the
+	//leader, it does NOT path to the far destination itself). Everything else -
+	//FORCE_MOVE (building exits, cannon-eject spread) and enter/attack/etc orders -
+	//is still copied verbatim so minions keep doing those as before.
+	bool trail_move = minion_trail_on() && !waypoint_list.empty()
+		&& waypoint_list.front().mode == MOVE_WP;
+
 	for(vector<ZObject*>::iterator i=minion_list.begin();i!=minion_list.end();i++)
 	{
 		if(!*i) continue;
@@ -5169,7 +5336,11 @@ void ZObject::CloneMinionWayPoints()
 		//grab is done its front waypoint is no longer a detour and it re-syncs.
 		if((*i)->IsOnGrabDetour()) continue;
 
-		(*i)->GetWayPointList() = waypoint_list;
+		if(trail_move)
+			(*i)->GetWayPointList().clear();   //trail logic takes over from here
+		else
+			(*i)->GetWayPointList() = waypoint_list;
+
 		(*i)->SetVelocity();
 
 		//just left cannon...
