@@ -242,6 +242,7 @@ void ZPlayer::ResetMatchStats()
 	show_match_summary = false;
 	summary_pending = false;
 	summary_show_time = 0;
+	summary_end_time = 0;
 	summary_continue_sent = false;
 	match_won = false;
 	match_duration = 0;
@@ -1434,13 +1435,27 @@ void ZPlayer::ProcessGame()
 {
 	double &the_time = ztime.ztime;
 
-	//#120: once the game has ended, hold the summary back until the end-of-game
-	//explosion (the fort blowing up - a ~3s death animation) has played out, then
-	//reveal it. Uses real time, not ztime, since it's about the on-screen anim.
-	if(summary_pending && current_time() >= summary_show_time)
+	//#120/#180: once the game has ended, hold the summary back until every on-screen
+	//explosion sprite has finished animating, then add a 3s buffer before revealing.
+	//Real time, not ztime, since it's about the on-screen animations. effect_list
+	//holds all transient effects (explosions, death cascades, particles); it drains
+	//as they finish. A short floor lets the fort blast spawn first; a safety cap
+	//keeps a stray lingering effect from hanging the summary forever.
+	if(summary_pending)
 	{
-		summary_pending = false;
-		show_match_summary = true;
+		if(summary_show_time == 0)
+		{
+			double since_end = current_time() - summary_end_time;
+			bool explosions_done = effect_list.empty() && since_end >= 0.5;
+			bool timed_out = since_end >= 15.0;
+			if(explosions_done || timed_out)
+				summary_show_time = current_time() + 3.0;
+		}
+		else if(current_time() >= summary_show_time)
+		{
+			summary_pending = false;
+			show_match_summary = true;
+		}
 	}
 
 	//#111: apply a pinch-zoom at most once per frame (the heavy RebuildView), so a

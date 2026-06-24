@@ -1077,12 +1077,14 @@ void ZPlayer::end_game_event(ZPlayer *p, char *data, int size, int dummy)
 		p->match_duration = p->ztime.ztime;
 		p->BuildMatchSummary();
 
-		//#120: don't pop the summary over the explosion - wait for the fort's
-		//death animation (~3s) to finish, then ProcessGame reveals it. It then
-		//stays up until the player dismisses it (see lclick/keydown -> Continue).
+		//#120/#180: don't pop the summary over the explosions. Wait until every
+		//on-screen explosion sprite has finished animating, THEN add a 3s buffer;
+		//ProcessGame schedules summary_show_time once the effects have drained.
+		//Stays up until the player dismisses it (see lclick/keydown -> Continue).
 		p->summary_pending = true;
 		p->summary_continue_sent = false;
-		p->summary_show_time = current_time() + 3.0;
+		p->summary_end_time = current_time();
+		p->summary_show_time = 0;   //0 = not scheduled yet; set once explosions end
 	}
 }
 
