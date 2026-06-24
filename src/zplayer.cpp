@@ -1436,7 +1436,7 @@ void ZPlayer::ProcessGame()
 	double &the_time = ztime.ztime;
 
 	//#120/#180: once the game has ended, hold the summary back until every on-screen
-	//explosion sprite has finished animating, then add a 3s buffer before revealing.
+	//explosion sprite has finished animating, then add a 1s buffer before revealing.
 	//Real time, not ztime, since it's about the on-screen animations. effect_list
 	//holds all transient effects (explosions, death cascades, particles); it drains
 	//as they finish. A short floor lets the fort blast spawn first; a safety cap
@@ -1449,7 +1449,7 @@ void ZPlayer::ProcessGame()
 			bool explosions_done = effect_list.empty() && since_end >= 0.5;
 			bool timed_out = since_end >= 15.0;
 			if(explosions_done || timed_out)
-				summary_show_time = current_time() + 3.0;
+				summary_show_time = current_time() + 1.0;
 		}
 		else if(current_time() >= summary_show_time)
 		{
