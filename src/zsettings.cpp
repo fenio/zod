@@ -24,7 +24,7 @@ void ZSettings::SetDefaults()
 	robot_settings[oid].attack_damage_chance = 0.7;
 	robot_settings[oid].attack_damage_radius = 0;
 	robot_settings[oid].attack_missile_speed = 0;
-	robot_settings[oid].attack_speed = 0.5;
+	robot_settings[oid].attack_speed = 0.2;	//#182: was 0.5 - grunt fired far slower than every other rapid-fire unit
 	robot_settings[oid].attack_snipe_chance = 0.3;
 	robot_settings[oid].health = 8.0 / 74;
 	robot_settings[oid].build_time = 1 * 60 + 12;
