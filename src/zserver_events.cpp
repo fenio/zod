@@ -746,12 +746,16 @@ void ZServer::exit_vehicle_event(ZServer *p, char *data, int size, int player)
 
 			//and the minions...
 			driver_i++;
-			for(vector<ZObject*>::iterator i=new_obj->GetMinionList().begin(); i!=new_obj->GetMinionList().end() && driver_i!=obj->GetDrivers().end(); i++)
+			//#162: advance driver_i alongside i so each minion gets ITS driver's HP
+			//(it was never incremented in the loop, so all minions shared one value)
+			for(vector<ZObject*>::iterator i=new_obj->GetMinionList().begin(); i!=new_obj->GetMinionList().end() && driver_i!=obj->GetDrivers().end(); i++, ++driver_i)
 			{
 				p->RelayNewObject(*i);
 
-				//health
-				new_obj->SetHealth(driver_i->driver_health, p->zmap);
+				//health (#162: set the MINION's health, not the leader's - this set
+				//new_obj, so ejected minions kept their default group HP and the
+				//leader was overwritten with the last driver's HP)
+				(*i)->SetHealth(driver_i->driver_health, p->zmap);
 				p->UpdateObjectHealth(*i);
 
 				//just left cannon? (#162: set it on the minion, not the leader, so
