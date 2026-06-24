@@ -423,8 +423,16 @@ void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int p
 	//check to make sure this isn't a bunk list
 	//p->CheckObjectWaypoints(our_object);
 
-	//just left cannon = false
-	our_object->SetJustLeftCannon(false);
+	//#162: only re-arm auto-cannon-entry when the player EXPLICITLY orders this unit
+	//to enter something (an enter order) - not on a plain move. Previously any move
+	//order cleared the flag, so pulling a robot out of a cannon and repositioning it
+	//made it walk straight back in and recapture. Now it stays out until you click it
+	//into a cannon (or vehicle) yourself.
+	{
+		vector<waypoint> &wpl = our_object->GetWayPointList();
+		if(wpl.size() && wpl.front().mode == ENTER_WP)
+			our_object->SetJustLeftCannon(false);
+	}
 
 	//clone
 	our_object->CloneMinionWayPoints();
@@ -738,16 +746,21 @@ void ZServer::exit_vehicle_event(ZServer *p, char *data, int size, int player)
 
 			//and the minions...
 			driver_i++;
-			for(vector<ZObject*>::iterator i=new_obj->GetMinionList().begin(); i!=new_obj->GetMinionList().end() && driver_i!=obj->GetDrivers().end(); i++)
+			//#162: advance driver_i alongside i so each minion gets ITS driver's HP
+			//(it was never incremented in the loop, so all minions shared one value)
+			for(vector<ZObject*>::iterator i=new_obj->GetMinionList().begin(); i!=new_obj->GetMinionList().end() && driver_i!=obj->GetDrivers().end(); i++, ++driver_i)
 			{
 				p->RelayNewObject(*i);
 
-				//health
-				new_obj->SetHealth(driver_i->driver_health, p->zmap);
+				//health (#162: set the MINION's health, not the leader's - this set
+				//new_obj, so ejected minions kept their default group HP and the
+				//leader was overwritten with the last driver's HP)
+				(*i)->SetHealth(driver_i->driver_health, p->zmap);
 				p->UpdateObjectHealth(*i);
 
-				//just left cannon?
-				if(ot == CANNON_OBJECT) new_obj->SetJustLeftCannon(true);
+				//just left cannon? (#162: set it on the minion, not the leader, so
+				//every ejected robot - not just the leader - skips auto-recapturing)
+				if(ot == CANNON_OBJECT) (*i)->SetJustLeftCannon(true);
 			}
 
 			//new_obj = p->CreateObject(ROBOT_OBJECT, obj->GetDriverType(), x, y, obj->GetOwner(), p->object_list);
