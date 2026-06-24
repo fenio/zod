@@ -3016,8 +3016,18 @@ void ZObject::ProcessPickupWP(vector<waypoint>::iterator &wp, double time_dif, b
 		if(!IsMinion() || deliberate_grab)
 		{
 			sflags.do_pickup_grenade_anim = true;
-			sflags.updated_grenade_amount = true;
-			SetGrenadeAmount(GetGrenadeAmount() + target_object->GetGrenadeAmount());
+
+			//#182: grenades are a squad resource. Deposit them on the group leader
+			//(or ourselves if we're the leader / ungrouped) so the squad carries them
+			//in one place - then the existing self/leader checks (HasExplosives,
+			//blast-through, throwing) all see them, the leader routes the trailing
+			//column THROUGH rocks, and the count shows for the whole squad.
+			ZObject *holder = GetGroupLeader() ? GetGroupLeader() : this;
+			holder->SetGrenadeAmount(holder->GetGrenadeAmount() + target_object->GetGrenadeAmount());
+			if(holder == this)
+				sflags.updated_grenade_amount = true;
+			else
+				sflags.updated_leader_grenade_amount = true;
 			target_object->SetGrenadeAmount(0);
 			target_object->SetHealth(0, tmap);
 
@@ -5247,6 +5257,19 @@ int ZObject::GetMyFormationSlot()
 	for(int i=0;i<(int)ml.size();i++)
 		if(ml[i] == this) return i;
 	return -1;
+}
+
+//#182: total grenades the squad is carrying. With squad-shared grenades they sit
+//on the leader, but sum the whole group so it's correct during any transition and
+//however a member is selected.
+int ZObject::GroupGrenadeAmount()
+{
+	ZObject *lead = leader_obj ? leader_obj : this;
+	int total = lead->GetGrenadeAmount();
+	vector<ZObject*> &ml = lead->GetMinionList();
+	for(vector<ZObject*>::iterator i=ml.begin(); i!=ml.end(); i++)
+		if(*i) total += (*i)->GetGrenadeAmount();
+	return total;
 }
 
 void ZObject::SetGroupLeader(ZObject *obj)

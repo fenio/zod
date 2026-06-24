@@ -727,15 +727,16 @@ void ZPath_Finding_Engine::SetImpassable(int x, int y, bool impassable, bool des
 	{
 		//Cost multiplier for blasting through a destroyable barrier on the norocks
 		//maps. It must not be FREE (else A* plows grenade squads through whole rock
-		//fields) but the original-Z feel is to blow up an obstacle that's directly
-		//in the way rather than take a long detour - so keep it low. Tunable via
-		//ZOD_ROCK_BLAST_COST (default 2; was a too-cautious hardcoded 8). Applied on
-		//set, reversed on unset, so it stays exactly reversible (a*F/F == a).
+		//fields), so a blast-through only wins when the detour is large. Back to 8
+		//(#182 follow-up): the reason squads "skipped" the rock path wasn't the cost
+		//but that the leader didn't know a minion was carrying the grenades - fixed
+		//by squad-shared grenades. Tunable via ZOD_ROCK_BLAST_COST. Applied on set,
+		//reversed on unset, so it stays exactly reversible (a*F/F == a).
 		static int F = -1;
 		if(F < 0)
 		{
 			const char *e = getenv("ZOD_ROCK_BLAST_COST");
-			F = e ? atoi(e) : 2;
+			F = e ? atoi(e) : 8;
 			if(F < 1) F = 1;
 		}
 
