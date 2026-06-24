@@ -2663,7 +2663,22 @@ void ZObject::ProcessAttackDamage(ZMap &tmap, bool attack_player_given)
 		//attack vehicle or driver?
 		if(can_snipe && attack_object->CanBeSniped() && ((rand() % 10000) / 10000.0 <= snipe_chance))
 		{
-			attack_object->DamageDriverHealth(damage);
+			//#182 follow-up: a landed snipe hits the driver a bit harder than a body
+			//shot. The driver starts with the robot's full HP while the vehicle has
+			//more, and only snipe_chance of hits reach the driver - so at 1x the
+			//vehicle is destroyed before the driver is ever sniped out (ejecting a
+			//grunt-driven jeep's driver was effectively impossible). A small
+			//multiplier lets a lucky snipe streak pop the driver first without making
+			//it common. Tunable via ZOD_SNIPE_DAMAGE_MULT.
+			static double snipe_mult = -1;
+			if(snipe_mult < 0)
+			{
+				const char *e = getenv("ZOD_SNIPE_DAMAGE_MULT");
+				snipe_mult = e ? atof(e) : 1.5;
+				if(snipe_mult < 1.0) snipe_mult = 1.0;
+			}
+
+			attack_object->DamageDriverHealth((int)(damage * snipe_mult));
 			sflags.updated_attack_object_driver_health = true;
 		}
 		else
