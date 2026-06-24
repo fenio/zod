@@ -448,7 +448,8 @@ class ZPlayer : public ZClient
 		//#120: the summary waits for the end-of-game explosion to finish, then
 		//stays up until the player dismisses it with a click/Enter.
 		bool summary_pending;
-		double summary_show_time;
+		double summary_show_time;   //scheduled reveal time; 0 = still waiting for explosions (#180)
+		double summary_end_time;    //when the match ended (for the explosion wait + safety cap)
 		bool summary_continue_sent;
 		bool match_won;
 		double match_duration;
