@@ -130,6 +130,10 @@ public:
 
 	virtual void Process();
 	virtual void DoRender(ZMap &the_map, SDL_Surface *dest);
+	void SetRenderScale(double s);   //#196: request a menu scale; auto-capped to fit the screen
+	virtual void RenderContents(ZMap &the_map, SDL_Surface *dest);   //the unscaled body of DoRender
+	//#196: map a scaled-display point back into native menu coords (scale pivots on the menu centre)
+	void ScaleInput(int &x_, int &y_) { if(render_scale > 1.0) { double dx = w * (render_scale - 1) / 2, dy = h * (render_scale - 1) / 2; x_ = x + (int)((x_ - x + dx) / render_scale); y_ = y + (int)((y_ - y + dy) / render_scale); } }
 
 	virtual bool Click(int x_, int y_);
 	virtual bool UnClick(int x_, int y_);
@@ -180,6 +184,7 @@ protected:
 	bool killme;
 	int menu_type;
 	int x, y, w, h;
+	double render_scale;   //#196: 1 = native; >1 = render to a buffer and blit that much bigger
 	string title;
 	ZSDL_Surface title_img;
 	gmm_flag gmm_flags;

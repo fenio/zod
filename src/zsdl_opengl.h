@@ -23,6 +23,7 @@ public:
 
 	static void SetUseOpenGL(bool use_opengl_);
 	static void SetMainSoftwareSurface(SDL_Surface *screen_);
+	static SDL_Surface *GetMainSoftwareSurface() { return screen; }   //#196: menu-2x spike redirects this
 	static void SetScreenDimensions(int w_, int h_);
 	static void ZSDL_FillSurfaceRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst = NULL);
 	static void SetMapPlace(int x, int y);

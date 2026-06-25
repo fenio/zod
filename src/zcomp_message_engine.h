@@ -43,6 +43,7 @@ public:
 	static void Init();
 
 	void SetZTime(ZTime *ztime_);
+	void SetRenderScale(double s) { resume_scale = s < 1.0 ? 1.0 : s; }   //#196: scale the resume bar
 	void Process(double the_time);
 	void DoRender(ZMap &the_map, SDL_Surface *dest);
 	void SetObjectList(vector<ZObject*> *object_list_);
@@ -66,6 +67,8 @@ private:
 	static ZSDL_Surface x_img[MAX_STORED_CANNONS];
 
 	ZTime *ztime;
+
+	double resume_scale;   //#196: render scale for the "Click to Start / Resume Game" bar
 
 	int show_message;
 	double final_time;

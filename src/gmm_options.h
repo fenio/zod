@@ -24,6 +24,7 @@ private:
 	GMMWButton speed_button;
 	GMMWButton mouse_button;
 	GMMWButton smooth_button;
+	GMMWButton menu_size_button;	//#196: cycles the menu/UI scale
 	GMMWButton difficulty_button;	//#difficulty: cycles the bot AI difficulty
 	GMMWButton max_units_button;	//#75: max units per team (takes effect next game)
 	GMMWButton reshuffle_button;

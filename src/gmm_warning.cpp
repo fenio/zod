@@ -50,11 +50,9 @@ void GMMWarning::SetupLayout1()
 	UpdateDimensions();
 }
 
-void GMMWarning::DoRender(ZMap &the_map, SDL_Surface *dest)
+void GMMWarning::RenderContents(ZMap &the_map, SDL_Surface *dest)
 {
-	if(!finished_init) return;
-
-	//render base
+	//render base (finished_init + scaling handled by ZGuiMainMenuBase::DoRender)
 	menu_warning_img.BlitSurface(NULL, x, y);
 
 	//widgets

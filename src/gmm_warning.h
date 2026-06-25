@@ -8,7 +8,7 @@ class GMMWarning : public ZGuiMainMenuBase
 public:
 	GMMWarning(gmm_warning_flag warning_flags_ = gmm_warning_flag());
 
-	void DoRender(ZMap &the_map, SDL_Surface *dest);
+	void RenderContents(ZMap &the_map, SDL_Surface *dest);   //#196: base DoRender scales this
 private:
 	GMMWButton ok_button;
 	GMMWButton cancel_button;

@@ -31,6 +31,8 @@ ZCompMessageEngine::ZCompMessageEngine()
 	render_box.h = 0;
 
 	show_message_img = NULL;
+
+	resume_scale = 1.0;   //#196
 }
 
 void ZCompMessageEngine::SetObjectList(vector<ZObject*> *object_list_)
@@ -104,10 +106,10 @@ bool ZCompMessageEngine::AbsorbedLClick(int x, int y, ZMap &the_map)
 	//resume game?
 	if(ztime && ztime->IsPaused() && click_to_resume_img.GetBaseSurface())
 	{
-		img_x = (view_w - click_to_resume_img.GetBaseSurface()->w) >> 1;
-		img_y = (view_h - click_to_resume_img.GetBaseSurface()->h) >> 1;
-		img_w = click_to_resume_img.GetBaseSurface()->w;
-		img_h = click_to_resume_img.GetBaseSurface()->h;
+		img_w = (int)(click_to_resume_img.GetBaseSurface()->w * resume_scale);   //#196
+		img_h = (int)(click_to_resume_img.GetBaseSurface()->h * resume_scale);
+		img_x = (view_w - img_w) >> 1;
+		img_y = (view_h - img_h) >> 1;
 
 		if((x >= img_x && x <= img_x + img_w) && (y >= img_y && y <= img_y + img_h))
 		{
@@ -177,10 +179,10 @@ bool ZCompMessageEngine::AbsorbedLUnClick(int x, int y, ZMap &the_map)
 	//resume game?
 	if(ztime && ztime->IsPaused() && click_to_resume_img.GetBaseSurface())
 	{
-		img_x = (view_w - click_to_resume_img.GetBaseSurface()->w) >> 1;
-		img_y = (view_h - click_to_resume_img.GetBaseSurface()->h) >> 1;
-		img_w = click_to_resume_img.GetBaseSurface()->w;
-		img_h = click_to_resume_img.GetBaseSurface()->h;
+		img_w = (int)(click_to_resume_img.GetBaseSurface()->w * resume_scale);   //#196
+		img_h = (int)(click_to_resume_img.GetBaseSurface()->h * resume_scale);
+		img_x = (view_w - img_w) >> 1;
+		img_y = (view_h - img_h) >> 1;
 
 		if((x >= img_x && x <= img_x + img_w) && (y >= img_y && y <= img_y + img_h))
 		{
@@ -271,8 +273,22 @@ void ZCompMessageEngine::RenderResume(ZMap &the_map, SDL_Surface *dest)
 
 		the_map.GetViewShiftFull(shift_x, shift_y, view_w, view_h);
 
-		x = (view_w - click_to_resume_img.GetBaseSurface()->w) >> 1;
-		y = (view_h - click_to_resume_img.GetBaseSurface()->h) >> 1;
+		int nw = click_to_resume_img.GetBaseSurface()->w;
+		int nh = click_to_resume_img.GetBaseSurface()->h;
+
+		//#196: scale the resume bar (touch-friendly). Blit it scaled, centred on the
+		//view, straight to the framebuffer (it's screen-fixed, so no map shift).
+		SDL_Surface *fb = ZSDL_Surface::GetMainSoftwareSurface();
+		if(resume_scale > 1.0 && fb)
+		{
+			int sw = (int)(nw * resume_scale), sh = (int)(nh * resume_scale);
+			SDL_Rect d = { (view_w - sw) >> 1, (view_h - sh) >> 1, sw, sh };
+			SDL_BlitSurfaceScaled(click_to_resume_img.GetBaseSurface(), NULL, fb, &d, SDL_SCALEMODE_NEAREST);
+			return;
+		}
+
+		x = (view_w - nw) >> 1;
+		y = (view_h - nh) >> 1;
 
 		x += shift_x;
 		y += shift_y;
