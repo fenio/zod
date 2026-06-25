@@ -5015,18 +5015,15 @@ void ZPlayer::CloseMainMenus()
 	gui_menu_list.clear();
 }
 
-//#196: how much to scale menus. 2x on Android (touch screens); desktop stays 1x by
-//default, with a ZOD_MENU2X override on any platform. ZGuiMainMenuBase::SetRenderScale
-//auto-caps the value so a menu never grows past the screen.
+//#196: how much to scale menus + the resume bar. Comes from the zod_menu_scale
+//preference (Options -> Menu Size; default 2x on every platform), with a ZOD_MENU2X
+//env override for testing. ZGuiMainMenuBase::SetRenderScale auto-caps it per menu so
+//nothing grows past the screen.
 static double MenuRenderScale()
 {
 	const char *e = getenv("ZOD_MENU2X");
 	if(e) return atof(e);
-#ifdef __ANDROID__
-	return 2.0;
-#else
-	return 1.0;
-#endif
+	return zod_menu_scale;
 }
 
 void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag warning_flags)

@@ -67,6 +67,13 @@ void GMMOptions::SetupLayout1()
 	AddWidget(&max_units_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
+	menu_size_button.SetType(MMGENERIC_BUTTON);	//#196
+	menu_size_button.SetText("Menu Size: 2x");
+	menu_size_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	menu_size_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&menu_size_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
 	pause_button.SetType(MMGENERIC_BUTTON);
 	pause_button.SetText("Pause Game");
 	pause_button.SetCoords(GMM_SIDE_MARGIN, next_y);
@@ -116,6 +123,13 @@ void GMMOptions::Process()
 		snprintf(buf, sizeof(buf), "Max Units: %d", zod_max_units_per_team);	//#75
 		max_units_button.SetText(buf);
 		max_units_button.SetGreen(zod_max_units_per_team != DEFAULT_MAX_UNITS_PER_TEAM);
+	}
+
+	{
+		char buf[32];
+		snprintf(buf, sizeof(buf), "Menu Size: %gx", zod_menu_scale);	//#196
+		menu_size_button.SetText(buf);
+		menu_size_button.SetGreen(zod_menu_scale != 1.0);
 	}
 
 	ProcessWidgets();
@@ -196,6 +210,18 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		{
 			zod_render_smoothing = !zod_render_smoothing;
 			ZPrefs_Save();
+		}
+		else if(w_ref_id == menu_size_button.GetRefID())
+		{
+			//#196: cycle the menu/UI scale (wraps). Persisted; applied to menus on
+			//open and to this menu live. SetRenderScale auto-caps it to fit.
+			static const double sizes[] = { 1.0, 1.5, 2.0, 3.0 };
+			const int n = sizeof(sizes) / sizeof(sizes[0]);
+			int cur = 0;
+			for(int i = 0; i < n; i++) if(zod_menu_scale <= sizes[i] + 0.01) { cur = i; break; }
+			zod_menu_scale = sizes[(cur + 1) % n];
+			ZPrefs_Save();
+			SetRenderScale(zod_menu_scale);   //re-scale this open menu immediately
 		}
 		else if(w_ref_id == volume_button.GetRefID())
 		{

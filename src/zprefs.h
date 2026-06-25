@@ -13,6 +13,7 @@ extern bool zod_classic_mouse;
 // multiplier, remembered across sessions so the Options menu values stick (#73).
 extern int zod_volume_setting;
 extern double zod_game_speed;
+extern double zod_menu_scale;   //#196: UI scale for menus + resume bar
 
 // Bot AI difficulty (an index into the profiles in zbot.cpp). NORMAL == the
 // original behavior, and is the default - so a regular campaign with no -D flag

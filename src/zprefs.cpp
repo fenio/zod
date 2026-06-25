@@ -15,6 +15,10 @@ bool zod_classic_mouse = true;
 int zod_volume_setting = 4;
 double zod_game_speed = 1.0;
 
+//#196: UI scale for menus + the resume bar. Default 2x (bigger is friendlier on
+//both touch and modern high-res displays); auto-capped per menu so nothing clips.
+double zod_menu_scale = 2.0;
+
 //bot AI difficulty - default NORMAL keeps the original behavior (opt-in)
 int zod_bot_difficulty = BOT_DIFF_NORMAL;
 const char *bot_difficulty_name[MAX_BOT_DIFFICULTY] = { "Easy", "Normal", "Hard", "Expert" };
@@ -53,6 +57,12 @@ void ZPrefs_Load()
 			else if(!strcmp(key, "render_smoothing")) zod_render_smoothing = value;
 			else if(!strcmp(key, "volume")) zod_volume_setting = atoi(eq + 1);
 			else if(!strcmp(key, "game_speed")) zod_game_speed = atof(eq + 1);
+			else if(!strcmp(key, "menu_scale"))
+			{
+				zod_menu_scale = atof(eq + 1);
+				if(zod_menu_scale < 1.0) zod_menu_scale = 1.0;
+				if(zod_menu_scale > 4.0) zod_menu_scale = 4.0;
+			}
 			else if(!strcmp(key, "bot_difficulty"))
 			{
 				zod_bot_difficulty = atoi(eq + 1);
@@ -91,6 +101,7 @@ void ZPrefs_Save()
 	fprintf(fp, "render_smoothing=%d\n", zod_render_smoothing ? 1 : 0);
 	fprintf(fp, "volume=%d\n", zod_volume_setting);
 	fprintf(fp, "game_speed=%g\n", zod_game_speed);
+	fprintf(fp, "menu_scale=%g\n", zod_menu_scale);
 	fprintf(fp, "bot_difficulty=%d\n", zod_bot_difficulty);
 	fprintf(fp, "max_units_per_team=%d\n", zod_max_units_per_team);
 	fclose(fp);
