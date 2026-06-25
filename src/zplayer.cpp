@@ -2904,7 +2904,14 @@ void ZPlayer::HandleFingerMotion(const SDL_TouchFingerEvent &t)
 		//#111: don't RebuildView here (ProcessSDL drains the whole queue in one
 		//frame, so a pinch would do dozens of rebuilds and freeze). Just record the
 		//latest target; ProcessGame applies it once per frame.
-		pinch_pending_zoom = touch_zoom0 * (dist / touch_pinch0);
+		//#197: cap one pinch to a ~10% zoom step. The raw finger-distance ratio
+		//scaled zoom 1:1 (spread 2x -> zoom 2x), which zoomed far too fast on
+		//Android. Now a single gesture changes zoom by at most +/-10%; lift and
+		//re-pinch to keep going (3 pinches ~= 30%).
+		float ratio = dist / touch_pinch0;
+		if(ratio < 0.9f) ratio = 0.9f;
+		else if(ratio > 1.1f) ratio = 1.1f;
+		pinch_pending_zoom = touch_zoom0 * ratio;
 		pinch_zoom_dirty = true;
 	}
 }
