@@ -3677,6 +3677,18 @@ void ZPlayer::CollectSelectables()
 	{
 		vector<ZObject*> choice_list;
 
+#ifdef __ANDROID__
+		//#196: touch taps are imprecise and units are small, so a tap had to land
+		//exactly on the sprite. Widen the single-tap selection hit-box (map space)
+		//so a near miss still selects the unit. Tap only - the box-drag path below
+		//is unaffected.
+		const int touch_sel_margin = 10;
+		map_left   -= touch_sel_margin;
+		map_right  += touch_sel_margin;
+		map_top    -= touch_sel_margin;
+		map_bottom += touch_sel_margin;
+#endif
+
 		for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
 		{
 			ZObject *pot_obj;
