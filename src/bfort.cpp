@@ -493,25 +493,11 @@ bool BFort::UnderCursorCanAttack(int &map_x, int &map_y)
 	int rx = map_x - loc.x;
 	int ry = map_y - loc.y;
 
-	//within main area?
-	if(points_within_area(rx, ry, 16, 16, 16 * 8, 16 * 7)) return true;
-
-	//side areas?
-	if(points_within_area(rx, ry, 0, 16 * 3, 16 * 10, 16 * 4)) return true;
-
-	//top left tower?
-	if(points_within_area(rx, ry, 16, 0, 16 * 2, 16)) return true;
-
-	//top right tower?
-	if(points_within_area(rx, ry, 16 * 7, 0, 16 * 2, 16)) return true;
-
-	//bottom left foot?
-	if(points_within_area(rx, ry, 16 * 2, 16 * 8, 16, 16)) return true;
-
-	//bottom right foot?
-	if(points_within_area(rx, ry, 16 * 7, 16 * 8, 16, 16)) return true;
-
-	return false;
+	//#194: the fort is attackable across its whole footprint, so it can be
+	//shot from any side (e.g. the back) instead of only the central rectangles
+	//the old carved-out whitelist allowed. Each half (FORT_FRONT / FORT_BACK)
+	//checks its own bounding box at its own loc, so the full fort is covered.
+	return points_within_area(rx, ry, 0, 0, width_pix, height_pix);
 }
 
 bool BFort::UnderCursorFortCanEnter(int &map_x, int &map_y)
