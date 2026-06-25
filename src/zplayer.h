@@ -188,6 +188,7 @@ class ZPlayer : public ZClient
 		void ResetMatchStats();		//#88
 		void SendContinueAfterEnd();	//#120
 		void ReturnToMenu();	//#136
+		bool ConnectToServer(string address, int port);	//MP-prep: runtime (re)connect seam
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();

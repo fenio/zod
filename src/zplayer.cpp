@@ -287,6 +287,33 @@ void ZPlayer::ReturnToMenu()
 	LoadMainMenu(GMM_MAIN_MAIN);
 }
 
+//MP-prep: the single runtime entry point for (re)connecting the client to a
+//server. Setup() calls it for the initial connect; a future "Join by IP" menu
+//can call it to switch from the embedded loopback server to a remote host. If a
+//session is already live, drop back to a clean menu and release the old socket
+//first, so the handshake in ProcessConnect() starts from a blank slate instead
+//of stacking a second session on top of the old one. On the initial Setup()
+//connect there is no handler yet, so the teardown branch is skipped and launch
+//behaviour is unchanged (important: the menu/SDL isn't up at that point).
+bool ZPlayer::ConnectToServer(string address, int port)
+{
+	if(client_socket.GetHandler())
+	{
+		ReturnToMenu();
+		client_socket.ClearConnection();
+	}
+
+	remote_address = address;
+
+	if(!client_socket.Start(remote_address.c_str(), port))
+	{
+		printf("ZPlayer::ConnectToServer:socket not setup (%s:%d)\n", address.c_str(), port);
+		return false;
+	}
+
+	return true;
+}
+
 //#88: gap between stacked summary stat lines, shared by build + render
 #define SUMMARY_LINE_GAP 14
 
@@ -591,8 +618,9 @@ void ZPlayer::Setup()
 
 	//#134: match ZOD_PORT so the client reaches a non-default server port
 	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 2137;
-	if(!client_socket.Start(remote_address.c_str(), net_port))
-		printf("ZPlayer::Setup:socket not setup\n");
+	//MP-prep: initial connect goes through the runtime (re)connect seam. No
+	//handler exists yet, so this is a plain Start() - launch behaviour unchanged.
+	ConnectToServer(remote_address, net_port);
 
 	//setup gfile
 	//ZGFile::Init();
@@ -1043,7 +1071,14 @@ void ZPlayer::ClearAnimals()
 
 void ZPlayer::ProcessDisconnect()
 {
-	AddNewsEntry("Disconnected from the game server, please restart the client.");
+	//MP-prep: a dropped connection used to dead-end here, freezing the client on
+	//the last frame with a "please restart" notice. Instead tear the session down
+	//to the main menu so the player can reconnect or pick another game. The socket
+	//is already released by ClientSocket::Process() before it fires DISCONNECT_EVENT,
+	//so there's nothing to close here - just reset client state. This is also the
+	//exact path a future "Leave Game / Disconnect" menu button will reuse.
+	AddNewsEntry("Connection to the game server lost.");
+	ReturnToMenu();
 }
 
 void ZPlayer::AddNewsEntry(string message, int r, int g, int b)
