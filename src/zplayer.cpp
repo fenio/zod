@@ -6,6 +6,8 @@
 
 using namespace COMMON;
 
+static double MenuRenderScale();   //#196: defined near LoadMainMenu
+
 void selection_info::DeleteObject(ZObject *obj)
 {
 	ZObject::RemoveObjectFromList(obj, selected_list);
@@ -219,6 +221,7 @@ ZPlayer::ZPlayer() : ZClient()
 	//setup the comp message system
 	zcomp_msg.SetObjectList(&object_list);
 	zcomp_msg.SetZTime(&ztime);
+	zcomp_msg.SetRenderScale(MenuRenderScale());   //#196: scale the resume bar like the menus
 	
 	//give the tcp socket the event list so it can cram in events
 	client_socket.SetEventList(&ehandler.GetEventList());
@@ -5012,6 +5015,20 @@ void ZPlayer::CloseMainMenus()
 	gui_menu_list.clear();
 }
 
+//#196: how much to scale menus. 2x on Android (touch screens); desktop stays 1x by
+//default, with a ZOD_MENU2X override on any platform. ZGuiMainMenuBase::SetRenderScale
+//auto-caps the value so a menu never grows past the screen.
+static double MenuRenderScale()
+{
+	const char *e = getenv("ZOD_MENU2X");
+	if(e) return atof(e);
+#ifdef __ANDROID__
+	return 2.0;
+#else
+	return 1.0;
+#endif
+}
+
 void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag warning_flags)
 {
 	ZGuiMainMenuBase *new_menu = NULL;
@@ -5055,9 +5072,10 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 	default: printf("ZPlayer::LoadMainMenu: bad menu_type:%d\n", menu_type); break;
 	}
 
-	if(new_menu) 
+	if(new_menu)
 	{
 		new_menu->SetCenterCoords(init_w >> 1, init_h >> 1);
+		new_menu->SetRenderScale(MenuRenderScale());   //#196: bigger menus (2x on Android), auto-fit
 		new_menu->SetPlayerInfoList(&player_info);
 		new_menu->SetSelectableMapList(&selectable_map_list);
 		new_menu->SetCampaignUnlock(&campaign_max_unlocked);
