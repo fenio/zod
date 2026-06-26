@@ -74,6 +74,12 @@ void GMMMainMenu::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 			gmm_flags.open_main_menu = true;
 			gmm_flags.open_main_menu_type = GMM_GENERATE_MAP;
 		}
+		else if(w_ref_id == menu_button[GMMMM_MULTIPLAYER_BUTTON].GetRefID())
+		{
+			//was dead; now opens the orchestrator match browser
+			gmm_flags.open_main_menu = true;
+			gmm_flags.open_main_menu_type = GMM_MULTIPLAYER;
+		}
 		else if(w_ref_id == menu_button[GMMMM_OPTIONS_BUTTON].GetRefID())
 		{
 			gmm_flags.open_main_menu = true;

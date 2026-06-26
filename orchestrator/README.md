@@ -47,11 +47,14 @@ POST   /matches      {"name":"...","map":"p02_bb_orig01.map","bots":["blue","gre
 GET    /matches      -> 200 [ {match}, ... ]
 GET    /matches/{id} -> 200 {match}        (the join info)
 DELETE /matches/{id} -> 200 {"ok":true}    (kills the dedicated server)
+GET    /maps         -> 200 ["a.map", ...] (.map files the create form can pick)
 ```
 
 `map` must be a bare filename present under `maps/`. `bots` is any subset of
 `red green blue yellow`. Inputs are validated and passed as argv (no shell), so
-a request can't escape the maps dir or inject flags.
+a request can't escape the maps dir or inject flags. `GET /maps` exists because
+the in-game create form needs the real filenames — the client only knows
+campaign *display* names.
 
 ### Example
 

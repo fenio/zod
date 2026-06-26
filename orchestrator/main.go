@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -288,6 +289,25 @@ func (o *Orchestrator) handleList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, o.list())
 }
 
+// handleMaps lists the .map filenames under <zodDir>/maps - the maps a client
+// can actually pass to POST /matches. The in-game create form needs this because
+// the client only knows campaign *display* names, not filenames.
+func (o *Orchestrator) handleMaps(w http.ResponseWriter, r *http.Request) {
+	entries, err := os.ReadDir(filepath.Join(o.zodDir, "maps"))
+	if err != nil {
+		httpErr(w, http.StatusInternalServerError, "cannot read maps dir")
+		return
+	}
+	maps := []string{}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".map") {
+			maps = append(maps, e.Name())
+		}
+	}
+	sort.Strings(maps)
+	writeJSON(w, http.StatusOK, maps)
+}
+
 func (o *Orchestrator) handleGet(w http.ResponseWriter, r *http.Request) {
 	m := o.get(r.PathValue("id"))
 	if m == nil {
@@ -342,6 +362,7 @@ func main() {
 	mux.HandleFunc("GET /matches", o.handleList)
 	mux.HandleFunc("GET /matches/{id}", o.handleGet)
 	mux.HandleFunc("DELETE /matches/{id}", o.handleDelete)
+	mux.HandleFunc("GET /maps", o.handleMaps)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "zod match orchestrator (PoC) - POST/GET/DELETE /matches")
 	})
