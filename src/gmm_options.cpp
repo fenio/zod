@@ -215,7 +215,8 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		{
 			//#196: cycle the menu/UI scale (wraps). Persisted; applied to menus on
 			//open and to this menu live. SetRenderScale auto-caps it to fit.
-			static const double sizes[] = { 1.0, 1.5, 2.0, 3.0 };
+			//#207: capped at 2x - 3x was too large and caused graphical glitches.
+			static const double sizes[] = { 1.0, 1.5, 2.0 };
 			const int n = sizeof(sizes) / sizeof(sizes[0]);
 			int cur = 0;
 			for(int i = 0; i < n; i++) if(zod_menu_scale <= sizes[i] + 0.01) { cur = i; break; }
