@@ -5089,14 +5089,26 @@ void ZPlayer::CloseMainMenus()
 }
 
 //#196: how much to scale menus + the resume bar. Comes from the zod_menu_scale
-//preference (Options -> Menu Size; default 2x on every platform), with a ZOD_MENU2X
-//env override for testing. ZGuiMainMenuBase::SetRenderScale auto-caps it per menu so
-//nothing grows past the screen.
+//preference (Options -> Menu Size; default 2x on every platform), with a
+//ZOD_MENU_SCALE env override for testing (a multiplier like 1, 1.5, 2 - not a
+//toggle). ZGuiMainMenuBase::SetRenderScale auto-caps it per menu so nothing
+//grows past the screen.
 static double MenuRenderScale()
 {
-	const char *e = getenv("ZOD_MENU2X");
+	const char *e = getenv("ZOD_MENU_SCALE");
 	if(e) return atof(e);
 	return zod_menu_scale;
+}
+
+//#207: the in-game building/factory overlays are far denser than the menus, so
+//the full menu scale (2x by default) is a touch much for them. Cap them at 1.5x
+//while the regular menus keep the full scale - giving "2x menus / 1.5x buildings"
+//at the default, and never larger than the menu scale if it's set lower.
+static double BuildingMenuRenderScale()
+{
+	double s = MenuRenderScale();
+	if(s > 1.5) s = 1.5;
+	return s;
 }
 
 void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag warning_flags)
@@ -5305,9 +5317,10 @@ bool ZPlayer::ObjectMakeGuiWindow(ZObject *obj)
 	//it get made?
 	if(!gui_window) return false;
 
-	//#207: scale the factory/build overlay the same as the menus (Options "Menu
-	//Size"), so it's readable on high-res/touch like everything else.
-	gui_window->SetRenderScale(MenuRenderScale());
+	//#207: scale the factory/build overlay too, but capped lower than the menus
+	//(1.5x vs 2x by default) - these panels are denser so the full menu scale is
+	//a bit much.
+	gui_window->SetRenderScale(BuildingMenuRenderScale());
 
 	//set its build list
 	gui_window->SetBuildList(&buildlist);
