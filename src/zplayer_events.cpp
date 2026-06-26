@@ -131,8 +131,19 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 
 		//find if we have an object under this cursor
 
+		//#205: on touch, a tap rarely lands exactly on a small target (a flag,
+		//an empty cannon, a unit), so commands meant for it fell through to the
+		//ground. Grow the target hit-box by a small margin - the same touch slack
+		//#196 gave unit selection - so a near-miss tap still commands the object.
+		//Desktop keeps margin 0 (UnderCursorMargin then == the old UnderCursor).
+#ifdef __ANDROID__
+		const int hover_margin = 10;
+#else
+		const int hover_margin = 0;
+#endif
+
 		for(i=p->object_list.begin(); i!=p->object_list.end(); i++)
-			if((*i)->UnderCursor(map_x, map_y))
+			if((*i)->UnderCursorMargin(map_x, map_y, hover_margin))
 		{
 			//#133: a destroyed bridge/building (or any dead object) is not a valid
 			//attack target - don't show the attack cursor or let an order be issued.
