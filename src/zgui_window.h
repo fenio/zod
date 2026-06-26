@@ -194,6 +194,15 @@ class ZGuiWindow
 
 		virtual void Process();
 		virtual void DoRender(ZMap &the_map, SDL_Surface *dest);
+		//#207: render the whole gui overlay (panel + any active sub-selectors) to
+		//a scratch buffer at native size, then blit it render_scale x, pivoted on
+		//the window's centre. Works for every subclass without per-class changes,
+		//because the buffer captures whatever DoRender draws. No-op at scale 1.
+		void DoRenderScaled(ZMap &the_map, SDL_Surface *dest);
+		void SetRenderScale(double render_scale_) { render_scale = render_scale_; }
+		//inverse of DoRenderScaled's centred scale, applied to incoming click
+		//coords so hit-testing lines up with the scaled-up overlay.
+		void ScaleInput(int &x_, int &y_);
 		virtual bool Click(int x_, int y_);
 		virtual bool UnClick(int x_, int y_);
 		virtual bool KeyPress(int c) { return false; }
@@ -214,6 +223,7 @@ class ZGuiWindow
 		bool show;
 		int x, y;
 		int width, height;
+		double render_scale;	//#207: UI scale for this overlay (1.0 = native)
 
 		gui_flags gflags;
 

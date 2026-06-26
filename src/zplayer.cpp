@@ -2759,7 +2759,7 @@ void ZPlayer::RenderObjects()
 
 void ZPlayer::RenderGUI()
 {
-	if(gui_window) gui_window->DoRender(zmap, screen);
+	if(gui_window) gui_window->DoRenderScaled(zmap, screen);   //#207: scaled like the menus
 
 	if(gui_factory_list) gui_factory_list->DoRender(zmap, screen);
 }
@@ -4547,6 +4547,8 @@ bool ZPlayer::GuiAbsorbLClick()
 		map_x = mouse_x + shift_x;
 		map_y = mouse_y + shift_y;
 
+		gui_window->ScaleInput(map_x, map_y);   //#207: undo the overlay scale for hit-testing
+
 		if(gui_window->Click(map_x, map_y))
 			return true;
 		else
@@ -4642,6 +4644,8 @@ bool ZPlayer::GuiAbsorbLUnClick()
 
 		map_x = mouse_x + shift_x;
 		map_y = mouse_y + shift_y;
+
+		gui_window->ScaleInput(map_x, map_y);   //#207: undo the overlay scale for hit-testing
 
 		if(gui_window->UnClick(map_x, map_y))
 		{
@@ -5085,14 +5089,26 @@ void ZPlayer::CloseMainMenus()
 }
 
 //#196: how much to scale menus + the resume bar. Comes from the zod_menu_scale
-//preference (Options -> Menu Size; default 2x on every platform), with a ZOD_MENU2X
-//env override for testing. ZGuiMainMenuBase::SetRenderScale auto-caps it per menu so
-//nothing grows past the screen.
+//preference (Options -> Menu Size; default 2x on every platform), with a
+//ZOD_MENU_SCALE env override for testing (a multiplier like 1, 1.5, 2 - not a
+//toggle). ZGuiMainMenuBase::SetRenderScale auto-caps it per menu so nothing
+//grows past the screen.
 static double MenuRenderScale()
 {
-	const char *e = getenv("ZOD_MENU2X");
+	const char *e = getenv("ZOD_MENU_SCALE");
 	if(e) return atof(e);
 	return zod_menu_scale;
+}
+
+//#207: the in-game building/factory overlays are far denser than the menus, so
+//the full menu scale (2x by default) is a touch much for them. Cap them at 1.5x
+//while the regular menus keep the full scale - giving "2x menus / 1.5x buildings"
+//at the default, and never larger than the menu scale if it's set lower.
+static double BuildingMenuRenderScale()
+{
+	double s = MenuRenderScale();
+	if(s > 1.5) s = 1.5;
+	return s;
 }
 
 void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag warning_flags)
@@ -5300,6 +5316,11 @@ bool ZPlayer::ObjectMakeGuiWindow(ZObject *obj)
 
 	//it get made?
 	if(!gui_window) return false;
+
+	//#207: scale the factory/build overlay too, but capped lower than the menus
+	//(1.5x vs 2x by default) - these panels are denser so the full menu scale is
+	//a bit much.
+	gui_window->SetRenderScale(BuildingMenuRenderScale());
 
 	//set its build list
 	gui_window->SetBuildList(&buildlist);
