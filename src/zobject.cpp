@@ -2598,7 +2598,29 @@ void ZObject::ProcessAttackDamage(ZMap &tmap, bool attack_player_given)
 		damage_missile new_missile;
 
 		if(!EstimateMissileTarget(attack_object, tx, ty))
-			attack_object->GetCenterCords(tx, ty);
+		{
+			//#208: large buildings (fort, factories, ...) used to take every shot at
+			//their dead centre, so fire visibly converged on one point and you could
+			//not "hit any part" of them like in classic Z. Aim instead at the spot on
+			//the target's footprint nearest THIS shooter, so units around a building
+			//each pepper the side facing them. That point is never farther than the
+			//centre, so a unit already in range of the centre stays in range.
+			if(attack_object->object_type == BUILDING_OBJECT)
+			{
+				int blx = attack_object->loc.x;
+				int bly = attack_object->loc.y;
+
+				tx = center_x;
+				if(tx < blx) tx = blx;
+				else if(tx > blx + attack_object->width_pix) tx = blx + attack_object->width_pix;
+
+				ty = center_y;
+				if(ty < bly) ty = bly;
+				else if(ty > bly + attack_object->height_pix) ty = bly + attack_object->height_pix;
+			}
+			else
+				attack_object->GetCenterCords(tx, ty);
+		}
 
 		if(can_attack_with_grenades)
 		{
