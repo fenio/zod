@@ -3205,13 +3205,56 @@ void ZPlayer::DoSplash()
 
 		splash_screen.BlitSurface(NULL, &to_rect);
 		//zmap.RenderZSurface(&splash_screen, init_w >> 1, init_h >> 1, true);
-		
+
 		//if(splash_screen)
 		//SDL_BlitSurface(splash_screen, NULL, screen, &to_rect);
 
-		//(the LOADING percent text is gone, and the Michael Bok / Nighsoft
-		//credit overlay with it - the credit is part of the splash art now,
-		//on the chalkboard sign)
+		//(the Michael Bok / Nighsoft credit overlay is part of the splash art
+		//now, on the chalkboard sign)
+
+		//#72: while assets are still loading on the gfx thread (Load_Graphics
+		//bumps loaded_percent across 80 items), draw a progress bar + percent over
+		//the splash so the wait shows real progress instead of a frozen screen.
+		//Gone once graphics_loaded - then the splash just lingers 3s and fades.
+		if(!graphics_loaded)
+		{
+			int pct = loaded_percent;
+			if(pct < 0) pct = 0; else if(pct > 100) pct = 100;
+
+			int bar_w = init_w / 3;
+			if(bar_w < 200) bar_w = 200;
+			int bar_h = 12;
+			int bar_x = (init_w - bar_w) >> 1;
+			int bar_y = init_h - (init_h / 7);
+
+			//"Loading... NN%" label, rendered first so the backing panel can size to it
+			char buf[32];
+			snprintf(buf, sizeof(buf), "Loading... %d%%", pct);
+			ZSDL_Surface pct_img;
+			pct_img = ZFontEngine::GetFont(SMALL_WHITE_FONT).Render(buf);
+			int txt_h = pct_img.GetBaseSurface() ? pct_img.GetBaseSurface()->h : 0;
+
+			SDL_Rect r;
+			//dark backing panel so the bar + label stay legible over the busy
+			//splash art (same idea as the match-summary strip)
+			int pad = 10;
+			int panel_top = bar_y - txt_h - 8 - pad;
+			r.x = bar_x - pad; r.y = panel_top;
+			r.w = bar_w + (pad * 2); r.h = (bar_y + bar_h + pad) - panel_top;
+			ZSDL_FillSurfaceRect(&r, 12, 12, 12);
+
+			//border, then dark track, then the filled portion
+			r.x = bar_x - 2; r.y = bar_y - 2; r.w = bar_w + 4; r.h = bar_h + 4;
+			ZSDL_FillSurfaceRect(&r, 96, 96, 96);
+			r.x = bar_x; r.y = bar_y; r.w = bar_w; r.h = bar_h;
+			ZSDL_FillSurfaceRect(&r, 24, 24, 24);
+			r.w = bar_w * pct / 100;
+			ZSDL_FillSurfaceRect(&r, 90, 127, 90);
+
+			if(pct_img.GetBaseSurface())
+				pct_img.BlitSurface(NULL, (init_w - pct_img.GetBaseSurface()->w) >> 1,
+				                     bar_y - txt_h - 8);
+		}
 
 
 		//load the normal music
