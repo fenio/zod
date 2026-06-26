@@ -61,7 +61,7 @@ void ZPrefs_Load()
 			{
 				zod_menu_scale = atof(eq + 1);
 				if(zod_menu_scale < 1.0) zod_menu_scale = 1.0;
-				if(zod_menu_scale > 4.0) zod_menu_scale = 4.0;
+				if(zod_menu_scale > 2.0) zod_menu_scale = 2.0;   //#207: cap at 2x (3x glitched)
 			}
 			else if(!strcmp(key, "bot_difficulty"))
 			{
