@@ -5,7 +5,7 @@ GMMMultiplayer::GMMMultiplayer() : ZGuiMainMenuBase()
 {
 	menu_type = GMM_MULTIPLAYER;
 	title = "Multiplayer";
-	w = 112 + 96;
+	w = 112 + 144;
 	h = 118;
 
 	SetupLayout1();
@@ -17,8 +17,8 @@ void GMMMultiplayer::SetupLayout1()
 	int next_y = GMM_TITLE_MARGIN;
 
 	match_list.SetCoords(GMM_SIDE_MARGIN, next_y);
-	match_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 84);
-	match_list.SetVisibleEntries(6);
+	match_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 70);
+	match_list.SetVisibleEntries(5);
 	AddWidget(&match_list);
 	next_y += match_list.GetHeight() + 2;
 
@@ -81,9 +81,21 @@ void GMMMultiplayer::Refresh()
 
 		for(size_t i = 0; i < matches.size(); i++)
 		{
+			//drop the ".map" extension and show players as "N/4" (4 teams max).
+			string mapdisp = matches[i].map;
+			size_t dot = mapdisp.rfind(".map");
+			if(dot != string::npos) mapdisp.erase(dot);
+
+			int players = matches[i].players;
+
 			char line[192];
-			snprintf(line, sizeof(line), "%s  [%s]  %dp",
-				matches[i].name.c_str(), matches[i].map.c_str(), matches[i].players);
+			if(players >= 0)
+				snprintf(line, sizeof(line), "%s  -  %s  (%d/4)",
+					matches[i].name.c_str(), mapdisp.c_str(), players);
+			else
+				snprintf(line, sizeof(line), "%s  -  %s",
+					matches[i].name.c_str(), mapdisp.c_str());
+
 			match_list.GetEntryList().push_back(mmlist_entry(line, (int)i, (int)i));
 		}
 	}
