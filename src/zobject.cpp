@@ -5889,14 +5889,6 @@ void ZObject::GetRemainingRoute(vector<ZPath_Finding_AStar::pf_point> &out)
 
 bool sort_objects_func (ZObject *a, ZObject *b)
 {
-	// #195: a destroyed unit (exploded vehicle / cannon / robot) is just a wreck on
-	// the ground - put it on the lowest layer so living units and buildings draw
-	// OVER it, instead of the wreck floating on top (e.g. appearing on a fort roof).
-	// Buildings and map items keep normal depth order.
-	bool aw = a->IsDestroyed() && a->object_type != BUILDING_OBJECT && a->object_type != MAP_ITEM_OBJECT;
-	bool bw = b->IsDestroyed() && b->object_type != BUILDING_OBJECT && b->object_type != MAP_ITEM_OBJECT;
-	if(aw != bw) return aw;   // a wreck sorts first => rendered first => behind everything
-
 	// depth sort by the sprite's bottom edge. When two overlapping objects share
 	// the same bottom-y the comparator would call them equal, and std::sort
 	// (unstable) is then free to swap them from frame to frame - which renders
