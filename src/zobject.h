@@ -440,6 +440,10 @@ class ZObject
 		void RenderAttackRadius(ZMap &zmap, SDL_Surface *dest, vector<ZObject*> &avoid_list);
 		virtual void RenderSelection(ZMap &zmap, SDL_Surface *dest);
 		virtual bool UnderCursor(int &map_x, int &map_y);
+		//#205: UnderCursor with the bounding box grown by 'margin' (map px). margin 0
+		//is identical to UnderCursor; touch uses a small margin so a near-miss tap
+		//still targets the object.
+		bool UnderCursorMargin(int map_x, int map_y, int margin);
 		virtual bool UnderCursorCanAttack(int &map_x, int &map_y) { return true; }
 		virtual bool UnderCursorFortCanEnter(int &map_x, int &map_y) { return false; }
 		virtual bool WithinSelection(int &map_left, int &map_right, int &map_top, int &map_bottom);

@@ -957,6 +957,18 @@ bool ZObject::UnderCursor(int &map_x, int &map_y)
 	return true;
 }
 
+bool ZObject::UnderCursorMargin(int map_x, int map_y, int margin)
+{
+	//#205: same box test as UnderCursor, grown by 'margin' on every side. At
+	//margin 0 this is exactly UnderCursor.
+	if(map_x < loc.x - margin) return false;
+	if(map_y < loc.y - margin) return false;
+	if(map_x > loc.x + width_pix + margin) return false;
+	if(map_y > loc.y + height_pix + margin) return false;
+
+	return true;
+}
+
 double ZObject::DistanceFromCoords(int x, int y)
 {
 	int dx, dy;
