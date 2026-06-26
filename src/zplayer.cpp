@@ -4507,6 +4507,11 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 				client_socket.SendMessage(GENERATE_MAP, (char*)&the_data, sizeof(generate_map_packet));
 			}
 
+			//orchestrator: join a match by connecting to its server (the #204
+			//reconnect seam drops the loopback session and dials the new host:port)
+			if(the_flags.join_match && the_flags.join_port > 0)
+				ConnectToServer(the_flags.join_host, the_flags.join_port);
+
 			if(the_flags.set_volume) SetSoundSetting(the_flags.set_volume_value);
 
 			if(the_flags.set_game_speed)
@@ -5192,6 +5197,8 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 	case GMM_PLAYER_LIST: new_menu = new GMMPlayerList(); break;
 	case GMM_SELECT_MAP: new_menu = new GMMSelectMap(); break;
 	case GMM_GENERATE_MAP: new_menu = new GMMGenerateMap(); break;
+	case GMM_MULTIPLAYER: new_menu = new GMMMultiplayer(); break;
+	case GMM_MULTIPLAYER_CREATE: new_menu = new GMMMultiplayerCreate(); break;
 	case GMM_OPTIONS: new_menu = new GMMOptions(); break;
 	case GMM_WARNING: new_menu = new GMMWarning(warning_flags); break;
 	default: printf("ZPlayer::LoadMainMenu: bad menu_type:%d\n", menu_type); break;

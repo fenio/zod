@@ -28,6 +28,8 @@
 #include "gmm_generate_map.h"
 #include "gmm_options.h"
 #include "gmm_warning.h"
+#include "gmm_multiplayer.h"
+#include "gmm_multiplayer_create.h"
 
 struct news_entry
 {

@@ -23,8 +23,9 @@
 
 enum menu_type
 {
-	GMM_MAIN_MAIN, GMM_CHANGE_TEAMS, GMM_MANAGE_BOTS, 
+	GMM_MAIN_MAIN, GMM_CHANGE_TEAMS, GMM_MANAGE_BOTS,
 	GMM_PLAYER_LIST, GMM_SELECT_MAP, GMM_OPTIONS, GMM_WARNING, GMM_GENERATE_MAP,
+	GMM_MULTIPLAYER, GMM_MULTIPLAYER_CREATE,	//orchestrator browse/join + create
 	MAX_MENU_TYPES
 };
 
@@ -78,6 +79,9 @@ public:
 		stop_bot_team = -1;
 		change_map = false;
 		change_map_number = -1;
+		join_match = false;
+		join_host.clear();
+		join_port = -1;
 		reset_map = false;
 		quit_game = false;
 		set_volume = false;
@@ -107,6 +111,9 @@ public:
 	int stop_bot_team;
 	bool change_map;
 	int change_map_number;
+	bool join_match;        //orchestrator: connect to a match server at join_host:join_port
+	string join_host;
+	int join_port;
 	bool reset_map;
 	bool quit_game;
 	bool set_volume;
