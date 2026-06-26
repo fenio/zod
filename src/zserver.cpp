@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #ifndef _WIN32
 #include <unistd.h>		//close() for the LAN-IP probe socket
+#include <sys/un.h>		//admin: AF_UNIX status socket the orchestrator queries
+#include <fcntl.h>		//admin: O_NONBLOCK on that socket
 #endif
 
 using namespace COMMON;
@@ -1378,6 +1380,9 @@ void ZServer::Run()
 		//process missiles
 		ProcessMissiles();
 
+		//orchestrator status file + empty-match self-exit (both opt-in via env)
+		CheckStatusAndIdle();
+
 		//check for endgame
 		CheckEndGame();
 		CheckResetGame();
@@ -1390,6 +1395,114 @@ void ZServer::Run()
 		
 		//pause
 		uni_pause(10);
+	}
+}
+
+#ifndef _WIN32
+//Open the LOCAL admin/status socket (AF_UNIX) the orchestrator queries on
+//demand. Returns the listening fd, or -1 if it couldn't be set up.
+static int OpenAdminSocket(const char *path)
+{
+	unlink(path); //clear any stale socket left by a previous run
+
+	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(fd < 0) return -1;
+
+	struct sockaddr_un addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+
+	//::bind to get the socket call, not std::bind (using namespace std is in scope)
+	if(::bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) { close(fd); return -1; }
+	if(listen(fd, 4) < 0) { close(fd); return -1; }
+	fcntl(fd, F_SETFL, O_NONBLOCK); //non-blocking accept so the game loop never stalls
+
+	return fd;
+}
+#endif
+
+//Orchestrator status signal. Two opt-in features, both driven by env vars the
+//orchestrator sets when it spawns this server, and both LOCAL ONLY - never
+//reachable over the network, so the players connecting to this match can't see
+//them. Cost nothing unless the env vars are set.
+//  ZOD_STATUS_SOCK     - an AF_UNIX socket the orchestrator connects to ON DEMAND
+//                        to pull {"players":N,"map":...}. A query, not a periodic
+//                        push - no data file to poll, go stale, or corrupt.
+//  ZOD_EMPTY_EXIT_SECS - self-exit once empty this long, so the orchestrator reaps us.
+void ZServer::CheckStatusAndIdle()
+{
+	static bool inited = false;
+	static double empty_exit_secs = 0;
+#ifndef _WIN32
+	static int admin_fd = -1;
+#endif
+
+	if(!inited)
+	{
+		inited = true;
+		empty_exit_secs = getenv("ZOD_EMPTY_EXIT_SECS") ? atof(getenv("ZOD_EMPTY_EXIT_SECS")) : 0;
+#ifndef _WIN32
+		const char *sock = getenv("ZOD_STATUS_SOCK");
+		if(sock && sock[0])
+		{
+			admin_fd = OpenAdminSocket(sock);
+			if(admin_fd < 0)
+				printf("ZServer: could not open admin socket '%s'\n", sock);
+		}
+#endif
+	}
+
+	bool have_admin = false;
+#ifndef _WIN32
+	have_admin = (admin_fd >= 0);
+#endif
+	if(!have_admin && empty_exit_secs <= 0) return; //neither feature opted in
+
+	//count actual human players (PLAYER_MODE). Bots connect as clients too but
+	//carry BOT_MODE, so they're excluded - otherwise an all-bot match would never
+	//read empty and the reported count would be inflated.
+	int players = 0;
+	for(size_t i = 0; i < player_info.size(); i++)
+		if(player_info[i].mode == PLAYER_MODE) players++;
+
+#ifndef _WIN32
+	//(a) answer one pending admin query (non-blocking, so the loop never stalls).
+	//The orchestrator connects, reads the snapshot, disconnects.
+	if(admin_fd >= 0)
+	{
+		int c = accept(admin_fd, NULL, NULL);
+		if(c >= 0)
+		{
+			char buf[160];
+			int n = snprintf(buf, sizeof(buf), "{\"players\":%d,\"map\":\"%s\"}\n",
+				players, map_name.c_str());
+			if(n > 0) write(c, buf, (size_t)n);
+			close(c);
+		}
+	}
+#endif
+
+	//(b) self-exit once the match has sat empty long enough, so the orchestrator
+	//reaps it. The clock starts at boot, so a match nobody ever joins is cleaned
+	//up too.
+	if(empty_exit_secs > 0)
+	{
+		static double empty_since = -1;
+		double now = current_time();
+
+		if(players > 0)
+			empty_since = -1;
+		else
+		{
+			if(empty_since < 0) empty_since = now;
+			if(now - empty_since >= empty_exit_secs)
+			{
+				printf("ZServer: empty for %.0fs - exiting for orchestrator reap\n",
+					now - empty_since);
+				allow_run = false;
+			}
+		}
 	}
 }
 

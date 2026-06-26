@@ -35,6 +35,7 @@ ORCH_ADDR=:8080 \
 | `ZOD_BIN` | `$ZOD_DIR/build/zod` | Path to the `zod` binary. |
 | `ADVERTISE_HOST` | `127.0.0.1` | Host returned to clients (this machine's public address). |
 | `ORCH_ADDR` | `:8080` | Address the HTTP API binds to. |
+| `EMPTY_EXIT_SECS` | `300` | A match whose server sits empty this long self-exits and is reaped. |
 
 Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
 
@@ -73,20 +74,25 @@ curl -s -X DELETE localhost:8080/matches/3c0d4c57
 ## How a match's lifecycle works
 
 - On `POST`, a port is taken from the pool and `zod -d -m maps/<map> -b <bots…>`
-  is started with `ZOD_PORT=<port>` and `ZOD_AUTOSTART=1` (so it doesn't sit
-  paused waiting for a human). `-d` binds all interfaces, so remote players can
-  connect at `ADVERTISE_HOST:port`.
-- One goroutine per match waits on the process. When it exits — crash, or a
-  `DELETE` that killed it — the match is removed and its port returned to the
-  pool. No polling, no zombies.
+  is started with `ZOD_PORT=<port>`, `ZOD_AUTOSTART=1` (so it doesn't sit paused
+  waiting for a human), `ZOD_STATUS_SOCK=<local path>`, and `ZOD_EMPTY_EXIT_SECS`.
+  `-d` binds all interfaces, so remote players can connect at `ADVERTISE_HOST:port`.
+- **Player counts** are pulled on demand over a local **AF_UNIX admin socket**: the
+  server listens on `ZOD_STATUS_SOCK`, and when the orchestrator serves a listing
+  it connects, reads back `{"players":N,...}`, and disconnects. A query, not a
+  periodic push — nothing is written on a timer or kept in a data file. It counts
+  humans only (bots connect as clients but are excluded). The socket is local and
+  **never reachable over the network**, so players connecting to a match can't see
+  it. (On a Windows host the socket is skipped; the orchestrator runs on Linux.)
+- **Auto-reap.** The server self-exits once it's sat empty for `EMPTY_EXIT_SECS`
+  (a match nobody ever joins is cleaned up too). One goroutine per match waits on
+  the process; when it exits — self-exit, crash, or a `DELETE` — the match is
+  removed, its port returned to the pool, and its socket and log files deleted.
+  No polling, no zombies.
 - Each match logs to `$TMPDIR/zod-match-<port>.log` for inspection.
 
 ## Known PoC gaps (next steps)
 
-- **No player counts / empty-match reaping.** `zod -d` doesn't exit when the
-  last player leaves (it cycles maps), and exposes no player count, so idle
-  matches linger until `DELETE`d. A real version needs a small admin/status
-  signal from the game binary (player count, "empty for N minutes → exit").
 - **No persistence.** Restarting the orchestrator forgets all matches (the
   `zod -d` processes keep running, orphaned). A SQLite registry fixes this.
 - **No auth / rate limiting.** Open create = trivial DoS (spawn 100 processes).
