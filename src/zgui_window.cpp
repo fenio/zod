@@ -423,6 +423,67 @@ ZGuiWindow::ZGuiWindow(ZTime *ztime_)
 	x = y = 0;
 	width = height = 0;
 	show = true;
+	render_scale = 1.0;	//#207
+}
+
+//#207: scale the whole gui overlay. The panel and its pop-up sub-selectors all
+//blit to the global software 'screen' (dst==NULL) via ZMap::RenderZSurface, so
+//swap that to a transparent scratch buffer while rendering, then blit the whole
+//buffer render_scale x. Because the buffer holds only the gui's pixels, scaling
+//the full buffer scales just the gui - no need to know each subclass's bounds.
+//The scale pivots on the window's on-screen centre so it stays where it was.
+void ZGuiWindow::DoRenderScaled(ZMap &the_map, SDL_Surface *dest)
+{
+	if(render_scale <= 1.0) { DoRender(the_map, dest); return; }
+
+	SDL_Surface *real = ZSDL_Surface::GetMainSoftwareSurface();
+	if(!real) { DoRender(the_map, dest); return; }
+
+	static SDL_Surface *buf = NULL;
+	if(!buf || buf->w != real->w || buf->h != real->h)
+	{
+		if(buf) SDL_DestroySurface(buf);
+		buf = SDL_CreateSurface(real->w, real->h, SDL_PIXELFORMAT_ARGB8888);
+		if(buf) SDL_SetSurfaceBlendMode(buf, SDL_BLENDMODE_BLEND);
+	}
+	if(!buf) { DoRender(the_map, dest); return; }
+
+	SDL_FillSurfaceRect(buf, NULL, 0);	//clear to transparent
+
+	ZSDL_Surface::SetMainSoftwareSurface(buf);
+	DoRender(the_map, buf);
+	ZSDL_Surface::SetMainSoftwareSurface(real);
+
+	//on-screen window centre = map centre minus the view shift
+	int shift_x = 0, shift_y = 0;
+	if(zmap) zmap->GetViewShift(shift_x, shift_y);
+
+	double px = (x - shift_x) + width / 2.0;
+	double py = (y - shift_y) + height / 2.0;
+
+	//scale the whole buffer about (px,py): a buffer pixel at N lands at
+	//px + scale*(N - px), so the top-left (0,0) lands at px*(1-scale).
+	SDL_Rect dst;
+	dst.x = (int)(px * (1.0 - render_scale));
+	dst.y = (int)(py * (1.0 - render_scale));
+	dst.w = (int)(real->w * render_scale);
+	dst.h = (int)(real->h * render_scale);
+
+	SDL_BlitSurfaceScaled(buf, NULL, real, &dst, SDL_SCALEMODE_NEAREST);
+}
+
+//#207: inverse of the centred scale above, in map space. The view shift cancels
+//(both the click and the pivot are shifted by it), so pivot on the window's map
+//centre. Lets the unscaled subclass Click()/UnClick() hit-test correctly.
+void ZGuiWindow::ScaleInput(int &x_, int &y_)
+{
+	if(render_scale <= 1.0) return;
+
+	double cx = x + width / 2.0;
+	double cy = y + height / 2.0;
+
+	x_ = (int)(cx + (x_ - cx) / render_scale + 0.5);
+	y_ = (int)(cy + (y_ - cy) / render_scale + 0.5);
 }
 
 void ZGuiWindow::Process()

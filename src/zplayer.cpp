@@ -2759,7 +2759,7 @@ void ZPlayer::RenderObjects()
 
 void ZPlayer::RenderGUI()
 {
-	if(gui_window) gui_window->DoRender(zmap, screen);
+	if(gui_window) gui_window->DoRenderScaled(zmap, screen);   //#207: scaled like the menus
 
 	if(gui_factory_list) gui_factory_list->DoRender(zmap, screen);
 }
@@ -4547,6 +4547,8 @@ bool ZPlayer::GuiAbsorbLClick()
 		map_x = mouse_x + shift_x;
 		map_y = mouse_y + shift_y;
 
+		gui_window->ScaleInput(map_x, map_y);   //#207: undo the overlay scale for hit-testing
+
 		if(gui_window->Click(map_x, map_y))
 			return true;
 		else
@@ -4642,6 +4644,8 @@ bool ZPlayer::GuiAbsorbLUnClick()
 
 		map_x = mouse_x + shift_x;
 		map_y = mouse_y + shift_y;
+
+		gui_window->ScaleInput(map_x, map_y);   //#207: undo the overlay scale for hit-testing
 
 		if(gui_window->UnClick(map_x, map_y))
 		{
@@ -5300,6 +5304,10 @@ bool ZPlayer::ObjectMakeGuiWindow(ZObject *obj)
 
 	//it get made?
 	if(!gui_window) return false;
+
+	//#207: scale the factory/build overlay the same as the menus (Options "Menu
+	//Size"), so it's readable on high-res/touch like everything else.
+	gui_window->SetRenderScale(MenuRenderScale());
 
 	//set its build list
 	gui_window->SetBuildList(&buildlist);
