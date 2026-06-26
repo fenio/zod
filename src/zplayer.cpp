@@ -3311,6 +3311,33 @@ bool ZPlayer::ClassicLeftClickOrder()
 	//a drag is a box select
 	if(abs(lbutton.map_x - mouse_x_map) > CLICK_DRAG_SLOP || abs(lbutton.map_y - mouse_y_map) > CLICK_DRAG_SLOP) return false;
 
+	//#106: leaving a cannon (or any vehicle carrying drivers) is confirmed with
+	//the LEFT button in classic mode, matching the original game - and crucially
+	//the only way to eject on touch, where there's no right button. A single
+	//ejectable unit, left-clicked on itself, drops its driver(s). This must come
+	//before the re-selection check below, since the occupied unit is one of our
+	//own selectable units under the cursor and would otherwise just re-select.
+	if(select_info.selected_list.size() == 1)
+	{
+		vector<ZObject*>::iterator i = select_info.selected_list.begin();
+
+		if((*i)->CanEjectDrivers() && (*i)->UnderCursor(mouse_x_map, mouse_y_map))
+		{
+			eject_vehicle_packet the_packet;
+			the_packet.ref_id = (*i)->GetRefID();
+			client_socket.SendMessage(EJECT_VEHICLE, (char*)&the_packet, sizeof(eject_vehicle_packet));
+
+			if(!ShiftDown())
+			{
+				select_info.Clear();
+				DetermineCursor();
+				GiveHudSelected();
+			}
+
+			return true;
+		}
+	}
+
 	//clicking one of our own selectable units means (re)selection
 	for(vector<ZObject*>::iterator i=object_list.begin(); i!=object_list.end(); i++)
 	{
