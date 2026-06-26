@@ -96,6 +96,11 @@ class ZServer : public ZCore
 		void RelayNewObject(ZObject *obj, int player = -1);
 		void ProcessChangeObjectAmount();
 		void ScuffleUnits();
+		//Orchestrator status signal: serve the human-player count over a LOCAL
+		//AF_UNIX admin socket (ZOD_STATUS_SOCK, queried on demand) and self-exit
+		//when empty (ZOD_EMPTY_EXIT_SECS). Local-only by design - never reachable
+		//over the network, so the players connecting to this match can't see it.
+		void CheckStatusAndIdle();
 		void CheckObjectWaypoints(ZObject *obj);
 		void RelayObjectManufacturedSound(ZObject *building_obj, ZObject *obj);
 		void RemoveObjectFromGroup(ZObject *obj);

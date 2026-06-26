@@ -26,11 +26,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -49,9 +52,12 @@ type Match struct {
 	Host    string    `json:"host"`
 	Port    int       `json:"port"`
 	PID     int       `json:"pid"`
+	Players int       `json:"players"` // humans in the match; -1 until the server writes its status file
 	Created time.Time `json:"created"`
 
-	cmd *exec.Cmd `json:"-"`
+	cmd        *exec.Cmd `json:"-"`
+	statusSock string    `json:"-"` // local AF_UNIX socket the server answers player-count queries on
+	logFile    string    `json:"-"`
 }
 
 // Orchestrator owns all live matches and the pool of ports they can use.
@@ -59,13 +65,14 @@ type Orchestrator struct {
 	zodBin    string // path to the zod binary
 	zodDir    string // working dir (must contain maps/)
 	advertise string // host clients should connect to (this machine's public addr)
+	emptyExit int    // seconds a match may sit empty before the server self-exits (0 = never)
 
 	mu        sync.Mutex
 	matches   map[string]*Match
 	freePorts []int
 }
 
-func newOrchestrator(zodBin, zodDir, advertise string, portMin, portMax int) *Orchestrator {
+func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portMax int) *Orchestrator {
 	ports := make([]int, 0, portMax-portMin+1)
 	for p := portMin; p <= portMax; p++ {
 		ports = append(ports, p)
@@ -74,6 +81,7 @@ func newOrchestrator(zodBin, zodDir, advertise string, portMin, portMax int) *Or
 		zodBin:    zodBin,
 		zodDir:    zodDir,
 		advertise: advertise,
+		emptyExit: emptyExit,
 		matches:   make(map[string]*Match),
 		freePorts: ports,
 	}
@@ -97,14 +105,21 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match,
 		args = append(args, "-b", b)
 	}
 
+	// The server writes its live player count to this LOCAL file (never over the
+	// network), which we read back for the listing. ZOD_EMPTY_EXIT_SECS lets the
+	// server self-exit when it's sat empty, so our wait() goroutine reaps it.
+	sockPath := filepath.Join(os.TempDir(), fmt.Sprintf("zod-status-%d.sock", port))
+	logPath := filepath.Join(os.TempDir(), fmt.Sprintf("zod-match-%d.log", port))
+
 	cmd := exec.Command(o.zodBin, args...)
 	cmd.Dir = o.zodDir
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("ZOD_PORT=%d", port),
 		"ZOD_AUTOSTART=1", // don't sit paused on the start screen with no human yet
+		"ZOD_STATUS_SOCK="+sockPath,
+		fmt.Sprintf("ZOD_EMPTY_EXIT_SECS=%d", o.emptyExit),
 	)
 	// Per-match log so a wedged server can be inspected.
-	logPath := filepath.Join(os.TempDir(), fmt.Sprintf("zod-match-%d.log", port))
 	if lf, err := os.Create(logPath); err == nil {
 		cmd.Stdout = lf
 		cmd.Stderr = lf
@@ -116,15 +131,18 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match,
 	}
 
 	m := &Match{
-		ID:      newID(),
-		Name:    name,
-		Map:     mapName,
-		Bots:    bots,
-		Host:    o.advertise,
-		Port:    port,
-		PID:     cmd.Process.Pid,
-		Created: time.Now().UTC(),
-		cmd:     cmd,
+		ID:         newID(),
+		Name:       name,
+		Map:        mapName,
+		Bots:       bots,
+		Host:       o.advertise,
+		Port:       port,
+		PID:        cmd.Process.Pid,
+		Players:    -1, // unknown until the server writes its first status snapshot
+		Created:    time.Now().UTC(),
+		cmd:        cmd,
+		statusSock: sockPath,
+		logFile:    logPath,
 	}
 
 	o.mu.Lock()
@@ -140,6 +158,8 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match,
 		delete(o.matches, m.ID)
 		o.freePortLocked(port)
 		o.mu.Unlock()
+		os.Remove(sockPath)
+		os.Remove(logPath)
 		log.Printf("match %s reaped (port %d freed)", m.ID, port)
 	}()
 
@@ -162,6 +182,7 @@ func (o *Orchestrator) list() []*Match {
 	defer o.mu.Unlock()
 	out := make([]*Match, 0, len(o.matches))
 	for _, m := range o.matches {
+		m.Players = readPlayers(m.statusSock)
 		out = append(out, m)
 	}
 	return out
@@ -170,7 +191,37 @@ func (o *Orchestrator) list() []*Match {
 func (o *Orchestrator) get(id string) *Match {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	return o.matches[id]
+	m := o.matches[id]
+	if m != nil {
+		m.Players = readPlayers(m.statusSock)
+	}
+	return m
+}
+
+// readPlayers asks the server for its current human-player count by connecting to
+// its local AF_UNIX admin socket and reading the JSON it writes back. On demand -
+// nothing is polled or stored. Returns -1 if the socket isn't up yet or errors.
+func readPlayers(sock string) int {
+	if sock == "" {
+		return -1
+	}
+	conn, err := net.DialTimeout("unix", sock, 250*time.Millisecond)
+	if err != nil {
+		return -1
+	}
+	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(250 * time.Millisecond))
+	data, err := io.ReadAll(conn)
+	if err != nil {
+		return -1
+	}
+	var s struct {
+		Players int `json:"players"`
+	}
+	if json.Unmarshal(data, &s) != nil {
+		return -1
+	}
+	return s.Players
 }
 
 // kill terminates a match's process. The per-match reaper goroutine then removes
@@ -282,8 +333,9 @@ func main() {
 	zodBin := env("ZOD_BIN", filepath.Join(zodDir, "build", "zod"))
 	addr := env("ORCH_ADDR", ":8080")
 	advertise := env("ADVERTISE_HOST", "127.0.0.1")
+	emptyExit, _ := strconv.Atoi(env("EMPTY_EXIT_SECS", "300")) // empty match self-exits after 5 min
 
-	o := newOrchestrator(zodBin, zodDir, advertise, 2300, 2399)
+	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, 2300, 2399)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /matches", o.handleCreate)
