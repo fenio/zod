@@ -39,6 +39,44 @@ ORCH_ADDR=:8080 \
 
 Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
 
+## Docker
+
+The `Dockerfile` at the repo root builds a self-contained server image (~67 MB):
+the orchestrator + the headless `zod -d` engine + the game data it reads. `zod -d`
+never opens a window or audio device, so no X server / xvfb is needed; the final
+image is `FROM scratch` carrying only the binaries' shared-lib closure.
+
+**Pull the prebuilt image** — multi-arch (`linux/amd64` + `linux/arm64`), pushed
+to GHCR by CI on every `master` push / tag; Docker pulls the right arch for your
+host automatically:
+
+```sh
+docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
+  -e ADVERTISE_HOST=your.public.ip ghcr.io/fenio/zod-server:latest
+```
+
+**Or build it yourself:**
+
+```sh
+docker build -t zod-server .                 # from repo root
+docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
+  -e ADVERTISE_HOST=your.public.ip zod-server
+# or: ADVERTISE_HOST=your.public.ip docker compose up --build
+```
+
+`ADVERTISE_HOST` must be an address joining clients can actually reach;
+`127.0.0.1` only works for same-host testing. A plain `docker build` produces an
+image for the host's arch; for the other arch (or both) use buildx, e.g.
+`docker buildx build --platform linux/amd64 -t zod-server .` or
+`--platform linux/amd64,linux/arm64`.
+
+The same `ZOD_DIR`/`ZOD_BIN`/`ADVERTISE_HOST`/`ORCH_ADDR`/`EMPTY_EXIT_SECS`
+env vars apply; the image presets `ZOD_DIR=/app`, `ZOD_BIN=/app/build/zod`.
+
+**Debugging:** the scratch image has no shell, so `docker exec` won't give you a
+prompt. Use `docker logs <container>` for the orchestrator output, and pull a
+match server's log out with `docker cp <container>:/tmp/zod-match-<port>.log .`.
+
 ## API
 
 ```

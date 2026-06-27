@@ -1,0 +1,22 @@
+# Convenience wrapper for deploying the Zod match server.
+#
+#   ADVERTISE_HOST=your.public.ip docker compose up --build
+#
+# ADVERTISE_HOST must be an address joining clients can actually reach (the
+# host's public IP / DNS name). It defaults to 127.0.0.1, which only works for
+# testing on the same machine.
+services:
+  zod-server:
+    build:
+      context: .
+      args:
+        # pass a real version with: ZOD_VERSION=$(git describe --tags --always) docker compose build
+        ZOD_VERSION: ${ZOD_VERSION:-docker}
+    image: zod-server
+    ports:
+      - "8080:8080"               # orchestrator HTTP API
+      - "2300-2399:2300-2399"     # one port per concurrent match
+    environment:
+      ADVERTISE_HOST: ${ADVERTISE_HOST:-127.0.0.1}
+      EMPTY_EXIT_SECS: "300"
+    restart: unless-stopped
