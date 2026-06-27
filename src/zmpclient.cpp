@@ -91,7 +91,10 @@ static vector<string> json_string_array(const string &s)
 
 static void orchestrator_target(string &host, int &port)
 {
-	host = "127.0.0.1";
+	// Default to the public PoC server so Multiplayer works out of the box.
+	// Override with ZOD_ORCHESTRATOR=host[:port] (e.g. 127.0.0.1:8080 for a local
+	// orchestrator).
+	host = "z.0f.ee";
 	port = 8080;
 
 	const char *e = getenv("ZOD_ORCHESTRATOR");
