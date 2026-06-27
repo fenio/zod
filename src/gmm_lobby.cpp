@@ -8,6 +8,8 @@ GMMLobby::GMMLobby() : ZGuiMainMenuBase()
 	w = 112 + 96;
 	h = 118;
 
+	saw_paused = false;
+
 	SetupLayout1();
 }
 
@@ -40,11 +42,11 @@ void GMMLobby::SetupLayout1()
 	AddWidget(&bots_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
-	start_button.SetType(MMGENERIC_BUTTON);
-	start_button.SetText("Start Game");
-	start_button.SetCoords(GMM_SIDE_MARGIN, next_y);
-	start_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
-	AddWidget(&start_button);
+	ready_button.SetType(MMGENERIC_BUTTON);
+	ready_button.SetText("I'm Ready");
+	ready_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	ready_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&ready_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
 	leave_button.SetType(MMGENERIC_BUTTON);
@@ -58,37 +60,71 @@ void GMMLobby::SetupLayout1()
 	UpdateDimensions();
 }
 
+// My own player record, matched by the client p_id the host pushes onto the menu.
+p_info *GMMLobby::LocalPlayer()
+{
+	if(!player_info || !local_p_id) return NULL;
+
+	for(vector<p_info>::iterator i = player_info->begin(); i != player_info->end(); ++i)
+		if(i->p_id == *local_p_id) return &(*i);
+
+	return NULL;
+}
+
 void GMMLobby::RebuildPlayers()
 {
 	if(!player_info) return;
 
 	player_list.GetEntryList().clear();
 
-	int humans = 0;
+	int humans = 0, ready = 0;
 	for(vector<p_info>::iterator i = player_info->begin(); i != player_info->end(); ++i)
 	{
 		if(i->mode == PLAYER_MODE)
 		{
+			string mark = i->ready ? "[R] " : "[ ] ";
+			string you = (local_p_id && i->p_id == *local_p_id) ? " (you)" : "";
 			player_list.GetEntryList().push_back(
-				mmlist_entry(team_type_string[i->team] + ": " + i->name, i->p_id, i->team));
+				mmlist_entry(mark + team_type_string[i->team] + ": " + i->name + you, i->p_id, i->team));
 			humans++;
+			if(i->ready) ready++;
 		}
 		else if(i->mode == BOT_MODE && !i->ignored)
 		{
 			player_list.GetEntryList().push_back(
-				mmlist_entry(team_type_string[i->team] + ": (bot)", i->p_id, i->team + MAX_TEAM_TYPES));
+				mmlist_entry("    " + team_type_string[i->team] + ": (bot)", i->p_id, i->team + MAX_TEAM_TYPES));
 		}
 	}
 
-	char buf[64];
-	snprintf(buf, sizeof(buf), "Waiting for players... (%d here)", humans);
+	char buf[80];
+	if(humans < 2)
+		snprintf(buf, sizeof(buf), "Waiting for another player... (%d here)", humans);
+	else if(ready < humans)
+		snprintf(buf, sizeof(buf), "Ready %d/%d - waiting...", ready, humans);
+	else
+		snprintf(buf, sizeof(buf), "All ready - starting!");
 	status_label.SetText(buf);
+
+	// Reflect my own ready state on the toggle.
+	p_info *me = LocalPlayer();
+	bool iam = me && me->ready;
+	ready_button.SetText(iam ? "Not Ready" : "I'm Ready");
+	ready_button.SetGreen(iam);
 
 	player_list.CheckViewI();
 }
 
 void GMMLobby::Process()
 {
+	// The server auto-starts (un-pauses) once everyone's ready. When that happens,
+	// close the lobby so the game shows. Guard on saw_paused so we don't close in
+	// the brief window before the initial paused state has arrived.
+	if(ztime)
+	{
+		if(ztime->IsPaused()) saw_paused = true;
+		else if(saw_paused) { killme = true; return; }
+	}
+
 	RebuildPlayers();
 	ProcessWidgets();
 }
@@ -110,10 +146,12 @@ void GMMLobby::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 		gmm_flags.open_main_menu = true;
 		gmm_flags.open_main_menu_type = GMM_MANAGE_BOTS;
 	}
-	else if(w_ref_id == start_button.GetRefID())
+	else if(w_ref_id == ready_button.GetRefID())
 	{
-		gmm_flags.start_match = true;   //ZPlayer un-pauses the match
-		killme = true;                  //close the lobby so the game shows
+		p_info *me = LocalPlayer();
+		bool cur = me && me->ready;
+		gmm_flags.toggle_ready = true;       //ZPlayer sends it; the server starts when all ready
+		gmm_flags.ready_value = !cur;
 	}
 	else if(w_ref_id == leave_button.GetRefID())
 	{

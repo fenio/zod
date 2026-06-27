@@ -3421,6 +3421,41 @@ void ZServer::RelayLPlayerIgnored(int player, int to_player)
 		server_socket.SendMessage(to_player, SET_LPLAYER_IGNORED, (char*)&packet, sizeof(set_player_int_packet));
 }
 
+void ZServer::RelayLPlayerReady(int player, int to_player)
+{
+	set_player_int_packet packet;
+
+	packet.p_id = player_info[player].p_id;
+	packet.value = player_info[player].ready;
+
+	if(to_player == -1)
+		server_socket.SendMessageAll(SET_LPLAYER_READY, (char*)&packet, sizeof(set_player_int_packet));
+	else
+		server_socket.SendMessage(to_player, SET_LPLAYER_READY, (char*)&packet, sizeof(set_player_int_packet));
+}
+
+// Matchmaking lobby: once every human in the match has clicked "I'm ready" - and
+// there are at least two of them (no point starting solo) - un-pause the match
+// for everyone. Bots don't gate the start. No-op if the game is already running.
+void ZServer::CheckAutoStart()
+{
+	if(!ztime.IsPaused()) return;
+
+	int humans = 0, ready = 0;
+	for(vector<p_info>::iterator i = player_info.begin(); i != player_info.end(); i++)
+		if(i->mode == PLAYER_MODE)
+		{
+			humans++;
+			if(i->ready) ready++;
+		}
+
+	if(humans >= 2 && ready == humans)
+	{
+		printf("ZServer: all %d players ready - starting match\n", humans);
+		ResumeGame();
+	}
+}
+
 void ZServer::RelayLPlayerLoginInfo(int player, int to_player)
 {
 	set_player_loginfo_packet packet;

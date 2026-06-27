@@ -337,6 +337,7 @@ class ZPlayer : public ZClient
 		static void set_player_team_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_player_mode_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_player_ignored_event(ZPlayer *p, char *data, int size, int dummy);
+		static void set_player_ready_event(ZPlayer *p, char *data, int size, int dummy);   //matchmaking lobby
 		static void set_player_voteinfo_event(ZPlayer *p, char *data, int size, int dummy);
 		static void set_player_loginfo_event(ZPlayer *p, char *data, int size, int dummy);
 		static void update_game_paused_event(ZPlayer *p, char *data, int size, int dummy);

@@ -36,6 +36,7 @@ class ZClient : public ZCore
 		bool ProcessSetLPlayerTeam(char *data, int size);
 		bool ProcessSetLPlayerMode(char *data, int size);
 		bool ProcessSetLPlayerIgnored(char *data, int size);
+		bool ProcessSetLPlayerReady(char *data, int size);   //matchmaking lobby
 		bool ProcessSetLPlayerLogInfo(char *data, int size);
 		bool ProcessSetLPlayerVoteInfo(char *data, int size);
 		bool ProcessUpdateGamePaused(char *data, int size);
@@ -52,6 +53,7 @@ class ZClient : public ZCore
 		void RequestZoneList();
 		void SendPlayerInfo();
 		void SendPlayerTeam(int new_team);
+		void SendReady(bool ready);   //matchmaking lobby: tell the server my ready state
 		void SendPlayerMode();
 		void RequestPlayerList();
 		void SendBotBypassData();

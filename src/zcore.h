@@ -86,6 +86,7 @@ public:
 		mode = NOBODY_MODE;
 		vote_choice = P_NULL_VOTE;
 		ignored = false;
+		ready = false;
 
 		logout();
 	}
@@ -115,6 +116,7 @@ public:
 	player_mode mode;
 	int vote_choice;
 	bool ignored;
+	bool ready;   //matchmaking lobby: has this player clicked "I'm ready"
 	int p_id;
 
 	string ip;

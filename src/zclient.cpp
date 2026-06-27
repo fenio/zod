@@ -166,6 +166,12 @@ void ZClient::SendPlayerTeam(int new_team)
 	client_socket.SendMessage(SET_TEAM, (char*)&new_team, 4);
 }
 
+void ZClient::SendReady(bool ready)
+{
+	int v = ready ? 1 : 0;
+	client_socket.SendMessage(SET_READY, (char*)&v, 4);
+}
+
 void ZClient::SendPlayerMode()
 {
 	player_mode_packet packet;
@@ -740,6 +746,20 @@ bool ZClient::ProcessSetLPlayerIgnored(char *data, int size)
 	for(vector<p_info>::iterator i=player_info.begin(); i!=player_info.end(); i++)
 		if(pi->p_id == i->p_id)
 			i->ignored = (player_mode)pi->value;
+
+	return true;
+}
+
+bool ZClient::ProcessSetLPlayerReady(char *data, int size)
+{
+	set_player_int_packet *pi = (set_player_int_packet*)data;
+
+	//good packet?
+	if(size != sizeof(set_player_int_packet)) return false;
+
+	for(vector<p_info>::iterator i=player_info.begin(); i!=player_info.end(); i++)
+		if(pi->p_id == i->p_id)
+			i->ready = pi->value ? true : false;
 
 	return true;
 }

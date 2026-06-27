@@ -3,10 +3,11 @@
 
 #include "zgui_main_menu_base.h"
 
-// Pre-match waiting room. You land here after creating or joining a match (which
-// is spawned paused). It lists who's connected and their teams, lets you pick a
-// team and add bots (via the existing in-game menus), and Start un-pauses the
-// match for everyone. The game stays paused - "ready, waiting" - until Start.
+// Pre-match waiting room (matchmaking). You land here after "play with someone"
+// or creating/joining a match (which is spawned paused). It lists who's connected
+// with their ready state; each player clicks "I'm ready". When every human is
+// ready - and there are at least two - the SERVER auto-starts the match for
+// everyone, and this lobby closes itself.
 class GMMLobby : public ZGuiMainMenuBase
 {
 public:
@@ -18,12 +19,15 @@ private:
 	GMMWList player_list;
 	GMMWButton team_button;
 	GMMWButton bots_button;
-	GMMWButton start_button;
+	GMMWButton ready_button;
 	GMMWButton leave_button;
+
+	bool saw_paused;   //don't auto-close until we've actually seen the match paused
 
 	void SetupLayout1();
 	void HandleWidgetEvent(int event_type, ZGMMWidget *event_widget);
 	void RebuildPlayers();
+	p_info *LocalPlayer();   //my own p_info (by local_p_id), or NULL
 };
 
 #endif
