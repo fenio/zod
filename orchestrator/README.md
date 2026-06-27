@@ -41,30 +41,37 @@ Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
 
 ## Docker
 
-A `Dockerfile` at the repo root builds a self-contained server image: the
-orchestrator + the headless `zod -d` engine + game data. `zod -d` never opens a
-window or audio device, so no X server / xvfb is needed.
+The `Dockerfile` at the repo root builds a self-contained server image (~67 MB):
+the orchestrator + the headless `zod -d` engine + the game data it reads. `zod -d`
+never opens a window or audio device, so no X server / xvfb is needed; the final
+image is `FROM scratch` carrying only the binaries' shared-lib closure.
+
+**Pull the prebuilt image** (pushed to GHCR by CI on every `master` push / tag):
 
 ```sh
-# build (from repo root)
-docker build -t zod-server .
+docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
+  -e ADVERTISE_HOST=your.public.ip ghcr.io/fenio/zod-server:latest
+```
 
-# run — ADVERTISE_HOST must be an address joining clients can reach
+**Or build it yourself:**
+
+```sh
+docker build -t zod-server .                 # from repo root
 docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
   -e ADVERTISE_HOST=your.public.ip zod-server
+# or: ADVERTISE_HOST=your.public.ip docker compose up --build
 ```
 
-Or with compose:
-
-```sh
-ADVERTISE_HOST=your.public.ip docker compose up --build
-```
-
-Deploying to an x86_64 VPS from an arm64 machine:
-`docker buildx build --platform linux/amd64 -t zod-server .`
+`ADVERTISE_HOST` must be an address joining clients can actually reach;
+`127.0.0.1` only works for same-host testing. From an arm64 machine to an x86_64
+VPS: `docker buildx build --platform linux/amd64 -t zod-server .`
 
 The same `ZOD_DIR`/`ZOD_BIN`/`ADVERTISE_HOST`/`ORCH_ADDR`/`EMPTY_EXIT_SECS`
-env vars apply; the image presets `ZOD_DIR=/app` and `ZOD_BIN=/app/build/zod`.
+env vars apply; the image presets `ZOD_DIR=/app`, `ZOD_BIN=/app/build/zod`.
+
+**Debugging:** the scratch image has no shell, so `docker exec` won't give you a
+prompt. Use `docker logs <container>` for the orchestrator output, and pull a
+match server's log out with `docker cp <container>:/tmp/zod-match-<port>.log .`.
 
 ## API
 

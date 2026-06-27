@@ -48,7 +48,6 @@ RUN curl -fsSL -o /tmp/mixer.tar.gz \
       -DSDLMIXER_VORBIS=OFF -DSDLMIXER_WAVPACK=OFF \
  && cmake --build /tmp/mixer/build --parallel ${JOBS} \
  && cmake --install /tmp/mixer/build \
- && DESTDIR=/mixer-install cmake --install /tmp/mixer/build \
  && ldconfig
 WORKDIR /src
 COPY CMakeLists.txt ./
@@ -56,30 +55,40 @@ COPY src/ ./src/
 # build only the engine target (skip tests / mapgen)
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DZOD_VERSION="${ZOD_VERSION}" \
  && cmake --build build --target zod --parallel ${JOBS}
+# Stage exactly what the runtime needs into /rootfs, so the final image can be
+# FROM scratch (no base OS at all). The headless server never inits video/audio,
+# so the X11/Wayland/Mesa/audio backends SDL would dlopen are never needed - we
+# ship only the binary's ldd closure (~3 MB), our own glibc + loader included.
+#   - non-loader libs -> /rootfs/applibs (flat, arch-agnostic, found via LD_LIBRARY_PATH)
+#   - the ELF interpreter -> its exact PT_INTERP path (e.g. /lib64/ld-linux-*),
+#     which the kernel hard-codes, so it must stay where ldd reports it
+#   - a writable /tmp (1777) for the orchestrator's status sockets + match logs
+RUN set -eu; mkdir -p /rootfs/applibs /rootfs/tmp; chmod 1777 /rootfs/tmp; \
+    ldd /src/build/zod | awk '/=> \//{print $3}' | sort -u | while IFS= read -r lib; do \
+      [ -f "$lib" ] && cp -L "$lib" /rootfs/applibs/; \
+    done; \
+    interp=$(ldd /src/build/zod | awk '/ld-linux|ld\.so/{print $1; exit}'); \
+    mkdir -p "/rootfs$(dirname "$interp")"; cp -L "$interp" "/rootfs$interp"
 
 # --- Stage 3: runtime --------------------------------------------------------
-FROM ubuntu:26.04 AS runtime
-# Runtime SDL3 libs + their transitive deps (freetype, libpng, ...). The -dev
-# packages are the names guaranteed present on 26.04 and they pull the runtime
-# .so; this can be slimmed to runtime-only packages later.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev \
- && rm -rf /var/lib/apt/lists/*
-# SDL3_mixer we built from source (arch-agnostic via the DESTDIR stage)
-COPY --from=cppbuild /mixer-install/usr/ /usr/
-RUN ldconfig
-
+# scratch: no base OS. Everything the two binaries need is copied in explicitly.
+FROM scratch AS runtime
+COPY --from=cppbuild /rootfs/ /
 WORKDIR /app
 COPY --from=gobuild  /out/orchestrator  /app/orchestrator
 COPY --from=cppbuild /src/build/zod      /app/build/zod
-# game data the dedicated server reads at runtime
-COPY assets/ /app/assets/
-COPY maps/   /app/maps/
+# Game data the dedicated server actually reads (verified via strace): all of
+# maps/ plus the planet tileinfo. The ~90 MB of client graphics under assets/
+# are never opened by `zod -d`, so they're left out.
+COPY maps/            /app/maps/
+COPY assets/planets/  /app/assets/planets/
 COPY map_list.txt default_settings.txt /app/
 
 # Orchestrator config - override at run time. ADVERTISE_HOST MUST be an address
 # clients can actually reach; 127.0.0.1 only works for same-host testing.
-ENV ZOD_DIR=/app \
+# LD_LIBRARY_PATH points the ELF loader at our flat lib dir (no ld.so.cache here).
+ENV LD_LIBRARY_PATH=/applibs \
+    ZOD_DIR=/app \
     ZOD_BIN=/app/build/zod \
     ORCH_ADDR=:8080 \
     ADVERTISE_HOST=127.0.0.1 \
