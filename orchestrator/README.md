@@ -39,6 +39,33 @@ ORCH_ADDR=:8080 \
 
 Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
 
+## Docker
+
+A `Dockerfile` at the repo root builds a self-contained server image: the
+orchestrator + the headless `zod -d` engine + game data. `zod -d` never opens a
+window or audio device, so no X server / xvfb is needed.
+
+```sh
+# build (from repo root)
+docker build -t zod-server .
+
+# run — ADVERTISE_HOST must be an address joining clients can reach
+docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
+  -e ADVERTISE_HOST=your.public.ip zod-server
+```
+
+Or with compose:
+
+```sh
+ADVERTISE_HOST=your.public.ip docker compose up --build
+```
+
+Deploying to an x86_64 VPS from an arm64 machine:
+`docker buildx build --platform linux/amd64 -t zod-server .`
+
+The same `ZOD_DIR`/`ZOD_BIN`/`ADVERTISE_HOST`/`ORCH_ADDR`/`EMPTY_EXIT_SECS`
+env vars apply; the image presets `ZOD_DIR=/app` and `ZOD_BIN=/app/build/zod`.
+
 ## API
 
 ```
