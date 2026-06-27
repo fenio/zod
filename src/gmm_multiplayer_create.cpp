@@ -7,13 +7,13 @@ static const char *bot_team_names[GMM_MP_CREATE_BOTS] = { "blue", "green", "yell
 GMMMultiplayerCreate::GMMMultiplayerCreate() : ZGuiMainMenuBase()
 {
 	menu_type = GMM_MULTIPLAYER_CREATE;
-	title = "Create Game";
+	title = "Practice vs Bots";
 	w = 112 + 96;
 	h = 118;
 
-	//default to NO bots: a created match waits for human players in the lobby;
-	//bots are optional (toggle them on here, or add them from the lobby).
-	bot_on[0] = false;   // blue
+	//practice path: default one bot on so there's an opponent to start against
+	//(toggle more here, or from the lobby). Ready up in the lobby to begin.
+	bot_on[0] = true;    // blue
 	bot_on[1] = false;   // green
 	bot_on[2] = false;   // yellow
 
@@ -48,7 +48,7 @@ void GMMMultiplayerCreate::SetupLayout1()
 
 	next_y += 2;
 	start_button.SetType(MMGENERIC_BUTTON);
-	start_button.SetText("Start");
+	start_button.SetText("Create");
 	start_button.SetCoords(GMM_SIDE_MARGIN, next_y);
 	start_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 	AddWidget(&start_button);
@@ -61,7 +61,7 @@ void GMMMultiplayerCreate::SetupLayout1()
 	AddWidget(&back_button);
 	next_y += GMMWBUTTON_HEIGHT + 2;
 
-	status_label.SetText(map_names.empty() ? "No maps from orchestrator" : "Pick a map + Start");
+	status_label.SetText(map_names.empty() ? "No maps from orchestrator" : "Pick a map, then Create");
 	status_label.SetCoords(GMM_SIDE_MARGIN, next_y);
 	AddWidget(&status_label);
 	next_y += 12;

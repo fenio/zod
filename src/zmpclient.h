@@ -28,6 +28,10 @@ bool ZMP_ListMatches(std::vector<MatchInfo> &out);
 // join) and returns true.
 bool ZMP_CreateMatch(const std::string &map, const std::vector<std::string> &bots, MatchInfo &out);
 
+// POST /matchmake. Returns the open match to drop a "play with someone" joiner
+// into (the orchestrator seeds one if needed). Fills `out` (host/port) on success.
+bool ZMP_Matchmake(MatchInfo &out);
+
 // GET /maps. The .map filenames the orchestrator will accept (the in-game create
 // form needs these - the client only knows campaign display names, not files).
 bool ZMP_ListMaps(std::vector<std::string> &out);
