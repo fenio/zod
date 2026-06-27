@@ -3146,14 +3146,32 @@ void ZObject::ProcessEnterWP(vector<waypoint>::iterator &wp, double time_dif, bo
 	float &dy = loc.dy;
 	ZObject *target_object;
 
+	target_object = GetObjectFromID(wp->ref_id, *ols.object_list);
+
 	if(is_new)
 	{
-		//cur_wp_info.x = wp->x;
-		//cur_wp_info.y = wp->y;
-		SetTarget(wp->x, wp->y);
+		//#220: pathfind to a REACHABLE tile within auto-enter range of the target,
+		//not its exact tile. The exact tile is often occupied (a vehicle sits on it)
+		//or in a different region (across rocks), which fails the same-region check
+		//- so Find_Path returns 0 and the unit beelines into the rocks and stalls,
+		//even when it could route around to within grabbing distance. Only kick in
+		//when the exact tile isn't reachable, so the open-field case is unchanged.
+		//Mirrors what attack orders do via NearestAttackLoc.
+		int ex = wp->x, ey = wp->y;
+		if(target_object
+			&& !tmap.GetPathFinder().ShouldBeAbleToMoveTo(x + 8, y + 8, ex, ey, (object_type == ROBOT_OBJECT)))
+		{
+			int nx, ny;
+			if(target_object->NearestAttackLoc(x + 8, y + 8, nx, ny,
+				zsettings->auto_grab_vehicle_distance, (object_type == ROBOT_OBJECT), tmap))
+			{
+				ex = nx;
+				ey = ny;
+			}
+		}
 
-		//cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(x + (width_pix >> 1), y + (height_pix >> 1), wp->x, wp->y, (object_type == ROBOT_OBJECT), ref_id);
-		//cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(center_x, center_y, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT), ref_id);
+		SetTarget(ex, ey);
+
 		cur_wp_info.path_finding_id = tmap.GetPathFinder().Find_Path(x + 8, y + 8, cur_wp_info.x, cur_wp_info.y, (object_type == ROBOT_OBJECT), HasExplosives(), ref_id);
 
 		//don't wait for thread if it wasn't created
@@ -3165,13 +3183,9 @@ void ZObject::ProcessEnterWP(vector<waypoint>::iterator &wp, double time_dif, bo
 			SetVelocity();
 		}
 
-		//if(object_type == ROBOT_OBJECT) Disengage();
-
 		//run to enter vehicles
-		AttemptStartRun(wp->x, wp->y);
+		AttemptStartRun(ex, ey);
 	}
-
-	target_object = GetObjectFromID(wp->ref_id, *ols.object_list);
 
 	if(!target_object || !target_object->CanBeEntered())//target_object->GetOwner() != NULL_TEAM || target_object->IsDestroyed())
 	{
