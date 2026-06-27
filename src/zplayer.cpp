@@ -2683,8 +2683,68 @@ void ZPlayer::RenderNews()
 	}
 }
 
+//#206: dump, for each wreck (destroyed vehicle), what overlaps it in the render
+//list and whether each is drawn OVER (after) or under (before) it - i.e. the
+//actual depth order that decides whether a wreck wrongly covers a unit/building.
+//Reusable: set ZOD_RENDER_DUMP to have it fire (rate-limited) whenever a wreck is
+//on screen, or it's called on the F12 diagnostics dump.
+void ZPlayer::DumpRenderOrder(bool dedupe)
+{
+	//#206: a wreck is on screen only briefly. In auto mode (dedupe) we dump each
+	//distinct wreck exactly once - so the capture never misses one that dies near
+	//a building, whatever the timing - and produce nothing once there's nothing
+	//new. F12 (dedupe=false) always dumps the wrecks on screen right now.
+	static set<int> dumped;
+
+	int n = (int)ols.prender_olist.size();
+	int wrecks = 0;
+
+	for(int wi = 0; wi < n; wi++)
+	{
+		ZObject *w = ols.prender_olist[wi];
+		unsigned char wot, woid;
+		w->GetObjectID(wot, woid);
+		if(!(w->IsDestroyed() && wot == VEHICLE_OBJECT)) continue;
+		if(dedupe)
+		{
+			if(dumped.count(w->GetRefID())) continue;   //already dumped this wreck
+			dumped.insert(w->GetRefID());
+		}
+
+		wrecks++;
+		int wx, wy, ww, wh;
+		w->GetCords(wx, wy);
+		w->GetDimensionsPixel(ww, wh);
+		ZDiag("render-order: WRECK '%s' draw#%d/%d tile(%d,%d) box[%d,%d %dx%d]",
+			w->GetObjectName().c_str(), wi, n, wx / 16, wy / 16, wx, wy, ww, wh);
+
+		for(int oi = 0; oi < n; oi++)
+		{
+			if(oi == wi) continue;
+			ZObject *o = ols.prender_olist[oi];
+
+			int ox, oy, ow, oh;
+			o->GetCords(ox, oy);
+			o->GetDimensionsPixel(ow, oh);
+			if(ox > wx + ww || ox + ow < wx || oy > wy + wh || oy + oh < wy) continue;   //no footprint overlap
+
+			unsigned char oot, ooid;
+			o->GetObjectID(oot, ooid);
+			ZDiag("    overlap: '%s' draw#%d ot=%d oid=%d destroyed=%d -> %s wreck",
+				o->GetObjectName().c_str(), oi, oot, ooid, o->IsDestroyed() ? 1 : 0,
+				oi > wi ? "OVER (drawn after)" : "under (drawn before)");
+		}
+	}
+
+	if(!wrecks && !dedupe) ZDiag("render-order: no wrecks (destroyed vehicles) on screen");
+}
+
 void ZPlayer::RenderObjects()
 {
+	//#206: opt-in render-order trace for wreck-layering bugs. Dedupes internally,
+	//so each wreck is dumped once the frame it appears - never missed, never spammy.
+	if(getenv("ZOD_RENDER_DUMP")) DumpRenderOrder(true);
+
 	//draw effects pre stuff
 	for(vector<ZEffect*>::iterator i=effect_list.begin(); i!=effect_list.end(); i++)
 		(*i)->DoPreRender(zmap, screen);
@@ -3435,6 +3495,10 @@ void ZPlayer::DumpDiagnostics()
 	vector<ZObject*> &sel = select_info.selected_list;
 
 	ZDiag("=== F12 dump: %d unit(s) selected ===", (int)sel.size());
+
+	//#206: include the wreck depth-order trace, so a "wreck renders on top" report
+	//is debuggable straight from an F12 dump (point at the wreck, press F12).
+	DumpRenderOrder();
 	//#93: name the exact map (+ paused state) so the dump is a self-contained
 	//reproduction - reload this map, place the unit at its tile, give the order,
 	//and you get the same route.
