@@ -43,6 +43,7 @@ void ZPlayer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_TEAM, set_player_team_event);
 	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_MODE, set_player_mode_event);
 	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_IGNORED, set_player_ignored_event);
+	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_READY, set_player_ready_event);
 	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_LOGINFO, set_player_loginfo_event);
 	ehandler.AddFunction(TCP_EVENT, SET_LPLAYER_VOTEINFO, set_player_voteinfo_event);
 	ehandler.AddFunction(TCP_EVENT, UPDATE_GAME_PAUSED, update_game_paused_event);
@@ -1452,6 +1453,11 @@ void ZPlayer::set_player_mode_event(ZPlayer *p, char *data, int size, int dummy)
 void ZPlayer::set_player_ignored_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->ProcessSetLPlayerIgnored(data, size);
+}
+
+void ZPlayer::set_player_ready_event(ZPlayer *p, char *data, int size, int dummy)
+{
+	p->ProcessSetLPlayerReady(data, size);
 }
 
 void ZPlayer::set_player_loginfo_event(ZPlayer *p, char *data, int size, int dummy)

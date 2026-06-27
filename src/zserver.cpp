@@ -3421,6 +3421,48 @@ void ZServer::RelayLPlayerIgnored(int player, int to_player)
 		server_socket.SendMessage(to_player, SET_LPLAYER_IGNORED, (char*)&packet, sizeof(set_player_int_packet));
 }
 
+void ZServer::RelayLPlayerReady(int player, int to_player)
+{
+	set_player_int_packet packet;
+
+	packet.p_id = player_info[player].p_id;
+	packet.value = player_info[player].ready;
+
+	if(to_player == -1)
+		server_socket.SendMessageAll(SET_LPLAYER_READY, (char*)&packet, sizeof(set_player_int_packet));
+	else
+		server_socket.SendMessage(to_player, SET_LPLAYER_READY, (char*)&packet, sizeof(set_player_int_packet));
+}
+
+// Matchmaking lobby: once every human in the match has clicked "I'm ready",
+// un-pause for everyone - provided there's someone to play against (>=2 humans,
+// or >=1 bot for solo practice). No one starts truly alone; bots don't gate the
+// start. No-op if the game is already running.
+void ZServer::CheckAutoStart()
+{
+	if(!ztime.IsPaused()) return;
+
+	int humans = 0, ready = 0, bots = 0;
+	for(vector<p_info>::iterator i = player_info.begin(); i != player_info.end(); i++)
+	{
+		if(i->mode == PLAYER_MODE)
+		{
+			humans++;
+			if(i->ready) ready++;
+		}
+		else if(i->mode == BOT_MODE && !i->ignored)
+			bots++;
+	}
+
+	// Need either >=2 humans (a real match) or >=1 bot (a single player
+	// practicing) - so nobody starts truly alone, but bot-only testing works.
+	if(humans >= 1 && ready == humans && (humans >= 2 || bots >= 1))
+	{
+		printf("ZServer: all %d player(s) ready (%d bots) - starting match\n", humans, bots);
+		ResumeGame();
+	}
+}
+
 void ZServer::RelayLPlayerLoginInfo(int player, int to_player)
 {
 	set_player_loginfo_packet packet;

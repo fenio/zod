@@ -84,6 +84,8 @@ public:
 		join_host.clear();
 		join_port = -1;
 		start_match = false;
+		toggle_ready = false;
+		ready_value = false;
 		reset_map = false;
 		quit_game = false;
 		set_volume = false;
@@ -117,6 +119,8 @@ public:
 	string join_host;
 	int join_port;
 	bool start_match;       //lobby: un-pause / start the match
+	bool toggle_ready;      //matchmaking lobby: send a new ready state to the server
+	bool ready_value;       //matchmaking lobby: the ready state to send
 	bool reset_map;
 	bool quit_game;
 	bool set_volume;
@@ -161,6 +165,7 @@ public:
 	void GetDimensions(int &w_, int &h_) { w_ = w; h_ = h; }
 	bool IsOverHUD(int hud_left, int hud_top);
 	void SetPlayerInfoList(vector<p_info> *player_info_) { player_info = player_info_; }
+	void SetLocalPId(int *local_p_id_) { local_p_id = local_p_id_; }   //matchmaking lobby: which p_info is "me"
 	void SetSelectableMapList(vector<string> *selectable_map_list_) { selectable_map_list = selectable_map_list_; }
 	void SetCampaignUnlock(int *campaign_unlock_) { campaign_unlock = campaign_unlock_; }   //#77
 	void SetPlayerTeam(int *player_team_) { player_team=player_team_; }
@@ -199,6 +204,7 @@ protected:
 	ZSDL_Surface title_img;
 	gmm_flag gmm_flags;
 	vector<p_info> *player_info;
+	int *local_p_id = NULL;   //matchmaking lobby: points at the client's own p_id
 	vector<string> *selectable_map_list;
 	int *campaign_unlock = NULL;   //#77: points at the client's campaign_max_unlocked (NULL = no lock)
 	int *player_team;

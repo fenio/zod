@@ -274,6 +274,8 @@ enum tcp_event
 	GIVE_VERSION, SEND_UNIT_ROUTE, GENERATE_MAP, GIVE_CAMPAIGN_UNLOCK, GIVE_MAP_NAME,
 	CONTINUE_AFTER_END,	//#120: client tells the server the player dismissed the summary
 	RETURN_TO_MENU,		//#136: server tells clients to drop back to the main menu after a match
+	SET_READY,		//matchmaking lobby: client -> server "my ready state is N" (0/1)
+	SET_LPLAYER_READY,	//matchmaking lobby: server -> clients "player P's ready state is N"
 	MAX_TCP_EVENTS
 };
 

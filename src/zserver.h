@@ -122,6 +122,8 @@ class ZServer : public ZCore
 		void RelayLPlayerTeam(int player, int to_player = -1);
 		void RelayLPlayerMode(int player, int to_player = -1);
 		void RelayLPlayerIgnored(int player, int to_player = -1);
+		void RelayLPlayerReady(int player, int to_player = -1);   //matchmaking lobby
+		void CheckAutoStart();   //matchmaking lobby: start when all humans are ready
 		void RelayLPlayerLoginInfo(int player, int to_player = -1);
 		void RelayLPlayerVoteChoice(int player, int to_player = -1);
 		bool LoginCheckDenied(int player);
@@ -254,6 +256,7 @@ class ZServer : public ZCore
 		static void send_zone_info_list_event(ZServer *p, char *data, int size, int player);
 		static void set_player_name_event(ZServer *p, char *data, int size, int player);
 		static void set_player_team_event(ZServer *p, char *data, int size, int player);
+		static void set_ready_event(ZServer *p, char *data, int size, int player);   //matchmaking lobby
 		static void rcv_object_waypoints_event(ZServer *p, char *data, int size, int player);
 		static void rcv_object_rallypoints_event(ZServer *p, char *data, int size, int player);
 		static void start_building_event(ZServer *p, char *data, int size, int player);

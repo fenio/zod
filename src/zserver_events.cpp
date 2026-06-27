@@ -14,6 +14,7 @@ void ZServer::SetupEHandler()
 	ehandler.AddFunction(TCP_EVENT, REQUEST_ZONES, send_zone_info_list_event);
 	ehandler.AddFunction(TCP_EVENT, SET_NAME, set_player_name_event);
 	ehandler.AddFunction(TCP_EVENT, SET_TEAM, set_player_team_event);
+	ehandler.AddFunction(TCP_EVENT, SET_READY, set_ready_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_WAYPOINTS, rcv_object_waypoints_event);
 	ehandler.AddFunction(TCP_EVENT, SEND_RALLYPOINTS, rcv_object_rallypoints_event);
 	ehandler.AddFunction(TCP_EVENT, START_BUILDING, start_building_event);
@@ -357,6 +358,19 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 
 	//	p->server_socket.SendMessageAll(SET_LPLAYER_TEAM, (char*)&packet, sizeof(set_player_int_packet));
 	//}
+}
+
+// Matchmaking lobby: a client (re)set its ready state. Record it, tell everyone,
+// then see whether that was the last player we were waiting on.
+void ZServer::set_ready_event(ZServer *p, char *data, int size, int player)
+{
+	if(size != 4) return;
+	if(player < 0 || player >= (int)p->player_info.size()) return;
+
+	p->player_info[player].ready = PacketGetInt(data, 0) ? true : false;
+
+	p->RelayLPlayerReady(player);
+	p->CheckAutoStart();
 }
 
 void ZServer::rcv_object_waypoints_event(ZServer *p, char *data, int size, int player)
@@ -853,6 +867,7 @@ void ZServer::request_player_list_event(ZServer *p, char *data, int size, int pl
 		p->RelayLPlayerTeam(i, player);
 		p->RelayLPlayerMode(i, player);
 		p->RelayLPlayerIgnored(i, player);
+		p->RelayLPlayerReady(i, player);
 		p->RelayLPlayerLoginInfo(i, player);
 		p->RelayLPlayerVoteChoice(i, player);
 	}

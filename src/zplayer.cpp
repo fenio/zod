@@ -4579,6 +4579,9 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 			//lobby: un-pause the match so it starts for everyone
 			if(the_flags.start_match) SendSetPaused(false);
 
+			//matchmaking lobby: tell the server my ready state (it auto-starts when all ready)
+			if(the_flags.toggle_ready) SendReady(the_flags.ready_value);
+
 			if(the_flags.set_volume) SetSoundSetting(the_flags.set_volume_value);
 
 			if(the_flags.set_game_speed)
@@ -5290,6 +5293,7 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 		new_menu->SetCenterCoords(init_w >> 1, init_h >> 1);
 		new_menu->SetRenderScale(MenuRenderScale());   //#196: bigger menus (2x on Android), auto-fit
 		new_menu->SetPlayerInfoList(&player_info);
+		new_menu->SetLocalPId(&p_id);   //matchmaking lobby: identify "me" in the player list
 		new_menu->SetSelectableMapList(&selectable_map_list);
 		new_menu->SetCampaignUnlock(&campaign_max_unlocked);
 		new_menu->SetPlayerTeam((int*)&our_team);
