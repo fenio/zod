@@ -19,6 +19,7 @@ using namespace std;
 // --- stubs for the pathlog symbols zpath_finding.cpp references ---
 int zpath_log_level = 0;
 void ZPathLog(const char *, ...) {}
+void ZDiag(const char *, ...) {}   //#220: zpath_finding now logs unreachable orders
 
 // --- tiny test harness ---
 static int g_checks = 0, g_fails = 0;
