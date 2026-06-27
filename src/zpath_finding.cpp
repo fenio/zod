@@ -972,9 +972,20 @@ int ZPath_Finding_Engine::Find_Path(int sx, int sy, int ex, int ey, bool is_robo
 	//not in same region?
 	if(!InSameRegion(sx, sy, ex, ey, is_robot))
 	{
-		printf("!InSameRegion\n");
 		//note: the caller can not tell this 0 from "direct path ok" - the unit
-		//will beeline at the target and stop at the first wall it hits
+		//will beeline at the target and stop at the first wall it hits.
+		//#220: log it ALWAYS-ON (not just under ZOD_PATHLOG) so these silent
+		//"beeline and stall" orders show up in zod_diag.log. has_explosives is
+		//included on purpose: a unit told it can blast through rocks - e.g. via a
+		//squad-mate's shared grenades while carrying none itself - lands here too,
+		//and this shows whether the (rejected) route had assumed grenades. NOTE the
+		//region check itself ignores has_explosives, so a grenade unit whose only
+		//route is THROUGH rocks is wrongly rejected here before A* even runs.
+		ZDiag("path unreachable: ref#%d %s (%d,%d)t(%d,%d) -> t(%d,%d): different region "
+			"(has_explosives=%d) - unit will beeline and likely stall",
+			obj_ref_id, is_robot ? "robot" : "vehicle",
+			sx, sy, sx / 16, sy / 16, ex / 16, ey / 16, has_explosives ? 1 : 0);
+
 		if(ZPATH_LOG_ON)
 			ZPathLog("PATH   #%d: UNREACHABLE - (%d,%d)t(%d,%d) and (%d,%d)t(%d,%d) are in different regions for a %s; unit will beeline and likely stall",
 				obj_ref_id, sx, sy, sx / 16, sy / 16, ex, ey, ex / 16, ey / 16,
