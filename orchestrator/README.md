@@ -46,7 +46,9 @@ the orchestrator + the headless `zod -d` engine + the game data it reads. `zod -
 never opens a window or audio device, so no X server / xvfb is needed; the final
 image is `FROM scratch` carrying only the binaries' shared-lib closure.
 
-**Pull the prebuilt image** (pushed to GHCR by CI on every `master` push / tag):
+**Pull the prebuilt image** — multi-arch (`linux/amd64` + `linux/arm64`), pushed
+to GHCR by CI on every `master` push / tag; Docker pulls the right arch for your
+host automatically:
 
 ```sh
 docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
@@ -63,8 +65,10 @@ docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
 ```
 
 `ADVERTISE_HOST` must be an address joining clients can actually reach;
-`127.0.0.1` only works for same-host testing. From an arm64 machine to an x86_64
-VPS: `docker buildx build --platform linux/amd64 -t zod-server .`
+`127.0.0.1` only works for same-host testing. A plain `docker build` produces an
+image for the host's arch; for the other arch (or both) use buildx, e.g.
+`docker buildx build --platform linux/amd64 -t zod-server .` or
+`--platform linux/amd64,linux/arm64`.
 
 The same `ZOD_DIR`/`ZOD_BIN`/`ADVERTISE_HOST`/`ORCH_ADDR`/`EMPTY_EXIT_SECS`
 env vars apply; the image presets `ZOD_DIR=/app`, `ZOD_BIN=/app/build/zod`.
