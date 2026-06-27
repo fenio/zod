@@ -36,6 +36,8 @@ ORCH_ADDR=:8080 \
 | `ADVERTISE_HOST` | `127.0.0.1` | Host returned to clients (this machine's public address). |
 | `ORCH_ADDR` | `:8080` | Address the HTTP API binds to. |
 | `EMPTY_EXIT_SECS` | `300` | A match whose server sits empty this long self-exits and is reaped. |
+| `MM_CAPACITY` | `2` | Human players an open (matchmaking) match accepts before it's full (1v1 PoC). |
+| `MM_MAP` | first map | Preferred map for matchmaking matches; falls back to the first `.map`. |
 
 Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
 
@@ -80,6 +82,9 @@ match server's log out with `docker cp <container>:/tmp/zod-match-<port>.log .`.
 ## API
 
 ```
+POST   /matchmake    -> 200 {match}        (matchmaking: the open match to drop a
+                                            "play with someone" joiner into; seeds a
+                                            fresh paused, bot-less one if none has room)
 POST   /matches      {"name":"...","map":"p02_bb_orig01.map","bots":["blue","green"]}
                      -> 201 {"id","name","map","bots","host","port","pid","created"}
 GET    /matches      -> 200 [ {match}, ... ]

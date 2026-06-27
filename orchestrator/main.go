@@ -53,8 +53,9 @@ type Match struct {
 	Host    string    `json:"host"`
 	Port    int       `json:"port"`
 	PID     int       `json:"pid"`
-	Players int       `json:"players"` // humans in the match; -1 until the server writes its status file
-	Created time.Time `json:"created"`
+	Players     int       `json:"players"` // humans in the match; -1 until the server writes its status file
+	Matchmaking bool      `json:"matchmaking"` // true if seeded by POST /matchmake (open, bot-less)
+	Created     time.Time `json:"created"`
 
 	cmd        *exec.Cmd `json:"-"`
 	statusSock string    `json:"-"` // local AF_UNIX socket the server answers player-count queries on
@@ -67,13 +68,18 @@ type Orchestrator struct {
 	zodDir    string // working dir (must contain maps/)
 	advertise string // host clients should connect to (this machine's public addr)
 	emptyExit int    // seconds a match may sit empty before the server self-exits (0 = never)
+	capacity  int    // human players an open (matchmaking) match accepts before it's full
+	mmMap     string // preferred map for matchmaking matches ("" = first map in maps/)
 
 	mu        sync.Mutex
 	matches   map[string]*Match
 	freePorts []int
+
+	mmMu   sync.Mutex // serializes matchmake() so two joiners land in the same open match
+	openID string     // the match currently accepting matchmaking joiners ("" = none)
 }
 
-func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portMax int) *Orchestrator {
+func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portMax, capacity int, mmMap string) *Orchestrator {
 	ports := make([]int, 0, portMax-portMin+1)
 	for p := portMin; p <= portMax; p++ {
 		ports = append(ports, p)
@@ -83,6 +89,8 @@ func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portM
 		zodDir:    zodDir,
 		advertise: advertise,
 		emptyExit: emptyExit,
+		capacity:  capacity,
+		mmMap:     mmMap,
 		matches:   make(map[string]*Match),
 		freePorts: ports,
 	}
@@ -90,7 +98,7 @@ func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portM
 
 // createMatch spawns a `zod -d` for the given map + bots and returns the match.
 // Caller passes already-validated inputs.
-func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match, error) {
+func (o *Orchestrator) createMatch(name, mapName string, bots []string, matchmaking bool) (*Match, error) {
 	o.mu.Lock()
 	if len(o.freePorts) == 0 {
 		o.mu.Unlock()
@@ -139,10 +147,11 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match,
 		Map:        mapName,
 		Bots:       bots,
 		Host:       o.advertise,
-		Port:       port,
-		PID:        cmd.Process.Pid,
-		Players:    -1, // unknown until the server writes its first status snapshot
-		Created:    time.Now().UTC(),
+		Port:        port,
+		PID:         cmd.Process.Pid,
+		Players:     -1, // unknown until the server writes its first status snapshot
+		Matchmaking: matchmaking,
+		Created:     time.Now().UTC(),
 		cmd:        cmd,
 		statusSock: sockPath,
 		logFile:    logPath,
@@ -279,12 +288,85 @@ func (o *Orchestrator) handleCreate(w http.ResponseWriter, r *http.Request) {
 		name = "match"
 	}
 
-	m, err := o.createMatch(name, req.Map, req.Bots)
+	m, err := o.createMatch(name, req.Map, req.Bots, false)
 	if err != nil {
 		httpErr(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusCreated, m)
+}
+
+// defaultMap picks the map for matchmaking matches: the configured MM_MAP if it
+// exists, else the first .map under maps/. "" if there are no maps.
+func (o *Orchestrator) defaultMap() string {
+	if o.mmMap != "" {
+		if _, err := os.Stat(filepath.Join(o.zodDir, "maps", o.mmMap)); err == nil {
+			return o.mmMap
+		}
+	}
+	entries, err := os.ReadDir(filepath.Join(o.zodDir, "maps"))
+	if err != nil {
+		return ""
+	}
+	names := []string{}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".map") {
+			names = append(names, e.Name())
+		}
+	}
+	sort.Strings(names)
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
+}
+
+// matchmake returns the open match to drop a "play with someone" joiner into:
+// the current open match if it still has room, otherwise a freshly seeded one
+// (paused, no bots). Serialized by mmMu so two simultaneous joiners share one
+// match rather than each spawning their own.
+//
+// Once an open match fills to capacity we rotate openID to a new match and never
+// offer the old one again - so a match that has filled (and may have started)
+// won't take a late joiner even if a player later leaves. (A proper "has the
+// game started" signal arrives with the lobby ready-state work; until then this
+// capacity-rotate is the guard.)
+func (o *Orchestrator) matchmake() (*Match, error) {
+	o.mmMu.Lock()
+	defer o.mmMu.Unlock()
+
+	o.mu.Lock()
+	cur := o.matches[o.openID]
+	o.mu.Unlock()
+
+	if cur != nil {
+		// readPlayers returns -1 for a just-spawned server (socket not up yet),
+		// which is < capacity, i.e. still joinable - correct.
+		if readPlayers(cur.statusSock) < o.capacity {
+			cur.Players = readPlayers(cur.statusSock)
+			return cur, nil
+		}
+	}
+
+	mapName := o.defaultMap()
+	if mapName == "" {
+		return nil, fmt.Errorf("no maps available to seed an open match")
+	}
+	m, err := o.createMatch("open game", mapName, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	o.openID = m.ID
+	return m, nil
+}
+
+func (o *Orchestrator) handleMatchmake(w http.ResponseWriter, r *http.Request) {
+	m, err := o.matchmake()
+	if err != nil {
+		httpErr(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, m)
 }
 
 func (o *Orchestrator) handleList(w http.ResponseWriter, r *http.Request) {
@@ -356,20 +438,26 @@ func main() {
 	addr := env("ORCH_ADDR", ":8080")
 	advertise := env("ADVERTISE_HOST", "127.0.0.1")
 	emptyExit, _ := strconv.Atoi(env("EMPTY_EXIT_SECS", "300")) // empty match self-exits after 5 min
+	capacity, _ := strconv.Atoi(env("MM_CAPACITY", "2"))       // humans an open match accepts (1v1 PoC)
+	if capacity < 1 {
+		capacity = 2
+	}
+	mmMap := env("MM_MAP", "") // preferred matchmaking map ("" = first map in maps/)
 
-	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, 2300, 2399)
+	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, 2300, 2399, capacity, mmMap)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /matches", o.handleCreate)
+	mux.HandleFunc("POST /matchmake", o.handleMatchmake)
 	mux.HandleFunc("GET /matches", o.handleList)
 	mux.HandleFunc("GET /matches/{id}", o.handleGet)
 	mux.HandleFunc("DELETE /matches/{id}", o.handleDelete)
 	mux.HandleFunc("GET /maps", o.handleMaps)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "zod match orchestrator (PoC) - POST/GET/DELETE /matches")
+		fmt.Fprintln(w, "zod match orchestrator (PoC) - POST/GET/DELETE /matches, POST /matchmake")
 	})
 
-	log.Printf("orchestrator listening on %s | zod=%s dir=%s advertise=%s ports=2300-2399",
-		addr, zodBin, zodDir, advertise)
+	log.Printf("orchestrator listening on %s | zod=%s dir=%s advertise=%s ports=2300-2399 capacity=%d",
+		addr, zodBin, zodDir, advertise, capacity)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
