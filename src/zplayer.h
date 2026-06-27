@@ -30,6 +30,7 @@
 #include "gmm_warning.h"
 #include "gmm_multiplayer.h"
 #include "gmm_multiplayer_create.h"
+#include "gmm_lobby.h"
 
 struct news_entry
 {
@@ -191,6 +192,7 @@ class ZPlayer : public ZClient
 		void SendContinueAfterEnd();	//#120
 		void ReturnToMenu();	//#136
 		bool ConnectToServer(string address, int port);	//MP-prep: runtime (re)connect seam
+		void CloseAllMenus();	//drop the whole GMM menu stack (e.g. when entering the lobby)
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();
