@@ -5935,8 +5935,29 @@ void ZObject::GetRemainingRoute(vector<ZPath_Finding_AStar::pf_point> &out)
 	out.insert(out.end(), cur_wp_info.pf_point_list.begin(), cur_wp_info.pf_point_list.end());
 }
 
+// #206: is this object a "wreck" - a destroyed mobile unit (vehicle/robot/cannon/
+// animal) left on the ground? Buildings leave their own footprint and map items are
+// never destroyed, so they're excluded.
+static inline bool is_ground_wreck(ZObject *o)
+{
+	unsigned char ot, oid;
+	o->GetObjectID(ot, oid);
+	return o->IsDestroyed() &&
+		ot != BUILDING_OBJECT &&
+		ot != MAP_ITEM_OBJECT;
+}
+
 bool sort_objects_func (ZObject *a, ZObject *b)
 {
+	// #206: a wreck is ground debris - living units and buildings must always draw
+	// OVER it. A wreck can't be both depth-correct vs buildings AND always under
+	// units in one z-order (those constraints form a provable 3-way cycle, which
+	// would make std::sort undefined), so wrecks become a single under-layer: every
+	// wreck sorts before every non-wreck, then normal depth applies within each group.
+	bool aw = is_ground_wreck(a);
+	bool bw = is_ground_wreck(b);
+	if(aw != bw) return aw;   // a is a wreck, b isn't -> a sorts first -> drawn under
+
 	// depth sort by the sprite's bottom edge. When two overlapping objects share
 	// the same bottom-y the comparator would call them equal, and std::sort
 	// (unstable) is then free to swap them from frame to frame - which renders
