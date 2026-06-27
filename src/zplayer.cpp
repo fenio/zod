@@ -3,6 +3,7 @@
 #include "zprefs.h"
 #include "zpath_debug.h"
 #include <math.h>
+#include <set>   //#206: DumpRenderOrder dedupes wrecks by ref_id
 
 using namespace COMMON;
 
@@ -2730,8 +2731,12 @@ void ZPlayer::DumpRenderOrder(bool dedupe)
 
 			unsigned char oot, ooid;
 			o->GetObjectID(oot, ooid);
-			ZDiag("    overlap: '%s' draw#%d ot=%d oid=%d destroyed=%d -> %s wreck",
+			//log the depth sort-key (bottom edge = y+height) for both, so we can see
+			//whether the wreck sorts in front for the RIGHT reason (it's lower on
+			//screen) or anomalously. wreck key = wy+wh.
+			ZDiag("    overlap: '%s' draw#%d ot=%d oid=%d destroyed=%d depthkey=%d (wreck depthkey=%d) -> %s wreck",
 				o->GetObjectName().c_str(), oi, oot, ooid, o->IsDestroyed() ? 1 : 0,
+				oy + oh, wy + wh,
 				oi > wi ? "OVER (drawn after)" : "under (drawn before)");
 		}
 	}
