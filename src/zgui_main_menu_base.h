@@ -26,6 +26,7 @@ enum menu_type
 	GMM_MAIN_MAIN, GMM_CHANGE_TEAMS, GMM_MANAGE_BOTS,
 	GMM_PLAYER_LIST, GMM_SELECT_MAP, GMM_OPTIONS, GMM_WARNING, GMM_GENERATE_MAP,
 	GMM_MULTIPLAYER, GMM_MULTIPLAYER_CREATE,	//orchestrator browse/join + create
+	GMM_LOBBY,	//pre-match waiting room (paused) you land on after join/create
 	MAX_MENU_TYPES
 };
 
@@ -82,6 +83,7 @@ public:
 		join_match = false;
 		join_host.clear();
 		join_port = -1;
+		start_match = false;
 		reset_map = false;
 		quit_game = false;
 		set_volume = false;
@@ -114,6 +116,7 @@ public:
 	bool join_match;        //orchestrator: connect to a match server at join_host:join_port
 	string join_host;
 	int join_port;
+	bool start_match;       //lobby: un-pause / start the match
 	bool reset_map;
 	bool quit_game;
 	bool set_volume;

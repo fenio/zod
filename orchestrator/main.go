@@ -116,7 +116,9 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string) (*Match,
 	cmd.Dir = o.zodDir
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("ZOD_PORT=%d", port),
-		"ZOD_AUTOSTART=1", // don't sit paused on the start screen with no human yet
+		// NOT ZOD_AUTOSTART: the match sits paused at the start screen so it stays
+		// "ready to join" - a joiner gets a fresh game, not one where the bots have
+		// already built up. The game un-pauses when a human starts it.
 		"ZOD_STATUS_SOCK="+sockPath,
 		fmt.Sprintf("ZOD_EMPTY_EXIT_SECS=%d", o.emptyExit),
 	)

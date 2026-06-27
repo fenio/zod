@@ -11,8 +11,10 @@ GMMMultiplayerCreate::GMMMultiplayerCreate() : ZGuiMainMenuBase()
 	w = 112 + 96;
 	h = 118;
 
-	bot_on[0] = true;    // blue
-	bot_on[1] = true;    // green
+	//default to NO bots: a created match waits for human players in the lobby;
+	//bots are optional (toggle them on here, or add them from the lobby).
+	bot_on[0] = false;   // blue
+	bot_on[1] = false;   // green
 	bot_on[2] = false;   // yellow
 
 	//the orchestrator is the source of truth for spawnable map files: the client
