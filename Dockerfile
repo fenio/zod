@@ -95,5 +95,8 @@ ENV LD_LIBRARY_PATH=/applibs \
     EMPTY_EXIT_SECS=300
 
 EXPOSE 8080
-EXPOSE 2300-2399/tcp
+# Match ports are chosen at runtime (MATCH_PORT_MIN/MAX) and published with -p;
+# EXPOSE can't describe a runtime range and only adds noise to `docker ps`, so
+# it's intentionally omitted. Publish your match range explicitly, e.g.
+#   -p 2301-2305:2301-2305 -e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305
 ENTRYPOINT ["/app/orchestrator"]
