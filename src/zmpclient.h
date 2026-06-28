@@ -17,8 +17,18 @@ struct MatchInfo
 	std::string host;
 	int port;
 	int players;
+	int capacity;   //max humans = the map's player slots
 
-	MatchInfo() : port(-1), players(-1) {}
+	MatchInfo() : port(-1), players(-1), capacity(0) {}
+};
+
+// A map the orchestrator can spawn, with its player-slot count (from --map-info).
+struct MapMeta
+{
+	std::string name;
+	int players;
+
+	MapMeta() : players(0) {}
 };
 
 // GET /matches. Returns the live matches; ok=false on any transport/parse error.
@@ -32,9 +42,9 @@ bool ZMP_CreateMatch(const std::string &map, const std::vector<std::string> &bot
 // into (the orchestrator seeds one if needed). Fills `out` (host/port) on success.
 bool ZMP_Matchmake(MatchInfo &out);
 
-// GET /maps. The .map filenames the orchestrator will accept (the in-game create
-// form needs these - the client only knows campaign display names, not files).
-bool ZMP_ListMaps(std::vector<std::string> &out);
+// GET /maps. The maps the orchestrator can spawn, each with its player-slot count
+// (the create form needs the filenames; the count drives the "(NP)" label).
+bool ZMP_ListMaps(std::vector<MapMeta> &out);
 
 // The orchestrator address the menus would connect to (for display).
 std::string ZMP_OrchestratorAddress();

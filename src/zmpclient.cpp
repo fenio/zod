@@ -65,29 +65,6 @@ static bool json_int(const string &obj, const string &key, int &out)
 	return true;
 }
 
-// Parse a flat JSON string array: ["a","b","c"] -> {a,b,c}. No escapes (our
-// filenames have none).
-static vector<string> json_string_array(const string &s)
-{
-	vector<string> out;
-	size_t i = s.find('[');
-	if(i == string::npos) return out;
-
-	bool in_str = false;
-	string cur;
-	for(i++; i < s.size(); i++)
-	{
-		char c = s[i];
-		if(in_str)
-		{
-			if(c == '"') { out.push_back(cur); cur.clear(); in_str = false; }
-			else cur += c;
-		}
-		else if(c == '"') in_str = true;
-		else if(c == ']') break;
-	}
-	return out;
-}
 
 static void orchestrator_target(string &host, int &port)
 {
@@ -138,6 +115,7 @@ bool ZMP_ListMatches(vector<MatchInfo> &out)
 		json_str(objs[i], "host", m.host);
 		json_int(objs[i], "port", m.port);
 		json_int(objs[i], "players", m.players);
+		json_int(objs[i], "capacity", m.capacity);
 		out.push_back(m);
 	}
 	return true;
@@ -187,7 +165,7 @@ bool ZMP_Matchmake(MatchInfo &out)
 	return out.port > 0 && !out.host.empty();
 }
 
-bool ZMP_ListMaps(vector<string> &out)
+bool ZMP_ListMaps(vector<MapMeta> &out)
 {
 	out.clear();
 
@@ -198,6 +176,14 @@ bool ZMP_ListMaps(vector<string> &out)
 	ZHttpResponse r = ZHttp_Get(host, port, "/maps");
 	if(!r.ok || r.status != 200) return false;
 
-	out = json_string_array(r.body);
+	// /maps now returns [{"name":"x.map","players":N}, ...].
+	vector<string> objs = json_split_array(r.body);
+	for(size_t i = 0; i < objs.size(); i++)
+	{
+		MapMeta m;
+		json_str(objs[i], "name", m.name);
+		json_int(objs[i], "players", m.players);
+		if(!m.name.empty()) out.push_back(m);
+	}
 	return true;
 }

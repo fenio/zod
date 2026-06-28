@@ -4,11 +4,11 @@
 #include "zgui_main_menu_base.h"
 #include "zmpclient.h"
 
-// Multiplayer front door (matchmaking).
-//  - "Play with someone": ask the orchestrator (POST /matchmake) for the shared
-//    open match and join it -> lobby, where you wait for a fellow and ready up.
-//  - "Practice vs Bots": the create form (pick a map + bots) for solo testing.
-// The old server browser is retired; all orchestrator HTTP lives behind zmpclient.
+// Multiplayer match browser. Lists the orchestrator's live matches with their map
+// and player count (N/capacity, capacity = the map's slots), and lets you Join one
+// or Create a new one (pick the map + size). All orchestrator HTTP lives behind
+// zmpclient; this is pure UI that, on Join/Create, sets gmm_flags.join_match so
+// ZPlayer connects to the match server and lands in the lobby.
 class GMMMultiplayer : public ZGuiMainMenuBase
 {
 public:
@@ -16,13 +16,18 @@ public:
 
 	void Process();
 private:
-	GMMWButton play_button;
-	GMMWButton practice_button;
-	GMMWButton back_button;
+	GMMWList match_list;
 	GMMWLabel status_label;
+	GMMWButton join_button;
+	GMMWButton create_button;
+	GMMWButton refresh_button;
+	GMMWButton back_button;
+
+	vector<MatchInfo> matches;
 
 	void SetupLayout1();
 	void HandleWidgetEvent(int event_type, ZGMMWidget *event_widget);
+	void Refresh();
 };
 
 #endif
