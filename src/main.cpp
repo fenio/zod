@@ -144,6 +144,37 @@ int main(int argc, char **argv)
 	chdir_to_data_dir();
 #endif
 
+	// --map-info <mapfile>: print how many player slots the map has (distinct
+	// teams with a fort placed) as JSON, then exit. Used to build a matchmaking
+	// map manifest. Loads map DATA only - no SDL/graphics (same read path the
+	// dedicated server uses), so it's cheap and headless.
+	if(argc >= 3 && string(argv[1]) == "--map-info")
+	{
+		ZMap m;
+		if(!m.Read(argv[2]))
+		{
+			fprintf(stderr, "map-info: cannot read map '%s'\n", argv[2]);
+			return 1;
+		}
+
+		bool team_has_fort[MAX_TEAM_TYPES] = {false};
+		for(vector<map_object>::iterator i = m.GetObjectList().begin(); i != m.GetObjectList().end(); ++i)
+			if(i->object_type == BUILDING_OBJECT &&
+				(i->object_id == FORT_FRONT || i->object_id == FORT_BACK) &&
+				i->owner >= 0 && i->owner < MAX_TEAM_TYPES)
+				team_has_fort[(int)i->owner] = true;
+
+		int players = 0;
+		for(int t = 0; t < MAX_TEAM_TYPES; t++)
+			if(team_has_fort[t]) players++;
+
+		string mp = argv[2];
+		size_t slash = mp.find_last_of("/\\");
+		string base = (slash == string::npos) ? mp : mp.substr(slash + 1);
+		printf("{\"map\":\"%s\",\"players\":%d}\n", base.c_str(), players);
+		return 0;
+	}
+
 	SDL_Thread *server_thread;
 
 	printf("Welcome to the Zod Engine (%s)\n", ZOD_VERSION);

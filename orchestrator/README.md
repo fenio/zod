@@ -45,7 +45,8 @@ Match ports are allocated from **`MATCH_PORT_MIN`–`MATCH_PORT_MAX`** (one per
 concurrent match). **Critical:** this range must equal the ports you actually
 publish to the host *and* open in the firewall — the orchestrator hands clients
 `ADVERTISE_HOST:<port>`, and a port it allocates but you didn't expose is a dead
-match. e.g. for 5 matches: `-e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 -p 2301-2305:2301-2305`.
+match. The Docker image presets these to **2300-2305** (a 6-match pool); publish
+that same range. e.g. for more: `-e MATCH_PORT_MIN=2300 -e MATCH_PORT_MAX=2309 -p 2300-2309:2300-2309`.
 
 ## Docker
 
@@ -59,21 +60,20 @@ to GHCR by CI on every `master` push / tag; Docker pulls the right arch for your
 host automatically:
 
 ```sh
-docker run --rm -p 8080:8080 -p 2301-2305:2301-2305 \
+docker run --rm -p 8080:8080 -p 2300-2305:2300-2305 \
   -e ADVERTISE_HOST=your.public.ip \
-  -e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 \
   ghcr.io/fenio/zod-server:latest
 ```
-(5 match ports here — bump the published range *and* `MATCH_PORT_MIN/MAX`
-together for more. The published range and the pool must match exactly.)
+(The image defaults to a 6-match pool, `MATCH_PORT_MIN/MAX=2300/2305`. For more
+matches, bump the published range *and* `MATCH_PORT_MIN/MAX` together — the
+published range and the pool must match exactly.)
 
 **Or build it yourself:**
 
 ```sh
 docker build -t zod-server .                 # from repo root
-docker run --rm -p 8080:8080 -p 2301-2305:2301-2305 \
-  -e ADVERTISE_HOST=your.public.ip \
-  -e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 zod-server
+docker run --rm -p 8080:8080 -p 2300-2305:2300-2305 \
+  -e ADVERTISE_HOST=your.public.ip zod-server
 # or: ADVERTISE_HOST=your.public.ip docker compose up --build
 ```
 

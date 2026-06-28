@@ -4,14 +4,14 @@
 #
 # Bundles the match orchestrator + the headless `zod -d` engine + game data in
 # one image. The orchestrator is the entrypoint; it spawns one `zod -d` per
-# match (process-per-match) on ports 2300-2399 and hands clients a host:port.
+# match (process-per-match) on its match port pool and hands clients a host:port.
 #
 # `zod -d` is genuinely headless: it links SDL3 but never opens a window or audio
 # device (SDL_Init(VIDEO|AUDIO) lives only in the client), so no X server / xvfb
 # is needed in the image.
 #
 #   docker build -t zod-server .
-#   docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
+#   docker run --rm -p 8080:8080 -p 2300-2305:2300-2305 \
 #     -e ADVERTISE_HOST=<address-clients-can-reach> zod-server
 #
 # Deploying to an x86_64 VPS from an arm64 machine? build with:
@@ -92,8 +92,14 @@ ENV LD_LIBRARY_PATH=/applibs \
     ZOD_BIN=/app/build/zod \
     ORCH_ADDR=:8080 \
     ADVERTISE_HOST=127.0.0.1 \
-    EMPTY_EXIT_SECS=300
+    EMPTY_EXIT_SECS=300 \
+    MATCH_PORT_MIN=2300 \
+    MATCH_PORT_MAX=2305
 
+# Default surface: the API + a 6-match pool (2300-2305). EXPOSE is only metadata,
+# but here it matches the baked default range so it's honest (not the old noisy
+# 2300-2399). Publish them with -p (e.g. `-p 8080:8080 -p 2300-2305:2300-2305`);
+# for more concurrent matches bump the published range AND MATCH_PORT_MIN/MAX.
 EXPOSE 8080
-EXPOSE 2300-2399/tcp
+EXPOSE 2300-2305/tcp
 ENTRYPOINT ["/app/orchestrator"]
