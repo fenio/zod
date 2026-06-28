@@ -169,6 +169,24 @@ bool ZMP_CreateMatch(const string &map, const vector<string> &bots, MatchInfo &o
 	return out.port > 0 && !out.host.empty();
 }
 
+bool ZMP_Matchmake(MatchInfo &out)
+{
+	string host;
+	int port;
+	orchestrator_target(host, port);
+
+	ZHttpResponse r = ZHttp_Post(host, port, "/matchmake", "");
+	if(!r.ok || (r.status != 200 && r.status != 201)) return false;
+
+	json_str(r.body, "id", out.id);
+	json_str(r.body, "host", out.host);
+	json_str(r.body, "map", out.map);
+	json_int(r.body, "port", out.port);
+	json_int(r.body, "players", out.players);
+
+	return out.port > 0 && !out.host.empty();
+}
+
 bool ZMP_ListMaps(vector<string> &out)
 {
 	out.clear();
