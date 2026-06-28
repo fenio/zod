@@ -278,13 +278,13 @@ func readStatus(sock string) (players int, started bool) {
 		return
 	}
 	var s struct {
-		Players int  `json:"players"`
-		Started bool `json:"started"`
+		Players int `json:"players"`
+		Started int `json:"started"` // server emits 0/1, not a JSON bool
 	}
 	if json.Unmarshal(data, &s) != nil {
 		return
 	}
-	return s.Players, s.Started
+	return s.Players, s.Started != 0
 }
 
 // readPlayers is the player-count-only convenience over readStatus.
