@@ -33,6 +33,7 @@ ZCompMessageEngine::ZCompMessageEngine()
 	show_message_img = NULL;
 
 	resume_scale = 1.0;   //#196
+	suppress_resume = false;
 }
 
 void ZCompMessageEngine::SetObjectList(vector<ZObject*> *object_list_)
@@ -104,7 +105,7 @@ bool ZCompMessageEngine::AbsorbedLClick(int x, int y, ZMap &the_map)
 	}
 
 	//resume game?
-	if(ztime && ztime->IsPaused() && click_to_resume_img.GetBaseSurface())
+	if(ztime && ztime->IsPaused() && !suppress_resume && click_to_resume_img.GetBaseSurface())
 	{
 		img_w = (int)(click_to_resume_img.GetBaseSurface()->w * resume_scale);   //#196
 		img_h = (int)(click_to_resume_img.GetBaseSurface()->h * resume_scale);
@@ -177,7 +178,7 @@ bool ZCompMessageEngine::AbsorbedLUnClick(int x, int y, ZMap &the_map)
 	}
 
 	//resume game?
-	if(ztime && ztime->IsPaused() && click_to_resume_img.GetBaseSurface())
+	if(ztime && ztime->IsPaused() && !suppress_resume && click_to_resume_img.GetBaseSurface())
 	{
 		img_w = (int)(click_to_resume_img.GetBaseSurface()->w * resume_scale);   //#196
 		img_h = (int)(click_to_resume_img.GetBaseSurface()->h * resume_scale);
@@ -265,6 +266,8 @@ void ZCompMessageEngine::DoRender(ZMap &the_map, SDL_Surface *dest)
 
 void ZCompMessageEngine::RenderResume(ZMap &the_map, SDL_Surface *dest)
 {
+	if(suppress_resume) return;   //matchmaking lobby owns the start (ready-up)
+
 	if(ztime && ztime->IsPaused() && click_to_resume_img.GetBaseSurface())
 	{
 		int shift_x, shift_y, view_w, view_h;

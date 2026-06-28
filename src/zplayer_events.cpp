@@ -1,6 +1,7 @@
 #include "zplayer.h"
 #include "packet_io.h"
 #include "zprefs.h"
+#include "zpath_debug.h"
 #include <math.h>
 
 using namespace COMMON;
@@ -784,8 +785,18 @@ void ZPlayer::store_map_event(ZPlayer *p, char *data, int size, int dummy)
 		p->buildlist.SetMapHasBridges(p->MapHasBridges());
 
 		//#79: a map just loaded - drop any menu-first / map-picker overlay so we
-		//land cleanly in the game.
-		p->CloseMainMenus();
+		//land cleanly in the game. BUT keep the matchmaking lobby: you join a
+		//PAUSED match, its map then arrives, and you must stay in the lobby (ready
+		//up, wait for a fellow) until the match actually starts - closing it here
+		//dropped you straight into the game with no lobby at all.
+		bool in_lobby = false;
+		for(vector<ZGuiMainMenuBase*>::iterator i=p->gui_menu_list.begin(); i!=p->gui_menu_list.end(); ++i)
+			if((*i)->GetMenuType() == GMM_LOBBY) { in_lobby = true; break; }
+
+		if(in_lobby)
+			ZDiag("store_map: map loaded but lobby open - keeping lobby (not closing menus)");
+		else
+			p->CloseMainMenus();
 
 		p->zmap.SetViewingDimensions(p->init_w - 100, p->init_h - 36);
 		p->zhud.SetTerrainType((planet_type)p->zmap.GetMapBasics().terrain_type);
