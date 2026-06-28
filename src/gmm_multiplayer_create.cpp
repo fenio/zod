@@ -21,18 +21,35 @@ GMMMultiplayerCreate::GMMMultiplayerCreate() : ZGuiMainMenuBase()
 	//only knows campaign display names, not filenames.
 	ZMP_ListMaps(map_names);
 
+	//build the player-count filter options: {all} + each distinct count present.
+	filter_options.push_back(0);   //0 = show all
+	for(size_t i = 0; i < map_names.size(); i++)
+	{
+		int p = map_names[i].players;
+		if(p <= 0) continue;
+		bool have = false;
+		for(size_t j = 0; j < filter_options.size(); j++) if(filter_options[j] == p) have = true;
+		if(!have) filter_options.push_back(p);
+	}
+	//sort the distinct counts (keep 0/all first)
+	for(size_t a = 1; a < filter_options.size(); a++)
+		for(size_t b = a + 1; b < filter_options.size(); b++)
+			if(filter_options[b] < filter_options[a]) { int t = filter_options[a]; filter_options[a] = filter_options[b]; filter_options[b] = t; }
+	filter_i = 0;
+
 	SetupLayout1();
 }
 
-void GMMMultiplayerCreate::SetupLayout1()
+// (Re)fill the map list with the maps matching the current player-count filter.
+void GMMMultiplayerCreate::PopulateMapList()
 {
-	int next_y = GMM_TITLE_MARGIN;
+	int want = filter_options.empty() ? 0 : filter_options[filter_i];
 
-	map_list.SetCoords(GMM_SIDE_MARGIN, next_y);
-	map_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 84);
-	map_list.SetVisibleEntries(6);
+	map_list.GetEntryList().clear();
 	for(size_t i = 0; i < map_names.size(); i++)
 	{
+		if(want != 0 && map_names[i].players != want) continue;
+
 		//strip ".map" and tag the player-slot count, e.g. "p04_bb_p04m01  (4P)".
 		string disp = map_names[i].name;
 		size_t dot = disp.rfind(".map");
@@ -46,6 +63,23 @@ void GMMMultiplayerCreate::SetupLayout1()
 		map_list.GetEntryList().push_back(mmlist_entry(disp, (int)i, (int)i));
 	}
 	map_list.CheckViewI();
+}
+
+void GMMMultiplayerCreate::SetupLayout1()
+{
+	int next_y = GMM_TITLE_MARGIN;
+
+	//player-count filter (cycles All / 2P / 3P / ...); narrows the list below.
+	filter_button.SetType(MMGENERIC_BUTTON);
+	filter_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	filter_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&filter_button);
+	next_y += GMMWBUTTON_HEIGHT + 2;
+
+	map_list.SetCoords(GMM_SIDE_MARGIN, next_y);
+	map_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 84);
+	map_list.SetVisibleEntries(6);
+	PopulateMapList();
 	AddWidget(&map_list);
 	next_y += map_list.GetHeight() + 3;
 
@@ -97,6 +131,16 @@ string GMMMultiplayerCreate::SelectedMap()
 
 void GMMMultiplayerCreate::Process()
 {
+	int want = filter_options.empty() ? 0 : filter_options[filter_i];
+	if(want == 0)
+		filter_button.SetText("Maps: all sizes");
+	else
+	{
+		char buf[24];
+		snprintf(buf, sizeof(buf), "Maps: %d players", want);
+		filter_button.SetText(buf);
+	}
+
 	for(int i = 0; i < GMM_MP_CREATE_BOTS; i++)
 	{
 		bot_button[i].SetText(string("Bot ") + bot_team_names[i] + (bot_on[i] ? ": on" : ": off"));
@@ -122,6 +166,16 @@ void GMMMultiplayerCreate::HandleWidgetEvent(int event_type, ZGMMWidget *event_w
 	}
 
 	if(event_type != GMM_UNCLICK_EVENT) return;
+
+	if(w_ref_id == filter_button.GetRefID())
+	{
+		if(!filter_options.empty())
+		{
+			filter_i = (filter_i + 1) % (int)filter_options.size();
+			PopulateMapList();
+		}
+		return;
+	}
 
 	for(int i = 0; i < GMM_MP_CREATE_BOTS; i++)
 		if(w_ref_id == bot_button[i].GetRefID())

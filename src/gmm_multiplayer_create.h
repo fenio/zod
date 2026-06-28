@@ -20,6 +20,7 @@ public:
 	void Process();
 private:
 	GMMWList map_list;
+	GMMWButton filter_button;   //cycles the player-count filter (All / 2P / 3P / ...)
 	GMMWButton bot_button[GMM_MP_CREATE_BOTS];
 	GMMWButton start_button;
 	GMMWButton back_button;
@@ -28,7 +29,11 @@ private:
 	bool bot_on[GMM_MP_CREATE_BOTS];
 	std::vector<MapMeta> map_names;   //maps from the orchestrator (filename + player slots)
 
+	std::vector<int> filter_options;  //selectable player-count filters: {0=all, then each distinct count}
+	int filter_i;                     //index into filter_options
+
 	void SetupLayout1();
+	void PopulateMapList();   //(re)fill the list under the current filter
 	void HandleWidgetEvent(int event_type, ZGMMWidget *event_widget);
 	string SelectedMap();
 };
