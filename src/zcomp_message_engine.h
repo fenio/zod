@@ -44,6 +44,9 @@ public:
 
 	void SetZTime(ZTime *ztime_);
 	void SetRenderScale(double s) { resume_scale = s < 1.0 ? 1.0 : s; }   //#196: scale the resume bar
+	// matchmaking lobby: hide the "Click to Start / Resume" bar so a paused match
+	// can only be started by readying up, not by a stray click that bypasses it.
+	void SetSuppressResume(bool b) { suppress_resume = b; }
 	void Process(double the_time);
 	void DoRender(ZMap &the_map, SDL_Surface *dest);
 	void SetObjectList(vector<ZObject*> *object_list_);
@@ -69,6 +72,7 @@ private:
 	ZTime *ztime;
 
 	double resume_scale;   //#196: render scale for the "Click to Start / Resume Game" bar
+	bool suppress_resume;  //matchmaking lobby: hide/disable the click-to-resume bar
 
 	int show_message;
 	double final_time;

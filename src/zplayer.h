@@ -193,6 +193,8 @@ class ZPlayer : public ZClient
 		void ReturnToMenu();	//#136
 		bool ConnectToServer(string address, int port);	//MP-prep: runtime (re)connect seam
 		void CloseAllMenus();	//drop the whole GMM menu stack (e.g. when entering the lobby)
+		bool LobbyOpen();	//matchmaking: is the pre-match lobby an open GMM menu?
+		void RecenterLobby();	//matchmaking: center the lobby on the map view rect
 		void RenderGUI();
 		void RenderMainMenu();
 		void ProcessSocketEvents();

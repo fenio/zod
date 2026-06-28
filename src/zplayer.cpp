@@ -1382,6 +1382,15 @@ void ZPlayer::Run()
 
 		ztime.UpdateTime();
 
+		//matchmaking lobby owns the start (ready-up); hide the click-to-resume bar
+		//so a stray click can't bypass it. Set before event processing + render.
+		zcomp_msg.SetSuppressResume(LobbyOpen());
+
+		//keep the lobby centered on the map view (not the full framebuffer, which
+		//includes the HUD). Done per-frame because the view dims aren't known yet
+		//when the lobby first opens (the match's map hasn't arrived).
+		RecenterLobby();
+
 		//check for tcp events
 		//socket_time = current_time();
 		ProcessSocketEvents();
@@ -2831,6 +2840,22 @@ void ZPlayer::RenderGUI()
 
 void ZPlayer::RenderMainMenu()
 {
+	//diag: log what's actually being rendered (type + coords) whenever the open
+	//menu set changes, so an "I see no menu" report is checkable against reality.
+	static int last_logged_count = -1;
+	if((int)gui_menu_list.size() != last_logged_count)
+	{
+		last_logged_count = (int)gui_menu_list.size();
+		ZDiag("render: %d menu(s) in list (map_loaded=%d)", last_logged_count, (int)zmap.Loaded());
+		for(size_t i=0; i<gui_menu_list.size(); i++)
+		{
+			int mx, my, mw, mh;
+			gui_menu_list[i]->GetCoords(mx, my);
+			gui_menu_list[i]->GetDimensions(mw, mh);
+			ZDiag("render:   menu[%d] type=%d at (%d,%d) %dx%d", (int)i, gui_menu_list[i]->GetMenuType(), mx, my, mw, mh);
+		}
+	}
+
 	//render so first in list is rendered last
 	for(int i=gui_menu_list.size()-1;i>=0;i--)
 		gui_menu_list[i]->DoRender(zmap, screen);
@@ -4600,7 +4625,9 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 			{
 				string host = the_flags.join_host;
 				int port = the_flags.join_port;
-				ConnectToServer(host, port);
+				ZDiag("join: connecting to match %s:%d (local ztime paused=%d)", host.c_str(), port, (int)ztime.IsPaused());
+				bool ok = ConnectToServer(host, port);
+				ZDiag("join: ConnectToServer=%d -> opening lobby", (int)ok);
 				CloseAllMenus();              //drop the browser/create stack
 				LoadMainMenu(GMM_LOBBY);      //...leaving just the lobby
 			}
@@ -5291,6 +5318,8 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 	if(new_menu)
 	{
 		new_menu->SetCenterCoords(init_w >> 1, init_h >> 1);
+		//The lobby sits over the live (paused) game; it gets re-centered on the map
+		//view rect each frame (see RecenterLobby) once the view dimensions exist.
 		new_menu->SetRenderScale(MenuRenderScale());   //#196: bigger menus (2x on Android), auto-fit
 		new_menu->SetPlayerInfoList(&player_info);
 		new_menu->SetLocalPId(&p_id);   //matchmaking lobby: identify "me" in the player list
@@ -5307,6 +5336,31 @@ void ZPlayer::LoadMainMenu(int menu_type, bool kill_if_open, gmm_warning_flag wa
 
 //Tear down the whole GMM menu stack at once (used when entering the lobby, so the
 //browser/create menus don't linger behind it).
+//matchmaking lobby: center the lobby on the map VIEW rect (the area excluding the
+//HUD), matching where the game/resume-bar centers. The full framebuffer that
+//other menus use includes the HUD, which pushed the lobby off to the right.
+void ZPlayer::RecenterLobby()
+{
+	int sx, sy, vw, vh;
+	zmap.GetViewShiftFull(sx, sy, vw, vh);
+	if(vw <= 0 || vh <= 0) return;   //view not set up yet (map not loaded)
+
+	static int logged = 0;
+	if(!logged) { logged = 1; ZDiag("recenter: init=%dx%d view=%dx%d shift=(%d,%d)", init_w, init_h, vw, vh, sx, sy); }
+
+	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)
+		if((*i)->GetMenuType() == GMM_LOBBY)
+			(*i)->SetCenterCoords(vw >> 1, vh >> 1);
+}
+
+//matchmaking lobby: is the pre-match lobby currently one of the open GMM menus?
+bool ZPlayer::LobbyOpen()
+{
+	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)
+		if((*i)->GetMenuType() == GMM_LOBBY) return true;
+	return false;
+}
+
 void ZPlayer::CloseAllMenus()
 {
 	for(vector<ZGuiMainMenuBase*>::iterator i=gui_menu_list.begin(); i!=gui_menu_list.end(); ++i)

@@ -1,6 +1,7 @@
 #include "zclient.h"
 #include "packet_io.h"
 #include "common.h"
+#include "zpath_debug.h"
 
 using namespace COMMON;
 
@@ -808,6 +809,8 @@ bool ZClient::ProcessUpdateGamePaused(char *data, int size)
 
 	//good packet?
 	if(size != sizeof(update_game_paused_packet)) return false;
+
+	ZDiag("client: recv UPDATE_GAME_PAUSED paused=%d", (int)pi->game_paused);
 
 	if(pi->game_paused)
 		ztime.Pause();

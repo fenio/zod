@@ -1,4 +1,5 @@
 #include "gmm_lobby.h"
+#include "zpath_debug.h"
 #include <cstdio>
 
 GMMLobby::GMMLobby() : ZGuiMainMenuBase()
@@ -9,6 +10,10 @@ GMMLobby::GMMLobby() : ZGuiMainMenuBase()
 	h = 118;
 
 	saw_paused = false;
+	last_paused = -1;
+	last_humans = -1;
+
+	ZDiag("lobby: opened");
 
 	SetupLayout1();
 }
@@ -105,6 +110,13 @@ void GMMLobby::RebuildPlayers()
 		snprintf(buf, sizeof(buf), "All ready - starting!");
 	status_label.SetText(buf);
 
+	if(humans != last_humans)
+	{
+		ZDiag("lobby: players now %d human(s), %d ready (local_p_id=%d, found_me=%d)",
+			humans, ready, local_p_id ? *local_p_id : -999, LocalPlayer() ? 1 : 0);
+		last_humans = humans;
+	}
+
 	// Reflect my own ready state on the toggle.
 	p_info *me = LocalPlayer();
 	bool iam = me && me->ready;
@@ -121,8 +133,25 @@ void GMMLobby::Process()
 	// the brief window before the initial paused state has arrived.
 	if(ztime)
 	{
-		if(ztime->IsPaused()) saw_paused = true;
-		else if(saw_paused) { killme = true; return; }
+		bool paused = ztime->IsPaused();
+		if((int)paused != last_paused)
+		{
+			ZDiag("lobby: ztime paused=%d (saw_paused=%d)", (int)paused, (int)saw_paused);
+			last_paused = (int)paused;
+		}
+
+		if(paused) saw_paused = true;
+		else if(saw_paused)
+		{
+			ZDiag("lobby: match resumed after pause -> closing lobby (game starts)");
+			killme = true;
+			return;
+		}
+	}
+	else if(last_paused != -2)
+	{
+		ZDiag("lobby: ztime is NULL in Process - cannot gate on pause");
+		last_paused = -2;
 	}
 
 	RebuildPlayers();

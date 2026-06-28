@@ -23,6 +23,8 @@ private:
 	GMMWButton leave_button;
 
 	bool saw_paused;   //don't auto-close until we've actually seen the match paused
+	int last_paused;   //diag: last logged ztime paused state (-1 = none yet)
+	int last_humans;   //diag: last logged human count
 
 	void SetupLayout1();
 	void HandleWidgetEvent(int event_type, ZGMMWidget *event_widget);
