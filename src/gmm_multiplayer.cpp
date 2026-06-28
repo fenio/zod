@@ -5,28 +5,47 @@ GMMMultiplayer::GMMMultiplayer() : ZGuiMainMenuBase()
 {
 	menu_type = GMM_MULTIPLAYER;
 	title = "Multiplayer";
-	w = 112 + 96;
+	w = 112 + 144;
 	h = 118;
 
 	SetupLayout1();
+	Refresh();   //initial fetch (blocking - localhost/quick)
 }
 
 void GMMMultiplayer::SetupLayout1()
 {
 	int next_y = GMM_TITLE_MARGIN;
 
-	play_button.SetType(MMGENERIC_BUTTON);
-	play_button.SetText("Play with someone");
-	play_button.SetCoords(GMM_SIDE_MARGIN, next_y);
-	play_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
-	AddWidget(&play_button);
+	match_list.SetCoords(GMM_SIDE_MARGIN, next_y);
+	match_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 70);
+	match_list.SetVisibleEntries(5);
+	AddWidget(&match_list);
+	next_y += match_list.GetHeight() + 2;
+
+	status_label.SetText("");
+	status_label.SetCoords(GMM_SIDE_MARGIN, next_y);
+	AddWidget(&status_label);
+	next_y += 12;
+
+	join_button.SetType(MMGENERIC_BUTTON);
+	join_button.SetText("Join");
+	join_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	join_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&join_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
-	practice_button.SetType(MMGENERIC_BUTTON);
-	practice_button.SetText("Practice vs Bots");
-	practice_button.SetCoords(GMM_SIDE_MARGIN, next_y);
-	practice_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
-	AddWidget(&practice_button);
+	create_button.SetType(MMGENERIC_BUTTON);
+	create_button.SetText("Create Game");
+	create_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	create_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&create_button);
+	next_y += GMMWBUTTON_HEIGHT + 1;
+
+	refresh_button.SetType(MMGENERIC_BUTTON);
+	refresh_button.SetText("Refresh");
+	refresh_button.SetCoords(GMM_SIDE_MARGIN, next_y);
+	refresh_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
+	AddWidget(&refresh_button);
 	next_y += GMMWBUTTON_HEIGHT + 1;
 
 	back_button.SetType(MMGENERIC_BUTTON);
@@ -34,15 +53,50 @@ void GMMMultiplayer::SetupLayout1()
 	back_button.SetCoords(GMM_SIDE_MARGIN, next_y);
 	back_button.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWBUTTON_HEIGHT);
 	AddWidget(&back_button);
-	next_y += GMMWBUTTON_HEIGHT + 2;
-
-	status_label.SetText("");
-	status_label.SetCoords(GMM_SIDE_MARGIN, next_y);
-	AddWidget(&status_label);
-	next_y += 12;
+	next_y += GMMWBUTTON_HEIGHT;
 
 	h = next_y + 1 + GMM_BOTTOM_MARGIN;
 	UpdateDimensions();
+}
+
+void GMMMultiplayer::Refresh()
+{
+	bool ok = ZMP_ListMatches(matches);
+
+	match_list.GetEntryList().clear();
+
+	if(!ok)
+	{
+		status_label.SetText("Orchestrator unreachable (" + ZMP_OrchestratorAddress() + ")");
+	}
+	else if(matches.empty())
+	{
+		status_label.SetText("No games - create one");
+	}
+	else
+	{
+		char buf[64];
+		snprintf(buf, sizeof(buf), "%d game(s)", (int)matches.size());
+		status_label.SetText(buf);
+
+		for(size_t i = 0; i < matches.size(); i++)
+		{
+			//"mapdisp  (N/cap)" - drop the .map; cap = the map's player slots.
+			string mapdisp = matches[i].map;
+			size_t dot = mapdisp.rfind(".map");
+			if(dot != string::npos) mapdisp.erase(dot);
+
+			char line[192];
+			if(matches[i].players >= 0 && matches[i].capacity > 0)
+				snprintf(line, sizeof(line), "%s  (%d/%d)", mapdisp.c_str(), matches[i].players, matches[i].capacity);
+			else
+				snprintf(line, sizeof(line), "%s", mapdisp.c_str());
+
+			match_list.GetEntryList().push_back(mmlist_entry(line, (int)i, (int)i));
+		}
+	}
+
+	match_list.CheckViewI();
 }
 
 void GMMMultiplayer::Process()
@@ -53,34 +107,48 @@ void GMMMultiplayer::Process()
 void GMMMultiplayer::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 {
 	if(!event_widget) return;
-	if(event_type != GMM_UNCLICK_EVENT) return;
 
 	int w_ref_id = event_widget->GetRefID();
 
-	if(w_ref_id == play_button.GetRefID())
+	switch(event_type)
 	{
-		// Join the shared open match; the orchestrator seeds one if none has room.
-		status_label.SetText("Finding a game...");
-		MatchInfo mi;
-		if(ZMP_Matchmake(mi))
+	case GMM_CLICK_EVENT:
+		if(w_ref_id == match_list.GetRefID())
 		{
-			gmm_flags.join_match = true;
-			gmm_flags.join_host = mi.host;
-			gmm_flags.join_port = mi.port;
+			//single-select: keep only the just-clicked match highlighted
+			if(match_list.GetGMMWFlags().mmlist_entry_selected != -1)
+				match_list.UnSelectAll(match_list.GetGMMWFlags().mmlist_entry_selected);
 		}
-		else
+		break;
+	case GMM_UNCLICK_EVENT:
+		if(w_ref_id == refresh_button.GetRefID())
 		{
-			status_label.SetText("Orchestrator unreachable (" + ZMP_OrchestratorAddress() + ")");
+			Refresh();
 		}
-	}
-	else if(w_ref_id == practice_button.GetRefID())
-	{
-		gmm_flags.open_main_menu = true;
-		gmm_flags.open_main_menu_type = GMM_MULTIPLAYER_CREATE;
-	}
-	else if(w_ref_id == back_button.GetRefID())
-	{
-		gmm_flags.open_main_menu = true;
-		gmm_flags.open_main_menu_type = GMM_MAIN_MAIN;
+		else if(w_ref_id == create_button.GetRefID())
+		{
+			gmm_flags.open_main_menu = true;
+			gmm_flags.open_main_menu_type = GMM_MULTIPLAYER_CREATE;
+		}
+		else if(w_ref_id == back_button.GetRefID())
+		{
+			gmm_flags.open_main_menu = true;
+			gmm_flags.open_main_menu_type = GMM_MAIN_MAIN;
+		}
+		else if(w_ref_id == join_button.GetRefID())
+		{
+			int sel = match_list.GetFirstSelected();
+			if(sel != -1)
+			{
+				int idx = match_list.GetEntryList()[sel].ref_id;
+				if(idx >= 0 && idx < (int)matches.size())
+				{
+					gmm_flags.join_match = true;
+					gmm_flags.join_host = matches[idx].host;
+					gmm_flags.join_port = matches[idx].port;
+				}
+			}
+		}
+		break;
 	}
 }

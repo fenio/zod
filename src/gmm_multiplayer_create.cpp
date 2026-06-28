@@ -7,13 +7,13 @@ static const char *bot_team_names[GMM_MP_CREATE_BOTS] = { "blue", "green", "yell
 GMMMultiplayerCreate::GMMMultiplayerCreate() : ZGuiMainMenuBase()
 {
 	menu_type = GMM_MULTIPLAYER_CREATE;
-	title = "Practice vs Bots";
+	title = "Create Game";
 	w = 112 + 96;
 	h = 118;
 
-	//practice path: default one bot on so there's an opponent to start against
-	//(toggle more here, or from the lobby). Ready up in the lobby to begin.
-	bot_on[0] = true;    // blue
+	//multiplayer-first: default bots OFF so the game waits for humans to join.
+	//Toggle bots on here (or in the lobby) for solo practice / to fill empty slots.
+	bot_on[0] = false;   // blue
 	bot_on[1] = false;   // green
 	bot_on[2] = false;   // yellow
 
@@ -32,7 +32,19 @@ void GMMMultiplayerCreate::SetupLayout1()
 	map_list.SetDimensions(w - (GMM_SIDE_MARGIN * 2), 84);
 	map_list.SetVisibleEntries(6);
 	for(size_t i = 0; i < map_names.size(); i++)
-		map_list.GetEntryList().push_back(mmlist_entry(map_names[i], (int)i, (int)i));
+	{
+		//strip ".map" and tag the player-slot count, e.g. "p04_bb_p04m01  (4P)".
+		string disp = map_names[i].name;
+		size_t dot = disp.rfind(".map");
+		if(dot != string::npos) disp.erase(dot);
+		if(map_names[i].players > 0)
+		{
+			char tag[16];
+			snprintf(tag, sizeof(tag), "  (%dP)", map_names[i].players);
+			disp += tag;
+		}
+		map_list.GetEntryList().push_back(mmlist_entry(disp, (int)i, (int)i));
+	}
 	map_list.CheckViewI();
 	AddWidget(&map_list);
 	next_y += map_list.GetHeight() + 3;
@@ -80,7 +92,7 @@ string GMMMultiplayerCreate::SelectedMap()
 
 	int idx = map_list.GetEntryList()[sel].ref_id;
 	if(idx < 0 || idx >= (int)map_names.size()) return "";
-	return map_names[idx];
+	return map_names[idx].name;
 }
 
 void GMMMultiplayerCreate::Process()

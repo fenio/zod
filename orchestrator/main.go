@@ -432,13 +432,17 @@ func (o *Orchestrator) handleMaps(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, http.StatusInternalServerError, "cannot read maps dir")
 		return
 	}
-	maps := []string{}
+	type mapEntry struct {
+		Name    string `json:"name"`
+		Players int    `json:"players"` // slot count from the manifest (0 if unknown)
+	}
+	maps := []mapEntry{}
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".map") {
-			maps = append(maps, e.Name())
+			maps = append(maps, mapEntry{e.Name(), o.mapPlayers[e.Name()]})
 		}
 	}
-	sort.Strings(maps)
+	sort.Slice(maps, func(i, j int) bool { return maps[i].Name < maps[j].Name })
 	writeJSON(w, http.StatusOK, maps)
 }
 

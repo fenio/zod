@@ -2,6 +2,7 @@
 #define _ZGMM_MULTIPLAYER_CREATE_H_
 
 #include "zgui_main_menu_base.h"
+#include "zmpclient.h"
 #include <vector>
 
 // Create-a-match form: pick a map from a scrollable list, toggle bot teams,
@@ -25,7 +26,7 @@ private:
 	GMMWLabel status_label;
 
 	bool bot_on[GMM_MP_CREATE_BOTS];
-	std::vector<std::string> map_names;   //real .map filenames from the orchestrator
+	std::vector<MapMeta> map_names;   //maps from the orchestrator (filename + player slots)
 
 	void SetupLayout1();
 	void HandleWidgetEvent(int event_type, ZGMMWidget *event_widget);
