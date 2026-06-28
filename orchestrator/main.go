@@ -53,7 +53,8 @@ type Match struct {
 	Host    string    `json:"host"`
 	Port    int       `json:"port"`
 	PID     int       `json:"pid"`
-	Players     int       `json:"players"` // humans in the match; -1 until the server writes its status file
+	Players     int       `json:"players"`  // humans in the match; -1 until the server writes its status file
+	Capacity    int       `json:"capacity"` // max humans = the map's player slots (from --map-info)
 	Matchmaking bool      `json:"matchmaking"` // true if seeded by POST /matchmake (open, bot-less)
 	Created     time.Time `json:"created"`
 
@@ -68,10 +69,12 @@ type Orchestrator struct {
 	zodDir    string // working dir (must contain maps/)
 	advertise string // host clients should connect to (this machine's public addr)
 	emptyExit int    // seconds a match may sit empty before the server self-exits (0 = never)
-	capacity  int    // human players an open (matchmaking) match accepts before it's full
+	capacity  int    // fallback humans/match when a map's slot count is unknown
 	mmMap     string // preferred map for matchmaking matches ("" = first map in maps/)
 	portMin   int    // match port pool bounds (retained for the status page)
 	portMax   int
+
+	mapPlayers map[string]int // map filename -> player slots (from `zod --map-info`)
 
 	mu        sync.Mutex
 	matches   map[string]*Match
@@ -95,9 +98,50 @@ func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portM
 		mmMap:     mmMap,
 		portMin:   portMin,
 		portMax:   portMax,
-		matches:   make(map[string]*Match),
-		freePorts: ports,
+		matches:    make(map[string]*Match),
+		freePorts:  ports,
+		mapPlayers: make(map[string]int),
 	}
+}
+
+// buildMapManifest runs `zod --map-info` once per map to learn each map's player
+// slot count (number of forts placed). Cached for the process lifetime; used to
+// size each match's capacity to its map (a 4-fort map holds 4 players).
+func (o *Orchestrator) buildMapManifest() {
+	entries, err := os.ReadDir(filepath.Join(o.zodDir, "maps"))
+	if err != nil {
+		log.Printf("map manifest: cannot read maps dir: %v", err)
+		return
+	}
+	n := 0
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".map") {
+			continue
+		}
+		cmd := exec.Command(o.zodBin, "--map-info", filepath.Join("maps", e.Name()))
+		cmd.Dir = o.zodDir
+		out, err := cmd.Output()
+		if err != nil {
+			continue
+		}
+		var mi struct {
+			Players int `json:"players"`
+		}
+		if json.Unmarshal(out, &mi) == nil && mi.Players > 0 {
+			o.mapPlayers[e.Name()] = mi.Players
+			n++
+		}
+	}
+	log.Printf("map manifest: %d maps with player counts", n)
+}
+
+// capacityFor returns a map's player-slot count, falling back to the configured
+// default when the map isn't in the manifest (e.g. --map-info failed).
+func (o *Orchestrator) capacityFor(mapName string) int {
+	if p, ok := o.mapPlayers[mapName]; ok && p > 0 {
+		return p
+	}
+	return o.capacity
 }
 
 // createMatch spawns a `zod -d` for the given map + bots and returns the match.
@@ -154,6 +198,7 @@ func (o *Orchestrator) createMatch(name, mapName string, bots []string, matchmak
 		Port:        port,
 		PID:         cmd.Process.Pid,
 		Players:     -1, // unknown until the server writes its first status snapshot
+		Capacity:    o.capacityFor(mapName),
 		Matchmaking: matchmaking,
 		Created:     time.Now().UTC(),
 		cmd:        cmd,
@@ -345,8 +390,9 @@ func (o *Orchestrator) matchmake() (*Match, error) {
 
 	if cur != nil {
 		// readPlayers returns -1 for a just-spawned server (socket not up yet),
-		// which is < capacity, i.e. still joinable - correct.
-		if readPlayers(cur.statusSock) < o.capacity {
+		// which is < capacity, i.e. still joinable - correct. Capacity is the open
+		// match's own (= its map's slots), not a global.
+		if readPlayers(cur.statusSock) < cur.Capacity {
 			cur.Players = readPlayers(cur.statusSock)
 			return cur, nil
 		}
@@ -428,7 +474,7 @@ func (o *Orchestrator) handleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(&b, "zod match orchestrator (PoC)\n\n")
 	fmt.Fprintf(&b, "advertise : %s\n", o.advertise)
 	fmt.Fprintf(&b, "ports     : %d-%d  (%d free)\n", o.portMin, o.portMax, len(o.freePorts))
-	fmt.Fprintf(&b, "capacity  : %d humans/match\n", o.capacity)
+	fmt.Fprintf(&b, "maps known: %d  (capacity per match = map's player slots)\n", len(o.mapPlayers))
 	fmt.Fprintf(&b, "matches   : %d\n\n", len(matches))
 
 	if len(matches) == 0 {
@@ -438,7 +484,7 @@ func (o *Orchestrator) handleRoot(w http.ResponseWriter, r *http.Request) {
 		for _, m := range matches {
 			players := "?"
 			if m.Players >= 0 {
-				players = fmt.Sprintf("%d/%d", m.Players, o.capacity)
+				players = fmt.Sprintf("%d/%d", m.Players, m.Capacity)
 			}
 			typ := "match"
 			if m.Matchmaking {
@@ -499,6 +545,7 @@ func main() {
 	}
 
 	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, portMin, portMax, capacity, mmMap)
+	o.buildMapManifest() // learn each map's player-slot count (capacity = map's slots)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /matches", o.handleCreate)
