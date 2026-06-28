@@ -15,11 +15,12 @@ services:
     image: zod-server
     ports:
       - "8080:8080"               # orchestrator HTTP API
-      - "2301-2305:2301-2305"     # one port per concurrent match (5 here)
+      - "2300-2305:2300-2305"     # one port per concurrent match (6 here)
     environment:
       ADVERTISE_HOST: ${ADVERTISE_HOST:-127.0.0.1}
       EMPTY_EXIT_SECS: "300"
       # the match port pool MUST equal the published range above
-      MATCH_PORT_MIN: "2301"
+      # (the image already defaults these to 2300/2305 - shown for clarity)
+      MATCH_PORT_MIN: "2300"
       MATCH_PORT_MAX: "2305"
     restart: unless-stopped
