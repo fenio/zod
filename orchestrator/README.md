@@ -38,8 +38,14 @@ ORCH_ADDR=:8080 \
 | `EMPTY_EXIT_SECS` | `300` | A match whose server sits empty this long self-exits and is reaped. |
 | `MM_CAPACITY` | `2` | Human players an open (matchmaking) match accepts before it's full (1v1 PoC). |
 | `MM_MAP` | first map | Preferred map for matchmaking matches; falls back to the first `.map`. |
+| `MATCH_PORT_MIN` | `2300` | Low end of the match port pool. **Must** be within the ports you publish + firewall. |
+| `MATCH_PORT_MAX` | `2399` | High end of the match port pool (one port = one concurrent match). |
 
-Match ports are allocated from **2300–2399** (cap = 100 concurrent matches).
+Match ports are allocated from **`MATCH_PORT_MIN`–`MATCH_PORT_MAX`** (one per
+concurrent match). **Critical:** this range must equal the ports you actually
+publish to the host *and* open in the firewall — the orchestrator hands clients
+`ADVERTISE_HOST:<port>`, and a port it allocates but you didn't expose is a dead
+match. e.g. for 5 matches: `-e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 -p 2301-2305:2301-2305`.
 
 ## Docker
 
@@ -53,16 +59,21 @@ to GHCR by CI on every `master` push / tag; Docker pulls the right arch for your
 host automatically:
 
 ```sh
-docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
-  -e ADVERTISE_HOST=your.public.ip ghcr.io/fenio/zod-server:latest
+docker run --rm -p 8080:8080 -p 2301-2305:2301-2305 \
+  -e ADVERTISE_HOST=your.public.ip \
+  -e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 \
+  ghcr.io/fenio/zod-server:latest
 ```
+(5 match ports here — bump the published range *and* `MATCH_PORT_MIN/MAX`
+together for more. The published range and the pool must match exactly.)
 
 **Or build it yourself:**
 
 ```sh
 docker build -t zod-server .                 # from repo root
-docker run --rm -p 8080:8080 -p 2300-2399:2300-2399 \
-  -e ADVERTISE_HOST=your.public.ip zod-server
+docker run --rm -p 8080:8080 -p 2301-2305:2301-2305 \
+  -e ADVERTISE_HOST=your.public.ip \
+  -e MATCH_PORT_MIN=2301 -e MATCH_PORT_MAX=2305 zod-server
 # or: ADVERTISE_HOST=your.public.ip docker compose up --build
 ```
 
