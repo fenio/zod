@@ -190,6 +190,11 @@ class ZServer : public ZCore
 		double next_reset_game_time;
 		double next_make_suggestions_time;
 		bool do_reset_game;
+		//#244: a dedicated single-map / multiplayer match (zod -d -m <map>) has no
+		//map list to advance to when it ends - without this clients dismiss the
+		//end-of-match summary and hang forever. Set at game-end to send them back to
+		//the menu instead.
+		bool end_return_to_menu;
 
 		//perpetual server settings
 		ZPSettings psettings;

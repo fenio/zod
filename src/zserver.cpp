@@ -91,6 +91,7 @@ ZServer::ZServer() : ZCore()
 	next_stalemate_diag_time = 0;
 	next_reset_game_time = 0;
 	do_reset_game = false;
+	end_return_to_menu = false;   //#244
 	next_scuffle_time = 0;
 	next_make_suggestions_time = 0;
 
@@ -441,6 +442,17 @@ void ZServer::ProcessEndGame()
 		//the game forever - generous, since the player is reading the summary.
 		next_reset_game_time = current_time() + 120.0;
 	}
+	else
+	{
+		//#244: no map list (a dedicated single-map / multiplayer match, zod -d -m
+		//<map>). There's nothing to advance to, so send clients back to their menu
+		//once they dismiss the summary - otherwise they're stuck on it forever. Same
+		//do_reset_game / CONTINUE_AFTER_END fast-path + 120s AFK fallback as above;
+		//CheckResetGame() routes this to RETURN_TO_MENU instead of loading a map.
+		do_reset_game = true;
+		end_return_to_menu = true;
+		next_reset_game_time = current_time() + 120.0;
+	}
 
 	//give clients the game over message
 	BroadCastNews("The game has ended");
@@ -552,6 +564,20 @@ void ZServer::CheckResetGame()
 	//#79: while idling on the menu, don't auto-load the first map - wait for the
 	//player to pick one (which calls DoResetGame directly, bypassing this).
 	if(menu_first) return;
+
+	//#244: a dedicated single-map / multiplayer match just ended with no map list
+	//to advance to. Once the summary is dismissed (CONTINUE_AFTER_END) or the AFK
+	//fallback fires, drop clients back to their menu so they aren't stuck on the
+	//summary forever. The now-idle match is reaped by the orchestrator's empty-exit.
+	if(end_return_to_menu)
+	{
+		if(current_time() < next_reset_game_time) return;
+		server_socket.SendMessageAll(RETURN_TO_MENU, NULL, 0);
+		end_return_to_menu = false;
+		do_reset_game = false;
+		return;
+	}
+
 	if(!map_list.size()) return;
 	if(current_time() < next_reset_game_time) return;
 
