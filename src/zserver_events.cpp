@@ -1208,6 +1208,16 @@ void ZServer::start_bot_event(ZServer *p, char *data, int size, int player)
 	if(pi->team >= MAX_TEAM_TYPES) return;
 	if(pi->team == NULL_TEAM) return;
 
+	//#245: in a sequential campaign the enemies are fixed by the map - don't let a
+	//player add/remove bots from the in-game manage-bots menu (e.g. to tamper with
+	//the scripted opposition). Skirmish/random lists and multiplayer are unaffected.
+	if(p->map_list.size() && !p->load_maps_randomly) return;
+
+	//#242: never turn a team that a human occupies into a bot - otherwise a player
+	//can set their own colour (or another human's) to AI and "co-op" with it.
+	for(vector<p_info>::iterator pl=p->player_info.begin(); pl!=p->player_info.end(); pl++)
+		if(pl->mode == PLAYER_MODE && pl->team == pi->team) return;
+
 	p->StartVote(START_BOT, pi->team, player);
 }
 
@@ -1222,6 +1232,10 @@ void ZServer::stop_bot_event(ZServer *p, char *data, int size, int player)
 	if(pi->team < 0) return;
 	if(pi->team >= MAX_TEAM_TYPES) return;
 	if(pi->team == NULL_TEAM) return;
+
+	//#245: don't let a player switch off the scripted enemy bot in a sequential
+	//campaign. Skirmish/random lists and multiplayer are unaffected.
+	if(p->map_list.size() && !p->load_maps_randomly) return;
 
 	p->StartVote(STOP_BOT, pi->team, player);
 }
