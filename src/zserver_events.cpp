@@ -341,6 +341,16 @@ void ZServer::set_player_team_event(ZServer *p, char *data, int size, int player
 		return;
 	}
 
+	//#249: in multiplayer (no map list) keep every human on a distinct fort team.
+	//Joiners all send the same launch team (or NULL_TEAM), which previously left
+	//them sharing one fort while the other side sat unowned. Redirect a taken/empty
+	//request to the first free fort team so each player actually controls a side.
+	if(!p->map_list.size())
+	{
+		team_type ft = p->AssignableFortTeam(the_team, player);
+		if(ft != NULL_TEAM) the_team = ft;
+	}
+
 	p->ChangePlayerTeam(player, the_team);
 
 	p->player_info[player].team = (team_type)the_team;
