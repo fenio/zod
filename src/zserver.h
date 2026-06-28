@@ -126,6 +126,10 @@ class ZServer : public ZCore
 		void CheckAutoStart();   //matchmaking lobby: start when all humans are ready (per-tick + on ready)
 		int MapPlayerCapacity();   //number of teams with a fort on the loaded map
 		void FillEmptySlotsWithBots();   //add bots for fort-teams with no player
+		//#249: pick the fort team a multiplayer joiner should get - honours the
+		//requested team if it's a free fort team, else the lowest free one, so two
+		//joiners never share a fort (or sit teamless). NULL_TEAM if none free.
+		team_type AssignableFortTeam(int requested, int exclude_player);
 		double auto_start_deadline;   //matchmaking lobby: wall-clock time to start (fill w/ bots); 0 = none
 		void RelayLPlayerLoginInfo(int player, int to_player = -1);
 		void RelayLPlayerVoteChoice(int player, int to_player = -1);

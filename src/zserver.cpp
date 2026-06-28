@@ -277,12 +277,22 @@ void ZServer::InitPerpetualServerSettings()
 
 	//#73: start at the game speed the player last chose. ztime keeps it across
 	//maps within a session, and ChangeGameSpeed re-saves it whenever it changes.
-	if(psettings.allow_game_speed_change)
+	//#250(speed): but a HOSTED server (-d dedicated / -L) must start every match at
+	//a neutral 100%. A dedicated server is reused across independent matches, and a
+	//client changing the speed used to persist it (ZPrefs_Save) and get re-applied
+	//here - so one 4x practice game silently made every later match 400% for
+	//everyone. Singleplayer still restores the player's saved speed.
+	if(allow_remote_clients)
+		ztime.SetGameSpeed(1.0);
+	else if(psettings.allow_game_speed_change)
 		ztime.SetGameSpeed(zod_game_speed);
 
 	//#134: ZOD_GAMESPEED overrides the sim speed for headless testing - lets a
 	//bot-battle cover more game-time per wall-second when hunting timing bugs.
 	if(getenv("ZOD_GAMESPEED")) ztime.SetGameSpeed(atof(getenv("ZOD_GAMESPEED")));
+
+	ZDiag("server start: game speed %d%% (hosted=%d, saved=%d%%)",
+		(int)(ztime.GameSpeed() * 100), (int)allow_remote_clients, (int)(zod_game_speed * 100));
 
 	if(psettings.use_database && psettings.use_mysql)
 	{
@@ -3550,6 +3560,48 @@ int ZServer::MapPlayerCapacity()
 	return n;
 }
 
+//#249: decide the fort team a multiplayer joiner actually gets. Two clients
+//joining a match both send their launch team (the same default for everyone, or
+//NULL_TEAM) and ChangePlayerTeam never checked for collisions - so they ended up
+//sharing one fort while the other side sat unowned ("no team to control"). Honour
+//the requested team only if it's an unclaimed fort team; otherwise hand out the
+//lowest free fort team. exclude_player skips the asker's own slot so re-claiming
+//the team you already hold is a no-op.
+team_type ZServer::AssignableFortTeam(int requested, int exclude_player)
+{
+	bool team_has_fort[MAX_TEAM_TYPES], team_taken[MAX_TEAM_TYPES];
+	for(int t = 0; t < MAX_TEAM_TYPES; t++) { team_has_fort[t] = false; team_taken[t] = false; }
+
+	for(vector<ZObject*>::iterator i = object_list.begin(); i != object_list.end(); i++)
+	{
+		int owner = (*i)->GetOwner();
+		if(owner < 1 || owner >= MAX_TEAM_TYPES) continue;
+		unsigned char ot, oid;
+		(*i)->GetObjectID(ot, oid);
+		if(ot == BUILDING_OBJECT && (oid == FORT_FRONT || oid == FORT_BACK))
+			team_has_fort[owner] = true;
+	}
+
+	for(size_t i = 0; i < player_info.size(); i++)
+	{
+		if((int)i == exclude_player) continue;
+		int t = player_info[i].team;
+		if(t < 1 || t >= MAX_TEAM_TYPES) continue;
+		if(player_info[i].mode == PLAYER_MODE || (player_info[i].mode == BOT_MODE && !player_info[i].ignored))
+			team_taken[t] = true;
+	}
+
+	if(requested >= 1 && requested < MAX_TEAM_TYPES &&
+	   team_has_fort[requested] && !team_taken[requested] && !bot_thread[requested])
+		return (team_type)requested;
+
+	for(int t = 1; t < MAX_TEAM_TYPES; t++)
+		if(team_has_fort[t] && !team_taken[t] && !bot_thread[t])
+			return (team_type)t;
+
+	return NULL_TEAM;
+}
+
 // Start a bot for every fort-team that has no player (human or bot) yet - used to
 // fill a not-full lobby when the countdown expires.
 void ZServer::FillEmptySlotsWithBots()
@@ -4679,9 +4731,13 @@ void ZServer::ChangeGameSpeed(float new_speed)
 	//set
 	ztime.SetGameSpeed(new_speed);
 
-	//#73: remember the speed across sessions (applied again at startup)
+	//#73: remember the speed across sessions (applied again at startup) - but NOT on
+	//a hosted server (#247): persisting one match's speed leaks it into the next
+	//match (and every client) on a reused dedicated server.
 	zod_game_speed = ztime.GameSpeed();
-	ZPrefs_Save();
+	if(!allow_remote_clients) ZPrefs_Save();
+
+	ZDiag("ChangeGameSpeed: now %d%% (hosted=%d)", (int)(ztime.GameSpeed() * 100), (int)allow_remote_clients);
 
 	//tell them all the news
 	RelayGameSpeed();
