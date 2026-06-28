@@ -123,7 +123,10 @@ class ZServer : public ZCore
 		void RelayLPlayerMode(int player, int to_player = -1);
 		void RelayLPlayerIgnored(int player, int to_player = -1);
 		void RelayLPlayerReady(int player, int to_player = -1);   //matchmaking lobby
-		void CheckAutoStart();   //matchmaking lobby: start when all humans are ready
+		void CheckAutoStart();   //matchmaking lobby: start when all humans are ready (per-tick + on ready)
+		int MapPlayerCapacity();   //number of teams with a fort on the loaded map
+		void FillEmptySlotsWithBots();   //add bots for fort-teams with no player
+		double auto_start_deadline;   //matchmaking lobby: wall-clock time to start (fill w/ bots); 0 = none
 		void RelayLPlayerLoginInfo(int player, int to_player = -1);
 		void RelayLPlayerVoteChoice(int player, int to_player = -1);
 		bool LoginCheckDenied(int player);

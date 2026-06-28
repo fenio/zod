@@ -82,6 +82,7 @@ ZServer::ZServer() : ZCore()
 	reload_same_map = false;
 	next_ref_id = 0;
 	game_on = false;
+	auto_start_deadline = 0;   //matchmaking lobby countdown (none yet)
 	allow_remote_clients = false;	//#158: loopback-only by default (no exposed port in singleplayer)
 	menu_first = false;	//#79
 	menu_mode_session = false;	//#136
@@ -1382,6 +1383,10 @@ void ZServer::Run()
 
 		//orchestrator status file + empty-match self-exit (both opt-in via env)
 		CheckStatusAndIdle();
+
+		//matchmaking lobby: advance the all-ready countdown (-> fill with bots + start).
+		//Cheap no-op once the game is running (returns immediately when not paused).
+		CheckAutoStart();
 
 		//check for endgame
 		CheckEndGame();
@@ -3456,13 +3461,97 @@ void ZServer::CheckAutoStart()
 			bots++;
 	}
 
-	// Need either >=2 humans (a real match) or >=1 bot (a single player
-	// practicing) - so nobody starts truly alone, but bot-only testing works.
-	if(humans >= 1 && ready == humans && (humans >= 2 || bots >= 1))
+	bool all_ready = (humans >= 1 && ready == humans);
+
+	// Nobody to play against yet (one human, no bots) - cancel any countdown, wait.
+	if(!all_ready || (humans < 2 && bots == 0))
 	{
-		printf("ZServer: all %d player(s) ready (%d bots) - starting match\n", humans, bots);
+		auto_start_deadline = 0;
+		return;
+	}
+
+	int capacity = MapPlayerCapacity();
+
+	// Full of humans, or a bot is already present (practice / countdown filled) ->
+	// start now.
+	if(humans >= capacity || bots > 0)
+	{
+		printf("ZServer: all ready (%d humans, %d bots, cap %d) - starting\n", humans, bots, capacity);
+		auto_start_deadline = 0;
+		ResumeGame();
+		return;
+	}
+
+	// All humans ready but slots remain and no bots: count down (wall-clock, since
+	// the game is paused), then fill the empty slots with bots and start - so a 2/4
+	// map doesn't sit forever waiting for a 3rd and 4th human.
+	int secs = getenv("ZOD_LOBBY_COUNTDOWN_SECS") ? atoi(getenv("ZOD_LOBBY_COUNTDOWN_SECS")) : 30;
+	double now = current_time();
+	if(auto_start_deadline == 0)
+	{
+		auto_start_deadline = now + secs;
+		char msg[96];
+		snprintf(msg, sizeof(msg), "all ready - starting in %ds (or when %d players join)", secs, capacity);
+		BroadCastNews(msg);
+	}
+	else if(now >= auto_start_deadline)
+	{
+		printf("ZServer: countdown done - filling %d empty slot(s) with bots, starting\n", capacity - humans);
+		FillEmptySlotsWithBots();
+		auto_start_deadline = 0;
 		ResumeGame();
 	}
+}
+
+// Number of teams that have a fort on the loaded map = how many players it seats.
+int ZServer::MapPlayerCapacity()
+{
+	bool team_has_fort[MAX_TEAM_TYPES];
+	for(int t = 0; t < MAX_TEAM_TYPES; t++) team_has_fort[t] = false;
+
+	for(vector<ZObject*>::iterator i = object_list.begin(); i != object_list.end(); i++)
+	{
+		int owner = (*i)->GetOwner();
+		if(owner < 1 || owner >= MAX_TEAM_TYPES) continue;
+		unsigned char ot, oid;
+		(*i)->GetObjectID(ot, oid);
+		if(ot == BUILDING_OBJECT && (oid == FORT_FRONT || oid == FORT_BACK))
+			team_has_fort[owner] = true;
+	}
+
+	int n = 0;
+	for(int t = 0; t < MAX_TEAM_TYPES; t++) if(team_has_fort[t]) n++;
+	return n;
+}
+
+// Start a bot for every fort-team that has no player (human or bot) yet - used to
+// fill a not-full lobby when the countdown expires.
+void ZServer::FillEmptySlotsWithBots()
+{
+	bool team_has_fort[MAX_TEAM_TYPES], team_taken[MAX_TEAM_TYPES];
+	for(int t = 0; t < MAX_TEAM_TYPES; t++) { team_has_fort[t] = false; team_taken[t] = false; }
+
+	for(vector<ZObject*>::iterator i = object_list.begin(); i != object_list.end(); i++)
+	{
+		int owner = (*i)->GetOwner();
+		if(owner < 1 || owner >= MAX_TEAM_TYPES) continue;
+		unsigned char ot, oid;
+		(*i)->GetObjectID(ot, oid);
+		if(ot == BUILDING_OBJECT && (oid == FORT_FRONT || oid == FORT_BACK))
+			team_has_fort[owner] = true;
+	}
+
+	for(size_t i = 0; i < player_info.size(); i++)
+	{
+		int t = player_info[i].team;
+		if(t < 1 || t >= MAX_TEAM_TYPES) continue;
+		if(player_info[i].mode == PLAYER_MODE || (player_info[i].mode == BOT_MODE && !player_info[i].ignored))
+			team_taken[t] = true;
+	}
+
+	for(int t = 0; t < MAX_TEAM_TYPES; t++)
+		if(team_has_fort[t] && !team_taken[t] && !bot_thread[t])
+			StartBot(t);
 }
 
 void ZServer::RelayLPlayerLoginInfo(int player, int to_player)
