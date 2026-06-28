@@ -1475,8 +1475,10 @@ void ZServer::CheckStatusAndIdle()
 		if(c >= 0)
 		{
 			char buf[160];
-			int n = snprintf(buf, sizeof(buf), "{\"players\":%d,\"map\":\"%s\"}\n",
-				players, map_name.c_str());
+			//"started" = the match has un-paused (game running, no longer a joinable
+			//lobby), so the orchestrator can stop offering it for matchmaking.
+			int n = snprintf(buf, sizeof(buf), "{\"players\":%d,\"started\":%d,\"map\":\"%s\"}\n",
+				players, ztime.IsPaused() ? 0 : 1, map_name.c_str());
 			if(n > 0) write(c, buf, (size_t)n);
 			close(c);
 		}
