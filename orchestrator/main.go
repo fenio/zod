@@ -70,6 +70,8 @@ type Orchestrator struct {
 	emptyExit int    // seconds a match may sit empty before the server self-exits (0 = never)
 	capacity  int    // human players an open (matchmaking) match accepts before it's full
 	mmMap     string // preferred map for matchmaking matches ("" = first map in maps/)
+	portMin   int    // match port pool bounds (retained for the status page)
+	portMax   int
 
 	mu        sync.Mutex
 	matches   map[string]*Match
@@ -91,6 +93,8 @@ func newOrchestrator(zodBin, zodDir, advertise string, emptyExit, portMin, portM
 		emptyExit: emptyExit,
 		capacity:  capacity,
 		mmMap:     mmMap,
+		portMin:   portMin,
+		portMax:   portMax,
 		matches:   make(map[string]*Match),
 		freePorts: ports,
 	}
@@ -409,6 +413,48 @@ func (o *Orchestrator) handleDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// handleRoot is a plain-text status dashboard (what you get hitting the host in a
+// browser): the config, the live matches, and each one's player count.
+func (o *Orchestrator) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		httpErr(w, http.StatusNotFound, "not found")
+		return
+	}
+
+	matches := o.list() // includes live player counts (read over the status socket)
+	sort.Slice(matches, func(i, j int) bool { return matches[i].Port < matches[j].Port })
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "zod match orchestrator (PoC)\n\n")
+	fmt.Fprintf(&b, "advertise : %s\n", o.advertise)
+	fmt.Fprintf(&b, "ports     : %d-%d  (%d free)\n", o.portMin, o.portMax, len(o.freePorts))
+	fmt.Fprintf(&b, "capacity  : %d humans/match\n", o.capacity)
+	fmt.Fprintf(&b, "matches   : %d\n\n", len(matches))
+
+	if len(matches) == 0 {
+		fmt.Fprintf(&b, "  (no matches running)\n")
+	} else {
+		fmt.Fprintf(&b, "  %-9s %-8s %-6s %-9s %s\n", "ID", "PLAYERS", "PORT", "TYPE", "MAP")
+		for _, m := range matches {
+			players := "?"
+			if m.Players >= 0 {
+				players = fmt.Sprintf("%d/%d", m.Players, o.capacity)
+			}
+			typ := "match"
+			if m.Matchmaking {
+				typ = "open/mm"
+			}
+			fmt.Fprintf(&b, "  %-9s %-8s %-6d %-9s %s\n",
+				m.ID, players, m.Port, typ, strings.TrimSuffix(m.Map, ".map"))
+		}
+	}
+
+	fmt.Fprintf(&b, "\nAPI: POST /matchmake | POST/GET/DELETE /matches | GET /maps\n")
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprint(w, b.String())
+}
+
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -461,9 +507,7 @@ func main() {
 	mux.HandleFunc("GET /matches/{id}", o.handleGet)
 	mux.HandleFunc("DELETE /matches/{id}", o.handleDelete)
 	mux.HandleFunc("GET /maps", o.handleMaps)
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "zod match orchestrator (PoC) - POST/GET/DELETE /matches, POST /matchmake")
-	})
+	mux.HandleFunc("GET /", o.handleRoot)
 
 	log.Printf("orchestrator listening on %s | zod=%s dir=%s advertise=%s ports=%d-%d capacity=%d",
 		addr, zodBin, zodDir, advertise, portMin, portMax, capacity)
