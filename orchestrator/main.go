@@ -259,30 +259,38 @@ func (o *Orchestrator) get(id string) *Match {
 	return m
 }
 
-// readPlayers asks the server for its current human-player count by connecting to
-// its local AF_UNIX admin socket and reading the JSON it writes back. On demand -
-// nothing is polled or stored. Returns -1 if the socket isn't up yet or errors.
-func readPlayers(sock string) int {
+// readStatus asks the server for its live status over the local AF_UNIX admin
+// socket: the human-player count and whether the match has started (un-paused).
+// On demand - nothing is polled or stored. players=-1 if the socket isn't up yet.
+func readStatus(sock string) (players int, started bool) {
+	players = -1
 	if sock == "" {
-		return -1
+		return
 	}
 	conn, err := net.DialTimeout("unix", sock, 250*time.Millisecond)
 	if err != nil {
-		return -1
+		return
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(250 * time.Millisecond))
 	data, err := io.ReadAll(conn)
 	if err != nil {
-		return -1
+		return
 	}
 	var s struct {
-		Players int `json:"players"`
+		Players int  `json:"players"`
+		Started bool `json:"started"`
 	}
 	if json.Unmarshal(data, &s) != nil {
-		return -1
+		return
 	}
-	return s.Players
+	return s.Players, s.Started
+}
+
+// readPlayers is the player-count-only convenience over readStatus.
+func readPlayers(sock string) int {
+	p, _ := readStatus(sock)
+	return p
 }
 
 // kill terminates a match's process. The per-match reaper goroutine then removes
@@ -389,11 +397,14 @@ func (o *Orchestrator) matchmake() (*Match, error) {
 	o.mu.Unlock()
 
 	if cur != nil {
-		// readPlayers returns -1 for a just-spawned server (socket not up yet),
-		// which is < capacity, i.e. still joinable - correct. Capacity is the open
-		// match's own (= its map's slots), not a global.
-		if readPlayers(cur.statusSock) < cur.Capacity {
-			cur.Players = readPlayers(cur.statusSock)
+		// players=-1 for a just-spawned server (socket not up yet), which is
+		// < capacity, i.e. still joinable - correct. Capacity is the open match's own
+		// (= its map's slots). Offer it only if it hasn't STARTED (un-paused) and has
+		// room; a started match is a game in progress, not a joinable lobby - so we
+		// rotate to a fresh one instead of dropping a joiner into a running game.
+		players, started := readStatus(cur.statusSock)
+		if !started && players < cur.Capacity {
+			cur.Players = players
 			return cur, nil
 		}
 	}
