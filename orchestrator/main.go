@@ -444,7 +444,15 @@ func main() {
 	}
 	mmMap := env("MM_MAP", "") // preferred matchmaking map ("" = first map in maps/)
 
-	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, 2300, 2399, capacity, mmMap)
+	// Match port pool. MUST match the ports actually published/firewalled to the
+	// host, or the orchestrator will hand clients a port it can't reach.
+	portMin, _ := strconv.Atoi(env("MATCH_PORT_MIN", "2300"))
+	portMax, _ := strconv.Atoi(env("MATCH_PORT_MAX", "2399"))
+	if portMin < 1 || portMax < portMin {
+		log.Fatalf("bad match port range: MATCH_PORT_MIN=%d MATCH_PORT_MAX=%d", portMin, portMax)
+	}
+
+	o := newOrchestrator(zodBin, zodDir, advertise, emptyExit, portMin, portMax, capacity, mmMap)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /matches", o.handleCreate)
@@ -457,7 +465,7 @@ func main() {
 		fmt.Fprintln(w, "zod match orchestrator (PoC) - POST/GET/DELETE /matches, POST /matchmake")
 	})
 
-	log.Printf("orchestrator listening on %s | zod=%s dir=%s advertise=%s ports=2300-2399 capacity=%d",
-		addr, zodBin, zodDir, advertise, capacity)
+	log.Printf("orchestrator listening on %s | zod=%s dir=%s advertise=%s ports=%d-%d capacity=%d",
+		addr, zodBin, zodDir, advertise, portMin, portMax, capacity)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
