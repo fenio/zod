@@ -1,6 +1,8 @@
 #ifndef _ZPREFS_H_
 #define _ZPREFS_H_
 
+#include <string>
+
 // Player-local preferences, persisted to ~/.zod_prefs and editable from the
 // in-game Options menu. Load order: defaults, then the prefs file, then the
 // env vars (ZOD_CLASSIC_MOUSE / ZOD_SMOOTH) - so env always wins a launch.
@@ -27,6 +29,11 @@ extern const char *bot_difficulty_name[MAX_BOT_DIFFICULTY];
 //#75: max combat units per team. Adjustable in Options (UNIT_LIMIT_MIN..MAX);
 //read at the start of each game, so a change takes effect from the next game.
 extern int zod_max_units_per_team;
+
+//#246: the player's display name, persisted so it's not "Player" for everyone in
+//multiplayer. Editable in Options. Empty here means "unset" - main defaults it to
+//the OS login name on first run; an explicit -n on the command line still wins.
+extern std::string zod_player_name;
 
 void ZPrefs_Load();
 void ZPrefs_Save();

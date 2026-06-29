@@ -21,6 +21,16 @@ void GMMOptions::SetupLayout1()
 
 	next_y = GMM_TITLE_MARGIN;
 
+	//#246: editable player name. Click to focus, type to edit; persisted to prefs
+	//and used as the multiplayer display name.
+	name_entry.SetLabel("Name: ");
+	name_entry.SetText(zod_player_name);
+	name_entry.SetMaxText(16);
+	name_entry.SetCoords(GMM_SIDE_MARGIN, next_y);
+	name_entry.SetDimensions(w - (GMM_SIDE_MARGIN * 2), GMMWTEXTENTRY_HEIGHT);
+	AddWidget(&name_entry);
+	next_y += GMMWTEXTENTRY_HEIGHT + 7;
+
 	//volume and game speed: click cycles to the next setting; the button text
 	//shows the current value (refreshed each frame in Process from live state)
 	volume_button.SetType(MMGENERIC_BUTTON);
@@ -103,6 +113,11 @@ void GMMOptions::SetupLayout1()
 
 void GMMOptions::Process()
 {
+	//#246: reflect the current saved name when the field isn't being edited (so it
+	//shows the startup default / any external change without clobbering live typing)
+	if(!name_entry.IsSelected())
+		name_entry.SetText(zod_player_name);
+
 	SetVolumeStatus();
 
 	SetTimeStatuses();
@@ -170,6 +185,15 @@ void GMMOptions::HandleWidgetEvent(int event_type, ZGMMWidget *event_widget)
 
 	switch(event_type)
 	{
+	case GMM_KEYPRESS_EVENT:
+		//#246: the name field was edited - persist it (used as the MP display name)
+		if(w_ref_id == name_entry.GetRefID())
+		{
+			zod_player_name = name_entry.GetText();
+			ZPrefs_Save();
+		}
+		break;
+
 	case GMM_UNCLICK_EVENT:
 		if(w_ref_id == reshuffle_button.GetRefID())
 		{

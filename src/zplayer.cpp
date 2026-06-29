@@ -4626,6 +4626,7 @@ bool ZPlayer::MainMenuAbsorbLUnClick()
 				string host = the_flags.join_host;
 				int port = the_flags.join_port;
 				ZDiag("join: connecting to match %s:%d (local ztime paused=%d)", host.c_str(), port, (int)ztime.IsPaused());
+				if(zod_player_name.size()) SetPlayerName(zod_player_name);   //#246: latest (maybe just-edited) name
 				bool ok = ConnectToServer(host, port);
 				ZDiag("join: ConnectToServer=%d -> opening lobby", (int)ok);
 				CloseAllMenus();              //drop the browser/create stack

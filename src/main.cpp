@@ -330,8 +330,27 @@ void run_player_thread()
 	zplayer.SetUseOpenGL(!starting_conditions.read_opengl_off);
 	if(starting_conditions.read_player_team)
 		zplayer.SetDesiredTeam((team_type)starting_conditions.team);
-	if(starting_conditions.read_player_name)
+	//#246: name resolution. An explicit -n (anything other than the "Player"
+	//default) wins and is saved. Otherwise use the saved name, or fall back to the
+	//OS login on first run - so multiplayer isn't a lobby full of "Player". The
+	//chosen name persists and is editable in Options.
+	if(starting_conditions.read_player_name && starting_conditions.player_name != "Player")
+	{
 		zplayer.SetPlayerName(starting_conditions.player_name);
+		zod_player_name = starting_conditions.player_name;
+		ZPrefs_Save();
+	}
+	else
+	{
+		if(zod_player_name.empty())
+		{
+			const char *u = getenv("USER");
+			if(!u || !u[0]) u = getenv("USERNAME");   //Windows
+			zod_player_name = (u && u[0]) ? u : "Player";
+			ZPrefs_Save();
+		}
+		zplayer.SetPlayerName(zod_player_name);
+	}
 	if(starting_conditions.read_loginname)
 		zplayer.SetLoginName(starting_conditions.loginname);
 	if(starting_conditions.read_password)
