@@ -113,7 +113,7 @@ void ZPath_Finding_RegionInfo::Init(int w_, int h_)
 	h = h_;
 
 	//alloc ffQ
-	ffQ = (ffnode *)malloc(w * h * sizeof(ffnode));
+	ffQ = (ffnode *)malloc((size_t)w * h * sizeof(ffnode));
 	//printf("ffq nodes:%d\n", w * h);
 
 	//alloc regions

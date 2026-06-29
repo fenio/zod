@@ -73,7 +73,7 @@ void ZServer::connect_event(ZServer *p, char *data, int size, int player)
 
 	if(player < p->player_info.size())
 	{
-		printf("ZServer::connect_event: tried to add a player that is already on the list [p:%d] vs [size:%s]\n", player, p->player_info.size());
+		printf("ZServer::connect_event: tried to add a player that is already on the list [p:%d] vs [size:%zu]\n", player, p->player_info.size());
 		return;
 	}
 
@@ -100,7 +100,7 @@ void ZServer::disconnect_event(ZServer *p, char *data, int size, int player)
 
 	if(player >= p->player_info.size())
 	{
-		printf("ZServer::disconnect_event: tried to remove a player that is not on the list [p:%d] vs [size:%s]\n", player, p->player_info.size());
+		printf("ZServer::disconnect_event: tried to remove a player that is not on the list [p:%d] vs [size:%zu]\n", player, p->player_info.size());
 		return;
 	}
 
