@@ -28,12 +28,12 @@ public:
 enum mmwidget_type
 {
 	MMUNKNOWN_WIDGET, MMBUTTON_WIDGET, MMLABEL_WIDGET,
-	MMLIST_WIDGET, MMRADIO_WIDGET, MMTEAM_COLOR_WIDGET, MAX_MMWIDGETS
+	MMLIST_WIDGET, MMRADIO_WIDGET, MMTEAM_COLOR_WIDGET, MMTEXTENTRY_WIDGET, MAX_MMWIDGETS
 };
 
 const string mmwidget_type_string[MAX_MMWIDGETS] =
 {
-	"unknown", "button", "label", "list", "radio", "team_color"
+	"unknown", "button", "label", "list", "radio", "team_color", "text_entry"
 };
 
 class ZGMMWidget
@@ -165,6 +165,41 @@ private:
 	string rendered_text;
 	bool rerender_text;
 	int font;
+};
+
+//#246: a single-line editable text field for the Options menu (player name). Click
+//to focus, type to edit (backspace + good_user_char filtering, like the old
+//ZGuiTextBox), shows a caret while focused. Click() focuses only when hit, so it
+//co-operates with the other widgets; KeyPress() is ignored unless focused.
+#define GMMWTEXTENTRY_HEIGHT 15
+
+class GMMWTextEntry : public ZGMMWidget
+{
+public:
+	GMMWTextEntry();
+
+	void DoRender(ZMap &the_map, SDL_Surface *dest, int tx, int ty);
+
+	bool Click(int x_, int y_);
+	bool KeyPress(int c);
+
+	void SetLabel(string label_) { label = label_; rerender_text = true; }
+	void SetText(string text_) { if(text==text_) return; text = text_; rerender_text = true; }
+	string GetText() { return text; }
+	void SetMaxText(int m) { max_text = m; }
+	void SetSelected(bool s) { if(selected==s) return; selected = s; rerender_text = true; }
+	bool IsSelected() { return selected; }
+	bool TakeChanged() { bool c = changed; changed = false; return c; }   //true once per edit
+private:
+	void MakeTextImage();
+
+	string label;
+	string text;
+	ZSDL_Surface text_img;
+	bool rerender_text;
+	bool selected;
+	int max_text;
+	bool changed;
 };
 
 #define MMLIST_ENTRY_HEIGHT 13

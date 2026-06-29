@@ -20,6 +20,7 @@ private:
 	// volume and game speed use cycling BUTTONS, not radios: the radio widget's
 	// art was never shipped, so the menu had no working volume/speed control
 	// (issue #41); buttons are the reliable control this fork ships
+	GMMWTextEntry name_entry;	//#246: editable player name (persisted)
 	GMMWButton volume_button;
 	GMMWButton speed_button;
 	GMMWButton mouse_button;

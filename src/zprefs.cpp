@@ -24,6 +24,10 @@ int zod_bot_difficulty = BOT_DIFF_NORMAL;
 const char *bot_difficulty_name[MAX_BOT_DIFFICULTY] = { "Easy", "Normal", "Hard", "Expert" };
 int zod_max_units_per_team = DEFAULT_MAX_UNITS_PER_TEAM;	//#75
 
+//#246: display name, persisted so multiplayer isn't "Player" vs "Player". Empty
+//means unset (main fills it from the OS login on first run).
+string zod_player_name = "";
+
 //defined in zobject.cpp (the render-smoothing master toggle)
 extern bool zod_render_smoothing;
 
@@ -75,6 +79,13 @@ void ZPrefs_Load()
 				if(zod_max_units_per_team < UNIT_LIMIT_MIN) zod_max_units_per_team = UNIT_LIMIT_MIN;
 				if(zod_max_units_per_team > UNIT_LIMIT_MAX) zod_max_units_per_team = UNIT_LIMIT_MAX;
 			}
+			else if(!strcmp(key, "player_name"))
+			{
+				char *v = eq + 1;
+				size_t vl = strlen(v);
+				while(vl && (v[vl-1] == '\n' || v[vl-1] == '\r')) v[--vl] = 0;
+				zod_player_name = v;
+			}
 		}
 
 		fclose(fp);
@@ -104,5 +115,6 @@ void ZPrefs_Save()
 	fprintf(fp, "menu_scale=%g\n", zod_menu_scale);
 	fprintf(fp, "bot_difficulty=%d\n", zod_bot_difficulty);
 	fprintf(fp, "max_units_per_team=%d\n", zod_max_units_per_team);
+	if(zod_player_name.size()) fprintf(fp, "player_name=%s\n", zod_player_name.c_str());
 	fclose(fp);
 }
