@@ -1,5 +1,9 @@
 #include "server_socket.h"
 #include "common.h"
+#include "zpath_debug.h"
+
+#include <cerrno>
+#include <cstring>
 
 using namespace COMMON;
 
@@ -207,12 +211,22 @@ int ServerSocket::Bind(bool localhost_only)
 	//INADDR_ANY so remote/LAN clients can actually connect.
 	si_me.sin_addr.s_addr = htonl(localhost_only ? INADDR_LOOPBACK : INADDR_ANY);
 	
-	while(::bind(s, (struct sockaddr *) &si_me, sizeof(si_me))==-1)
+	//#254: this used to retry FOREVER, silently - a stale zod still holding the
+	//port left the new instance with a dead server and empty menus, and nothing
+	//in zod_diag.log to say why. Retry briefly (a restarting server may still be
+	//releasing the port), then give up loudly so ZServer::Setup can report it.
+	for(int attempt = 1; ::bind(s, (struct sockaddr *) &si_me, sizeof(si_me))==-1; attempt++)
 	{
-		printf("ServerSocket::Bind:error binding socket\n");
-		uni_pause(5000);
+		printf("ServerSocket::Bind:error binding socket on port %d: %s\n", port, strerror(errno));
+		ZDiag("SERVER: bind failed on port %d (attempt %d/3): %s", port, attempt, strerror(errno));
+
+		if(attempt >= 3) return 0;
+
+		uni_pause(2000);
 	}
-	
+
+	bound = 1;
+
 	return 1;
 }
 
