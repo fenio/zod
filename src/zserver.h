@@ -124,6 +124,7 @@ class ZServer : public ZCore
 		void RelayLPlayerIgnored(int player, int to_player = -1);
 		void RelayLPlayerReady(int player, int to_player = -1);   //matchmaking lobby
 		void CheckAutoStart();   //matchmaking lobby: start when all humans are ready (per-tick + on ready)
+		void CheckDelayedStartPause();   //#181: fire the settle-delayed start-screen pause
 		int MapPlayerCapacity();   //number of teams with a fort on the loaded map
 		void FillEmptySlotsWithBots();   //add bots for fort-teams with no player
 		//#249: pick the fort team a multiplayer joiner should get - honours the
@@ -216,6 +217,7 @@ class ZServer : public ZCore
 		bool menu_first;	//#79: idle without a map until the player picks one
 		bool menu_mode_session;	//#136: this session is menu-driven (return to menu after a match)
 		bool playing_generated_map;	//#136: current map is a generated/one-off (not campaign)
+		double start_pause_at_ztime;	//#181: game time to raise the start-screen pause (<0 = none pending)
 		
 		EventHandler<ZServer> ehandler;
 		
