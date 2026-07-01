@@ -3,7 +3,7 @@
 
 using namespace COMMON;
 
-bool ZSoundEngine::finished_init = NULL;
+bool ZSoundEngine::finished_init = false;
 ZMap *ZSoundEngine::zmap = NULL;
 ZSound ZSoundEngine::engine_sound[MAX_ENGINE_SOUNDS];
 

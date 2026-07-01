@@ -4741,6 +4741,8 @@ bool ZServer::SuggestReshuffleTeams()
 			case BOT_MODE:
 				bots_on_team[player_info[i].team]++;
 				break;
+			default:
+				break;
 		}
 	}
 

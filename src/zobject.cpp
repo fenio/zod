@@ -656,9 +656,9 @@ void ZObject::RenderHealth(ZMap &zmap, SDL_Surface *dest)
 	SDL_Rect the_box;
 	SDL_Rect from_rect, to_rect;
 	//int shift_x, shift_y, view_w, view_h;
-	const char g_r = 82, g_g = 190, g_b = 33;
-	const char y_r = 247, y_g = 203, y_b = 107;
-	const char b_r = 0, b_g = 0, b_b = 0;
+	const unsigned char g_r = 82, g_g = 190, g_b = 33;
+	const unsigned char y_r = 247, y_g = 203, y_b = 107;
+	const unsigned char b_r = 0, b_g = 0, b_b = 0;
 	//int green_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 82, 190, 33);
 	//int yellow_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 247, 203, 107);
 	//int black_map = SDL_MapRGB(SDL_GetPixelFormatDetails(dest->format), SDL_GetSurfacePalette(dest), 0, 0, 0);

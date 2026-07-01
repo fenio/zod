@@ -312,7 +312,7 @@ void ZSDL_Surface::SetAngle(float angle_)
 	angle = angle_;
 }
 
-void ZSDL_Surface::SetAlpha(char alpha_)
+void ZSDL_Surface::SetAlpha(unsigned char alpha_)
 {
 	alpha = alpha_;
 
@@ -323,7 +323,7 @@ void ZSDL_Surface::SetAlpha(char alpha_)
 	}
 }
 
-void ZSDL_Surface::FillRectOnToMe(SDL_Rect *dstrect, char r, char g, char b)
+void ZSDL_Surface::FillRectOnToMe(SDL_Rect *dstrect, unsigned char r, unsigned char g, unsigned char b)
 {
 	if(!sdl_surface) return;
 
@@ -370,7 +370,7 @@ void ZSDL_Surface::BlitOnToMe(SDL_Rect *srcrect, SDL_Rect *dstrect, SDL_Surface 
 }
 
 //ZSDL_Surface has made itself into an engine it seems...
-void ZSDL_Surface::ZSDL_FillSurfaceRect(SDL_Rect *dstrect, char r, char g, char b, ZSDL_Surface *dst)
+void ZSDL_Surface::ZSDL_FillSurfaceRect(SDL_Rect *dstrect, unsigned char r, unsigned char g, unsigned char b, ZSDL_Surface *dst)
 {
 	if(dst)
 	{

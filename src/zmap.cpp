@@ -995,7 +995,7 @@ int ZMap::Read(const char* filename)
 	const int buf_size = 1024;
 	char buf[buf_size];
 
-	while(ret = fread(buf, 1, buf_size, fp))
+	while((ret = fread(buf, 1, buf_size, fp)) != 0)
 	{
 		//resize
 		if(!map_data) 

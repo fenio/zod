@@ -1227,6 +1227,8 @@ void ZPlayer::DisplayPlayerList()
 		case TRAY_MODE:
 			tray_players++;
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -2178,6 +2180,7 @@ void ZPlayer::HandleButton(hud_buttons button)
 	case T_BUTTON: T_Button(); break;
 	case V_BUTTON: V_Button(); break;
 	case Z_BUTTON: Z_Button(); break;
+	default: break;
 	}
 }
 
