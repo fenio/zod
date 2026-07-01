@@ -309,9 +309,7 @@ int SocketHandler::SendMessage(int pack_id, const char *data, int size)
 	char temp_buf[MAX_DATA_STORED];
 	int error_no;
 	
-	if(!this) return 0;
-	
-	//if(!pause_for_send())
+		//if(!pause_for_send())
 	//{
 	//	Disconnect();
 	//	return 0;

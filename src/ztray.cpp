@@ -146,6 +146,8 @@ void ZTray::UpdateDisplay()
 		case TRAY_MODE:
 			tray_players++;
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -156,27 +158,27 @@ void ZTray::UpdateDisplay()
 			if(bot_player[i])
 			{
 				if(bot_player_ignored[i])
-					printf(string(team_type_string[i] + " team -b: " + team_players[i] + "\n").c_str());
+					printf("%s", string(team_type_string[i] + " team -b: " + team_players[i] + "\n").c_str());
 				else
-					printf(string(team_type_string[i] + " team +b: " + team_players[i] + "\n").c_str());
+					printf("%s", string(team_type_string[i] + " team +b: " + team_players[i] + "\n").c_str());
 			}
 			else
-				printf(string(team_type_string[i] + " team: " + team_players[i] + "\n").c_str());
+				printf("%s", string(team_type_string[i] + " team: " + team_players[i] + "\n").c_str());
 		}
 
 	if(spectators.size())
-		printf(string("spectators: " + spectators + "\n").c_str());
+		printf("%s", string("spectators: " + spectators + "\n").c_str());
 
 	if(tray_players)
 	{
 		sprintf(c_message, "tray players: %d\n", tray_players);
-		printf(c_message);
+		printf("%s", c_message);
 	}
 
 	if(nobodies)
 	{
 		sprintf(c_message, "nobodies: %d\n", nobodies);
-		printf(c_message);
+		printf("%s", c_message);
 	}
 
 	printf("-------------------------\n");

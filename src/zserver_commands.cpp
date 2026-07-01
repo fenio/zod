@@ -4,8 +4,11 @@ using namespace COMMON;
 
 void ParseCommandContents(string contents, string *output, int max_values)
 {
-	unsigned int pos = 0;
-	unsigned int last_pos = 0;
+	//string::size_type, NOT unsigned int: on 64-bit an unsigned int can never
+	//equal string::npos, so every npos check below silently went dead (and an
+	//all-spaces token turned into an out-of-range substr)
+	string::size_type pos = 0;
+	string::size_type last_pos = 0;
 
 	printf("contents:'%s'\n", contents.c_str());
 
@@ -24,7 +27,7 @@ void ParseCommandContents(string contents, string *output, int max_values)
 
 		//remove all initial spaces
 		{
-			unsigned int cpos;
+			string::size_type cpos;
 
 			cpos = output[i].find_first_not_of(' ');
 
@@ -34,7 +37,7 @@ void ParseCommandContents(string contents, string *output, int max_values)
 				output[i] = output[i].substr(cpos);
 		}
 
-		printf("output[%d]:'%s' pos:%d\n", i, output[i].c_str(), pos);
+		printf("output[%d]:'%s' pos:%d\n", i, output[i].c_str(), (int)pos);
 
 		last_pos = pos;
 		last_pos++;
@@ -46,7 +49,7 @@ void ParseCommandContents(string contents, string *output, int max_values)
 void ZServer::ProcessPlayerCommand(int player, string full_command)
 {
 	string command, contents;
-	unsigned int pos;
+	string::size_type pos;   //unsigned int truncated npos - see ParseCommandContents
 
 	pos = full_command.find(' ');
 	command = full_command.substr(0, pos);
