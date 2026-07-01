@@ -882,7 +882,7 @@ static void ensure_connectivity()
 
 	for(int pass = 0; pass < 4; pass++)
 	{
-		vector<bool> seen(W * H, false);
+		vector<bool> seen((size_t)W * H, false);
 		vector<int> q;
 		if(!vehicle_open(sx, sy)) { carve_cell(sx, sy); carve_cell(sx+1, sy); carve_cell(sx, sy+1); carve_cell(sx+1, sy+1); }
 		q.push_back(idx(sx, sy));
@@ -1155,12 +1155,12 @@ bool Generate(const std::string &out_path_, int enemies_, int w_, int h_,
 	if(!load_tileinfo()) return false;
 	learn_tiles();
 
-	tiles.resize(W * H);
-	kind.assign(W * H, 'g');
-	reserved.assign(W * H, false);
-	solid.assign(W * H, false);
-	keepout.assign(W * H, false);
-	rock_at.assign(W * H, -1);
+	tiles.resize((size_t)W * H);
+	kind.assign((size_t)W * H, 'g');
+	reserved.assign((size_t)W * H, false);
+	solid.assign((size_t)W * H, false);
+	keepout.assign((size_t)W * H, false);
+	rock_at.assign((size_t)W * H, -1);
 	for(int y = 0; y < H; y++) for(int x = 0; x < W; x++) set_ground(x, y);
 
 	make_zones();
