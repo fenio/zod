@@ -94,6 +94,7 @@ ZServer::ZServer() : ZCore()
 	end_return_to_menu = false;   //#244
 	next_scuffle_time = 0;
 	next_make_suggestions_time = 0;
+	start_pause_at_ztime = -1;   //#181
 
 	//bots
 	for(int i=0;i<MAX_TEAM_TYPES;i++)
@@ -797,7 +798,26 @@ void ZServer::LoadNextMap(string override_map_name)
 
 	//#134: ZOD_AUTOSTART skips the start-screen pause - lets a headless bot-vs-bot
 	//battle (no human to click "start") run on its own, e.g. to hunt teleport bugs.
-	if(psettings.start_map_paused && !getenv("ZOD_AUTOSTART")) PauseGame();
+	start_pause_at_ztime = -1;
+	if(psettings.start_map_paused && !getenv("ZOD_AUTOSTART"))
+	{
+		//#181: units spawn stacked on their spawn point and only walk into their
+		//standard formation once the world runs. In a local singleplayer game let
+		//it run for a moment before the start-screen pause goes up, so the player
+		//meets formed-up squads. Hosted/MP servers keep the immediate pause: the
+		//lobby flow and the orchestrator's "started = un-paused" probe (#239) both
+		//read the pause state, and a briefly-running match would corrupt both.
+		if(!allow_remote_clients)
+		{
+			//if the previous game sat paused (e.g. a map picked from the menu while
+			//paused), unfreeze first - a frozen ztime would never reach the deadline,
+			//leaving a live timer to re-pause the player 3s into their game instead
+			ResumeGame();
+			start_pause_at_ztime = ztime.ztime + 3.0;
+		}
+		else
+			PauseGame();
+	}
 
 	game_on = true;
 
@@ -808,6 +828,23 @@ void ZServer::LoadNextMap(string override_map_name)
 		if(n <= 0) n = 200;
 		zmap.GetPathFinder().RunBenchmark(n);
 		exit(0);
+	}
+}
+
+//#181: raise the start-screen pause armed by LoadNextMap once the settle window
+//has passed. If someone paused by hand inside the window, that pause stands - we
+//never stack a second one on top.
+void ZServer::CheckDelayedStartPause()
+{
+	if(start_pause_at_ztime < 0) return;
+	if(ztime.ztime < start_pause_at_ztime) return;
+
+	start_pause_at_ztime = -1;
+
+	if(game_on && !ztime.IsPaused())
+	{
+		ZDiag("start pause raised after the spawn-settle window (#181)");
+		PauseGame();
 	}
 }
 
@@ -1430,6 +1467,9 @@ void ZServer::Run()
 		//matchmaking lobby: advance the all-ready countdown (-> fill with bots + start).
 		//Cheap no-op once the game is running (returns immediately when not paused).
 		CheckAutoStart();
+
+		//#181: put up the start pause once freshly spawned squads have settled
+		CheckDelayedStartPause();
 
 		//check for endgame
 		CheckEndGame();
