@@ -174,7 +174,14 @@ void ZServer::Setup()
 	//normal singleplayer game opens no network-reachable port.
 	int net_port = getenv("ZOD_PORT") ? atoi(getenv("ZOD_PORT")) : 2137;
 	if(!server_socket.Start(net_port, !allow_remote_clients))
+	{
 		printf("ZServer::Setup:socket not setup\n");
+		//#254: without this the only symptom is a menu with nothing in it - the
+		//client connects to whatever is squatting on the port and hears silence
+		ZDiag("SERVER: could not open listen port %d - a previous zod (or another program) "
+			"is probably holding it; menus will stay empty. Kill the old process or "
+			"relaunch with ZOD_PORT=<other port>.", net_port);
+	}
 	else if(allow_remote_clients)
 	{
 		//Hosting for remote players: tell the host the LAN address others must

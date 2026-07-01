@@ -195,6 +195,9 @@ ZPlayer::ZPlayer() : ZClient()
 	loaded_percent = 0;
 	show_chat_history = false;
 	fort_ref_id = -1;
+	connect_attempt_time = 0;
+	server_response_seen = false;
+	server_silence_warned = false;
 
 	//#88: summary art is loaded raw once and (re)scaled to the live logical
 	//resolution on demand, since zoom changes init_w/init_h mid-game
@@ -306,6 +309,11 @@ bool ZPlayer::ConnectToServer(string address, int port)
 
 	remote_address = address;
 
+	//#254: arm the server-silence watchdog for this connect attempt
+	connect_attempt_time = current_time();
+	server_response_seen = false;
+	server_silence_warned = false;
+
 	if(!client_socket.Start(remote_address.c_str(), port))
 	{
 		printf("ZPlayer::ConnectToServer:socket not setup (%s:%d)\n", address.c_str(), port);
@@ -313,6 +321,35 @@ bool ZPlayer::ConnectToServer(string address, int port)
 	}
 
 	return true;
+}
+
+//#254: a healthy local server answers the connect handshake within milliseconds.
+//If nothing has arrived several seconds after the connect attempt, the classic
+//cause is a stale zod still holding the port: our own server can't bind (see
+//ServerSocket::Bind) and the client connected to the zombie, which never
+//replies - so every server-fed menu (Play Campaign, map lists) stays empty.
+//Say so once, in the log and on screen, instead of leaving the player guessing.
+void ZPlayer::CheckServerSilence()
+{
+	const double wait_secs = 5.0;
+
+	if(server_silence_warned || server_response_seen) return;
+	if(!connect_attempt_time) return;
+	if(current_time() - connect_attempt_time < wait_secs) return;
+
+	//the warning menu needs the menu art; the timer stays expired so the
+	//warning fires as soon as graphics are up
+	if(!graphics_loaded) return;
+
+	server_silence_warned = true;
+
+	ZDiag("client: no reply from game server '%s' within %.0fs - a stale zod may be holding "
+		"the port; server-fed menus (Play Campaign etc.) will be empty", remote_address.c_str(), wait_secs);
+
+	gmm_warning_flag wflags;
+	wflags.text1 = "game server not";
+	wflags.text2 = "responding - see log";
+	LoadMainMenu(GMM_WARNING, false, wflags);
 }
 
 //#88: gap between stacked summary stat lines, shared by build + render
@@ -1396,6 +1433,9 @@ void ZPlayer::Run()
 		ProcessSocketEvents();
 		//socket_time = current_time() - socket_time;
 		//client_socket.Process();
+
+		//#254: warn if the server never answered the connect handshake
+		CheckServerSilence();
 		
 		//check for sdl events
 		ProcessSDL();
@@ -1458,6 +1498,7 @@ void ZPlayer::ProcessSocketEvents()
 		*/
 		while(shandler->DoFastProcess(&message, &size, &pack_id))
 		{
+			server_response_seen = true;   //#254: the server is alive and talking
 			ehandler.ProcessEvent(TCP_EVENT, pack_id, message, size, 0);
 			//packets_processed++;
 		}

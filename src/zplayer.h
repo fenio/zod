@@ -517,6 +517,14 @@ class ZPlayer : public ZClient
 		GWCreateUser *create_user_menu;
 
 		bool graphics_loaded;
+
+		//#254: server-silence watchdog. If the server never answers the connect
+		//handshake (classic cause: a stale zod still holding the port, so we
+		//connected to a zombie), warn the player instead of showing empty menus.
+		void CheckServerSilence();
+		double connect_attempt_time;
+		bool server_response_seen;
+		bool server_silence_warned;
 };
 
 #endif
