@@ -7,6 +7,10 @@ name: linux-release
 on:
   release:
     types: [published]
+  # PRs touching this workflow run the build-only path (no tag -> no upload),
+  # so packaging changes get tested before they gate a real release
+  pull_request:
+    paths: [".github/workflows/linux-release.yml"]
   workflow_dispatch:
     inputs:
       tag:
