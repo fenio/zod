@@ -1,0 +1,136 @@
+name: linux-release
+
+# Build a Linux x86_64 AppImage (zod + bundled SDL3 libs + game data) and
+# attach it to the GitHub release. Built inside an Ubuntu 22.04 container so
+# the glibc floor stays at 2.35 — SDL3 isn't in 22.04's archive, so SDL3 and
+# its satellites are built from source and bundled by linuxdeploy.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the AppImage to (e.g. v0.5.2); leave empty to only build and store a workflow artifact"
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  SDL_VER: 3.4.12
+  IMG_VER: 3.4.4
+  MIX_VER: 3.2.4
+  TTF_VER: 3.2.2
+
+jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    container: ubuntu:22.04
+    steps:
+      # deps first: checkout needs git inside the container, or it silently
+      # falls back to a tarball download and `git describe` can't stamp the
+      # version banner
+      - name: Install build dependencies
+        run: |
+          set -eux
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build git pkg-config curl ca-certificates file \
+            desktop-file-utils \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev \
+            libxi-dev libxss-dev libxkbcommon-dev \
+            libwayland-dev wayland-protocols libdecor-0-dev \
+            libegl1-mesa-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libdbus-1-dev libudev-dev libdrm-dev libgbm-dev \
+            libfreetype-dev
+          # gh CLI for the release upload (not in the 22.04 archive)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+            -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            > /etc/apt/sources.list.d/github-cli.list
+          apt-get update && apt-get install -y --no-install-recommends gh
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # full history so `git describe` stamps the version banner
+
+      - name: Build SDL3 + SDL3_image + SDL3_mixer + SDL3_ttf from source
+        # image: stb backend decodes the PNG/BMP assets, so the heavyweight
+        # format plugins can stay off. mixer: the game plays WAV + OGG only
+        # (zmusic_engine.cpp), and stb_vorbis covers OGG with no external codec.
+        run: |
+          set -eux
+          build_dep() {
+            repo=$1; tarname=$2; ver=$3; shift 3
+            curl -fsSL -o /tmp/$repo.tar.gz \
+              "https://github.com/libsdl-org/$repo/releases/download/release-$ver/$tarname-$ver.tar.gz"
+            mkdir -p /tmp/$repo && tar -xzf /tmp/$repo.tar.gz -C /tmp/$repo --strip-components=1
+            cmake -S /tmp/$repo -B /tmp/$repo/build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr "$@"
+            cmake --build /tmp/$repo/build --parallel 4
+            cmake --install /tmp/$repo/build
+          }
+          build_dep SDL SDL3 "$SDL_VER"
+          build_dep SDL_image SDL3_image "$IMG_VER" -DSDLIMAGE_VENDORED=OFF \
+            -DSDLIMAGE_AVIF=OFF -DSDLIMAGE_WEBP=OFF -DSDLIMAGE_TIF=OFF -DSDLIMAGE_JXL=OFF
+          build_dep SDL_mixer SDL3_mixer "$MIX_VER" -DSDLMIXER_VENDORED=OFF -DSDLMIXER_SAMPLES=OFF \
+            -DSDLMIXER_FLAC=OFF -DSDLMIXER_GME=OFF -DSDLMIXER_MOD=OFF -DSDLMIXER_MP3=OFF \
+            -DSDLMIXER_MIDI=OFF -DSDLMIXER_OPUS=OFF -DSDLMIXER_WAVPACK=OFF
+          build_dep SDL_ttf SDL3_ttf "$TTF_VER" -DSDLTTF_VENDORED=OFF -DSDLTTF_HARFBUZZ=OFF
+          ldconfig
+
+      - name: Build zod and install into AppDir
+        run: |
+          set -eux
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel 4
+          DESTDIR="$PWD/AppDir" cmake --install build
+
+      - name: Package AppImage
+        run: |
+          set -eux
+          cat > zod.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=Zod Engine
+          Comment=Real-time strategy remake of the Bitmap Brothers classic Z
+          Exec=zod
+          Icon=zod
+          Categories=Game;StrategyGame;
+          Terminal=false
+          EOF
+          cp android/res/mipmap-xxxhdpi/ic_launcher.png zod.png
+          # no .AppImage suffix on the tool: keeps it out of the output glob below
+          curl -fsSL -o linuxdeploy \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy
+          # no FUSE inside the container -> extract-and-run
+          APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy --appdir AppDir \
+            --desktop-file zod.desktop --icon-file zod.png --output appimage
+          mv Zod_Engine*.AppImage zod-linux-x86_64.AppImage
+
+      - name: Smoke test
+        # --map-info parses a map and exits without opening a window, but it
+        # exercises the real binary: the AppImage runtime, the bundled SDL3
+        # libs resolving at exec, and the exe/../share/zod data-dir lookup.
+        run: |
+          set -eux
+          ./zod-linux-x86_64.AppImage --appimage-extract-and-run --map-info maps/p02_bb_orig01.map
+
+      - name: Upload to the release
+        if: ${{ github.event.release.tag_name != '' || github.event.inputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          TAG="${{ github.event.release.tag_name }}"
+          [ -n "$TAG" ] || TAG="${{ github.event.inputs.tag }}"
+          gh release upload "$TAG" zod-linux-x86_64.AppImage --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Store as workflow artifact (build-only run)
+        if: ${{ github.event.release.tag_name == '' && github.event.inputs.tag == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: zod-linux-x86_64-AppImage
+          path: zod-linux-x86_64.AppImage
