@@ -190,6 +190,7 @@ ZPlayer::ZPlayer() : ZClient()
 	collect_chat_message = false;
 	do_focus_to = false;
 	is_windowed = true;
+	window_has_focus = true;
 	use_opengl = true;
 	//music_on = true;
 	loaded_percent = 0;
@@ -2481,22 +2482,22 @@ void ZPlayer::StartMouseScrolling(int new_mouse_x, int new_mouse_y)
 // mouse to an edge scrolls the map again.
 bool ZPlayer::DoMouseScrollRight()
 {
-	return (mouse_x > init_w - 10);
+	return window_has_focus && !mbutton.down && !rbutton.dragged && (mouse_x > init_w - 10);
 }
 
 bool ZPlayer::DoMouseScrollLeft()
 {
-	return (mouse_x < 10);
+	return window_has_focus && !mbutton.down && !rbutton.dragged && (mouse_x < 10);
 }
 
 bool ZPlayer::DoMouseScrollUp()
 {
-	return (mouse_y < 10);
+	return window_has_focus && !mbutton.down && !rbutton.dragged && (mouse_y < 10);
 }
 
 bool ZPlayer::DoMouseScrollDown()
 {
-	return (mouse_y > init_h - 10);
+	return window_has_focus && !mbutton.down && !rbutton.dragged && (mouse_y > init_h - 10);
 }
 
 bool ZPlayer::DoKeyScrollRight()
@@ -3134,6 +3135,19 @@ void ZPlayer::ProcessSDL()
 			// to the window here would collapse that logical framebuffer, so it's
 			// intentionally a no-op now.
 			break;
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			// A release outside the window may never arrive on Windows. Do not let
+			// the next motion resume an interrupted right/middle-button drag.
+			window_has_focus = false;
+			rbutton.down = false;
+			rbutton.dragged = false;
+			mbutton.down = false;
+			break;
+		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			window_has_focus = true;
+			last_vert_scroll_time = last_horz_scroll_time = current_time();
+			vert_scroll_over = horz_scroll_over = 0;
+			break;
 		case SDL_EVENT_MOUSE_WHEEL:
 			// When a UI panel is open the wheel scrolls it (production list, menus).
 			// Otherwise, two-finger / wheel scrolling pans the map in both axes.
@@ -3177,6 +3191,8 @@ void ZPlayer::ProcessSDL()
 			ehandler.ProcessEvent(SDL_EVENT, MOTION_EVENT, NULL, 0, 0);
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			mouse_x = event.button.x;
+			mouse_y = event.button.y;
 			zmap.GetViewShift(shift_x, shift_y);
 			switch(event.button.button)
 			{
@@ -3211,6 +3227,8 @@ void ZPlayer::ProcessSDL()
 			}
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_UP:
+			mouse_x = event.button.x;
+			mouse_y = event.button.y;
 			switch(event.button.button)
 			{
 			case SDL_BUTTON_LEFT:
@@ -3460,14 +3478,6 @@ void ZPlayer::SelectAllOfType(int type)
 	DetermineCursor();
 	GiveHudSelected();
 }
-
-//How far (in map pixels) the cursor may drift between press and release and still
-//count as a click rather than a box-drag. The old value of 1px was far too tight:
-//ordinary hand jitter during a click registered as a tiny drag, so the order was
-//swallowed as a (near-empty) box-select and "not submitted" (issue #39). A few
-//pixels of slop makes clicks reliable while a deliberate box-select still drags
-//well past it.
-static const int CLICK_DRAG_SLOP = 5;
 
 //Classic (original-Z) mouse: a plain left click on open ground or an enemy
 //while units are selected issues the order, like the 1996 game did. Returns

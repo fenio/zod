@@ -87,8 +87,35 @@ void ZPlayer::motion_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	bool did_main_menu_motion;
 
+	if(p->rbutton.down && !p->rbutton.dragged
+		&& (abs(p->mouse_x - p->rbutton.x) > CLICK_DRAG_SLOP
+			|| abs(p->mouse_y - p->rbutton.y) > CLICK_DRAG_SLOP))
+		p->rbutton.dragged = true;
+
 	if(p->MainMenuMotion())
 	{
+		return;
+	}
+
+	// A right click keeps its normal cancel/order behavior. Once movement passes
+	// the click slop, it becomes a viewport drag and its release is consumed.
+	if(p->rbutton.down && p->rbutton.dragged)
+	{
+		int change_x = p->mouse_x - p->rbutton.x;
+		int change_y = p->mouse_y - p->rbutton.y;
+
+		if(!p->rbutton.started_over_hud && !p->rbutton.started_over_gui && (change_x || change_y))
+		{
+			int shift_x, shift_y;
+
+			p->zmap.GetViewShift(shift_x, shift_y);
+			p->zmap.SetViewShift(shift_x + change_x, shift_y + change_y);
+			p->do_focus_to = false;
+
+			p->rbutton.x = p->mouse_x;
+			p->rbutton.y = p->mouse_y;
+		}
+
 		return;
 	}
 
@@ -459,11 +486,45 @@ void ZPlayer::lunclick_event(ZPlayer *p, char *data, int size, int dummy)
 void ZPlayer::rclick_event(ZPlayer *p, char *data, int size, int dummy)
 {
 	p->rbutton.down = true;
+	p->rbutton.dragged = false;
+	p->rbutton.started_over_hud = p->mouse_x < 0 || p->mouse_y < 0
+		|| p->mouse_x >= p->init_w - HUD_WIDTH || p->mouse_y >= p->init_h - HUD_HEIGHT;
+	p->rbutton.started_over_gui = p->show_match_summary || p->active_menu || p->gui_window
+		|| (p->gui_factory_list && p->gui_factory_list->IsVisible()) || !p->gui_menu_list.empty();
 }
 
 void ZPlayer::runclick_event(ZPlayer *p, char *data, int size, int dummy)
 {
+	bool was_down = p->rbutton.down;
+	bool was_dragged = p->rbutton.dragged;
+	int change_x = p->mouse_x - p->rbutton.x;
+	int change_y = p->mouse_y - p->rbutton.y;
+
+	if(was_down && (was_dragged || abs(change_x) > CLICK_DRAG_SLOP || abs(change_y) > CLICK_DRAG_SLOP))
+	{
+		if(!p->rbutton.started_over_hud && !p->rbutton.started_over_gui)
+		{
+			int shift_x, shift_y;
+
+			p->zmap.GetViewShift(shift_x, shift_y);
+			p->zmap.SetViewShift(shift_x + change_x, shift_y + change_y);
+			p->do_focus_to = false;
+		}
+		was_dragged = true;
+	}
+
 	p->rbutton.down = false;
+	p->rbutton.dragged = false;
+
+	if(!was_down) return;
+
+	if(was_dragged)
+	{
+		p->hover_object = NULL;
+		motion_event(p, NULL, 0, 0);
+		p->DetermineCursor();
+		return;
+	}
 
 	//classic (original-Z) mouse: the right button cancels the selection
 	//instead of giving orders - orders are the left button's job. The

@@ -120,10 +120,11 @@ a blue bot, all 34 levels in order). Useful flags:
 | `-r WxH` | logical resolution (e.g. `800x600`; smaller = bigger sprites). Without `-r` the width auto-adapts to your display's aspect ratio — widescreen monitors get a wider map viewport and bar-free fullscreen |
 | `-s` / `-u` | no sound / no music |
 
-**Controls:** left-click selects, right-click moves/attacks; capture a zone by
-walking a unit onto its flag; crew a neutral (grey) vehicle by sending a grunt
-onto it; two-finger scroll (or arrow keys) pans the map. **Alt+Enter** toggles
-borderless fullscreen. Press **`Y`** to toggle render smoothing (see below).
+**Controls:** left-click selects; right-click moves/attacks in modern mouse mode;
+right-drag, middle-drag, two-finger scroll, or arrow keys pans the map. Capture a
+zone by walking a unit onto its flag; crew a neutral (grey) vehicle by sending a
+grunt onto it. **Alt+Enter** toggles borderless fullscreen. Press **`Y`** to toggle
+render smoothing (see below).
 The game starts **paused** — click the centre "Click to Start / Resume" banner
 to begin.
 

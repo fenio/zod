@@ -95,12 +95,14 @@ public:
 class mouse_button_info
 {
 public:
-	mouse_button_info() { x=y=map_x=map_y=down=0; }
+	mouse_button_info() : x(0), y(0), map_x(0), map_y(0), down(false),
+		started_over_hud(false), started_over_gui(false), dragged(false) {}
 	int x, y;
 	int map_x, map_y;
 	bool down;
 	bool started_over_hud;
 	bool started_over_gui;
+	bool dragged;
 };
 
 #define MAX_STORED_SPACE_BAR_EVENTS 5
@@ -201,6 +203,8 @@ class ZPlayer : public ZClient
 		void ProcessGame();
 		void ProcessVerbalWarnings();
 		void CollectSelectables();
+		// Cursor drift up to this many logical pixels still counts as a click.
+		static const int CLICK_DRAG_SLOP = 5;
 		bool DragExceedsSlop();		//#102: is the held drag past the click slop?
 		bool CouldCollectSelectables();
 		void SelectZObject(ZObject *obj);
@@ -441,6 +445,7 @@ class ZPlayer : public ZClient
 		double focus_to_original_distance;
 		double final_focus_to_time;
 		bool is_windowed;
+		bool window_has_focus;
 		bool use_opengl;
 		//bool music_on;
 		int loaded_percent;
