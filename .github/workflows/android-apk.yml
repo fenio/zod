@@ -113,6 +113,7 @@ jobs:
           sed -i -E 's/compileSdkVersion [0-9]+/compileSdkVersion 37/' "$GR"
           sed -i -E 's/targetSdkVersion [0-9]+/targetSdkVersion 37/' "$GR"
           sed -i -E 's/ndkVersion = "[^"]+"/ndkVersion = "29.0.14206865"/' "$GR"
+          sed -i 's/proguard-android.txt/proguard-android-optimize.txt/' "$GR"
 
           sed -i -E 's/(applicationId[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/' "$GR"
           sed -i -E 's/(namespace[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/'         "$GR"
