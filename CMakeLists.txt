@@ -16,7 +16,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2       REQUIRED IMPORTED_TARGET sdl3)
 pkg_check_modules(SDL2_IMAGE REQUIRED IMPORTED_TARGET sdl3-image)
-pkg_check_modules(SDL2_MIXER REQUIRED IMPORTED_TARGET sdl3-mixer)
+pkg_check_modules(SDL2_MIXER REQUIRED IMPORTED_TARGET sdl3-mixer>=3.2.4)
 pkg_check_modules(SDL2_TTF   REQUIRED IMPORTED_TARGET sdl3-ttf)
 
 # --- sources ---

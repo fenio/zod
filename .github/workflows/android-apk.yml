@@ -22,7 +22,7 @@ jobs:
     name: Build debug APK (arm64-v8a)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: repo
 
@@ -30,6 +30,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Install pinned Android SDK and NDK
+        run: |
+          set -eux
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-37.0" \
+            "ndk;29.0.14206865"
 
       - name: Clone SDL3 + satellites (pinned releases, with vendored deps)
         run: |
@@ -41,7 +48,7 @@ jobs:
             git clone --depth 1 --branch "$2" --recurse-submodules --shallow-submodules \
               "https://github.com/libsdl-org/$1" "$1"
           }
-          clone SDL        release-3.4.10
+          clone SDL        release-3.4.12
           clone SDL_image  release-3.4.4
           clone SDL_ttf    release-3.2.2
           clone SDL_mixer  release-3.2.4
@@ -95,6 +102,18 @@ jobs:
           # the template uses the newer `namespace = "..."` DSL (with the '='),
           # so the regex must allow an optional '='.
           GR=proj/app/build.gradle
+
+          # Keep the generated SDL project on an explicit, compatible Android
+          # toolchain instead of silently inheriting old template defaults.
+          sed -i "s/com.android.tools.build:gradle:[0-9.]*/com.android.tools.build:gradle:9.3.0/" proj/build.gradle
+          sed -i 's/gradle-[0-9.]*-bin.zip/gradle-9.5.0-bin.zip/' proj/gradle/wrapper/gradle-wrapper.properties
+          sed -i '/distributionSha256Sum=/d' proj/gradle/wrapper/gradle-wrapper.properties
+          sed -i '/distributionUrl=/a distributionSha256Sum=553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746' \
+            proj/gradle/wrapper/gradle-wrapper.properties
+          sed -i -E 's/compileSdkVersion [0-9]+/compileSdkVersion 37/' "$GR"
+          sed -i -E 's/targetSdkVersion [0-9]+/targetSdkVersion 37/' "$GR"
+          sed -i -E 's/ndkVersion = "[^"]+"/ndkVersion = "29.0.14206865"/' "$GR"
+
           sed -i -E 's/(applicationId[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/' "$GR"
           sed -i -E 's/(namespace[[:space:]]*=?[[:space:]]*)"[^"]*"/\1"io.github.fenio.zod"/'         "$GR"
           # the engine calls if_nameindex()/if_freenameindex() (net iface list),
@@ -111,7 +130,7 @@ jobs:
       - name: Build APK
         run: |
           set -eux
-          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.14206865"
           cd proj
           chmod +x gradlew
           # -PBUILD_WITH_CMAKE selects our jni/CMakeLists.txt (which builds

@@ -55,7 +55,7 @@ jobs:
             > /etc/apt/sources.list.d/github-cli.list
           apt-get update && apt-get install -y --no-install-recommends gh
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # full history so `git describe` stamps the version banner
 
@@ -134,7 +134,7 @@ jobs:
 
       - name: Store as workflow artifact (build-only run)
         if: ${{ github.event.release.tag_name == '' && github.event.inputs.tag == '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zod-linux-x86_64-AppImage
           path: zod-linux-x86_64.AppImage

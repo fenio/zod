@@ -17,6 +17,7 @@ port. The native (SDL3 desktop) build is completely unaffected.
 - `source ~/emsdk/emsdk_env.sh` puts `emcc` / `emcmake` on PATH.
 - Verified working: **emcc 6.0.1**; a trivial `SDL3/SDL.h` program compiled to
   wasm cleanly (the `sdl3` port auto-fetched SDL 3.4.2 and built `libSDL3.a`).
+  The current stable SDK is **6.0.3**, but the full WASM build is not wired yet.
 
 ## SDL dependency status under Emscripten (verified via `emcc --show-ports`)
 | lib | emscripten port? | plan |
