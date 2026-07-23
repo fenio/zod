@@ -1,0 +1,80 @@
+name: update-tap
+
+# When a release is published, bump the Homebrew tap formula
+# (fenio/homebrew-tap, Formula/zod.rb) to the new version and kick off its bottle
+# build - so `brew upgrade zod` picks up the release with no manual steps.
+#
+# Background: the release event here only builds the Windows/Android artifacts;
+# the brew formula lives in a SEPARATE repo and was hand-bumped, which is why a
+# release alone never moved `brew`. This closes that gap.
+#
+# REQUIRES a repo secret `TAP_TOKEN`: a fine-grained Personal Access Token scoped
+# to fenio/homebrew-tap with **Contents: read and write** (to push the formula)
+# AND **Actions: read and write** (to dispatch its bottle.yml). The default
+# GITHUB_TOKEN can't reach another repo, so this is the one bit of manual setup.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to push to the tap (e.g. v0.4.9)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag + version
+        id: v
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          if [ -z "$TAG" ]; then echo "no tag to publish"; exit 1; fi
+          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
+          echo "ver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Source tarball sha256
+        id: sha
+        run: |
+          URL="https://github.com/${{ github.repository }}/archive/refs/tags/${{ steps.v.outputs.tag }}.tar.gz"
+          SHA=$(curl -fsSL "$URL" | sha256sum | cut -d' ' -f1)
+          echo "tarball $URL -> $SHA"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the tap
+        uses: actions/checkout@v4
+        with:
+          repository: fenio/homebrew-tap
+          token: ${{ secrets.TAP_TOKEN }}
+          path: tap
+
+      - name: Bump the formula
+        working-directory: tap
+        run: |
+          set -eux
+          F=Formula/zod.rb
+          # drop any stale bottle block (the tap's bottle.yml re-adds a fresh one
+          # once the source build is bottled)
+          perl -0pi -e 's/\n  bottle do\n.*?\n  end\n//s' "$F"
+          # bump the source url + sha256 (the only ones left once the bottle's gone)
+          perl -pi -e 's|(archive/refs/tags/)v[0-9][^"]*|${1}${{ steps.v.outputs.tag }}.tar.gz|' "$F"
+          perl -pi -e 's|sha256 "[0-9a-f]{64}"|sha256 "${{ steps.sha.outputs.sha }}"|' "$F"
+          echo "----- formula -----"; sed -n '1,8p' "$F"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "formula already at this version; skipping push"
+          else
+            git commit -am "zod ${{ steps.v.outputs.ver }}: bump url/sha, drop stale bottle block"
+            git push
+          fi
+
+      - name: Build + publish the bottle
+        env:
+          GH_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: gh workflow run bottle.yml --repo fenio/homebrew-tap -f version=${{ steps.v.outputs.ver }}
