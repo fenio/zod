@@ -509,6 +509,8 @@ class ZPlayer : public ZClient
 		int place_cannon_tx, place_cannon_ty;
 		int place_cannon_left, place_cannon_right;
 		int place_cannon_top, place_cannon_bottom;
+		bool place_cannon_placable;
+		ZSDL_Surface place_cannon_cross_img;
 
 		ZSDL_Surface  selection_img[MAX_TEAM_TYPES];
 

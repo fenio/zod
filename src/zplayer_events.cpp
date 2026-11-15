@@ -526,6 +526,12 @@ void ZPlayer::runclick_event(ZPlayer *p, char *data, int size, int dummy)
 		return;
 	}
 
+	if(p->place_cannon)
+	{
+		p->place_cannon = false;
+		return;
+	}
+
 	//classic (original-Z) mouse: the right button cancels the selection
 	//instead of giving orders - orders are the left button's job. The
 	//eject special case stays (right click on your own vehicle).

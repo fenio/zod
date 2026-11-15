@@ -187,6 +187,7 @@ ZPlayer::ZPlayer() : ZClient()
 	pcursor_death_time = 0;
 	gui_window = NULL;
 	place_cannon = false;
+	place_cannon_placable = true;
 	collect_chat_message = false;
 	do_focus_to = false;
 	is_windowed = true;
@@ -4975,7 +4976,32 @@ void ZPlayer::SetPlaceCannonCords()
 	place_cannon_tx = map_x / 16;
 	place_cannon_ty = map_y / 16;
 
-	//ok or not ok?
+	ZObject *building_obj = GetObjectFromID(place_cannon_ref_id, object_list);
+	place_cannon_placable = building_obj && CannonPlacable(building_obj, place_cannon_tx, place_cannon_ty);
+}
+
+static SDL_Surface *CreatePlaceCannonCross()
+{
+	const int size = 16;
+	SDL_Surface *surface = SDL_CreateSurface(size, size, SDL_PIXELFORMAT_ARGB8888);
+	if(!surface) return NULL;
+
+	for(int y=0;y<size;y++)
+	{
+		Uint32 *row = (Uint32*)((Uint8*)surface->pixels + y * surface->pitch);
+		for(int x=0;x<size;x++)
+		{
+			int d = abs(x - y);
+			int d2 = abs(x + y - (size - 1));
+			if(d2 < d) d = d2;
+
+			if(d <= 1) row[x] = 0xFFE00000;
+			else if(d == 2) row[x] = 0xFF400000;
+			else row[x] = 0x00000000;
+		}
+	}
+
+	return surface;
 }
 
 void ZPlayer::RenderPlaceCannon()
@@ -4992,6 +5018,16 @@ void ZPlayer::RenderPlaceCannon()
 	zmap.RenderZSurface(&place_cannon_ok_img, map_x, map_y);
 	//if(zmap.GetBlitInfo(place_cannon_ok_img, map_x, map_y, from_rect, to_rect))
 	//		SDL_BlitSurface( place_cannon_ok_img, &from_rect, screen, &to_rect);
+
+	if(!place_cannon_placable)
+	{
+		if(!place_cannon_cross_img.GetBaseSurface())
+			place_cannon_cross_img.LoadBaseImage(CreatePlaceCannonCross());
+
+		SDL_Surface *cross = place_cannon_cross_img.GetBaseSurface();
+		if(cross)
+			zmap.RenderZSurface(&place_cannon_cross_img, map_x + (32 - cross->w) / 2, map_y + (32 - cross->h) / 2);
+	}
 }
 
 bool ZPlayer::DoPlaceCannon()
@@ -5002,6 +5038,8 @@ bool ZPlayer::DoPlaceCannon()
 
 	//#91: no placing cannons before the round starts
 	if(ztime.IsPaused()) { place_cannon = false; return false; }
+
+	if(!place_cannon_placable) return true;
 
 	place_cannon = false;
 
